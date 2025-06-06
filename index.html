@@ -129,7 +129,8 @@
                 const producto = productos.find(p => p.id === productoId);
                 return producto ? producto.nombre : 'Producto no encontrado';
             };
-             182// FORMULARIO CLIENTES
+
+            // FORMULARIO CLIENTES
             const ClienteForm = () => {
                 const [data, setData] = useState(editing || { 
                     nombre: '', 
@@ -179,8 +180,6 @@
             };
 
             // FORMULARIO PRODUCTOS
-            const ProductoForm = () => {
-          // FORMULARIO PRODUCTOS
             const ProductoForm = () => {
                 const [data, setData] = useState(editing || { 
                     nombre: '', 
@@ -263,3 +262,571 @@
                     </form>
                 );
             };
+
+            // FORMULARIO PEDIDOS
+            const PedidoForm = () => {
+                const [data, setData] = useState(editing || { 
+                    clienteId: '',
+                    productos: [{ productoId: '', cantidad: 1, precioUnitario: 0 }],
+                    costoEnvio: 0,
+                    total: 0,
+                    fechaEntrega: '',
+                    turno: 'mañana',
+                    fechaCreacion: new Date().toISOString().split('T')[0]
+                });
+
+                const calcularTotal = () => {
+                    const subtotal = data.productos.reduce((sum, p) => sum + (p.cantidad * p.precioUnitario), 0);
+                    const total = subtotal + parseFloat(data.costoEnvio || 0);
+                    setData({...data, total});
+                };
+
+                const addProducto = () => {
+                    setData({
+                        ...data,
+                        productos: [...data.productos, { productoId: '', cantidad: 1, precioUnitario: 0 }]
+                    });
+                };
+
+                const removeProducto = (index) => {
+                    const newProductos = data.productos.filter((_, i) => i !== index);
+                    setData({...data, productos: newProductos});
+                };
+
+                const updateProducto = (index, field, value) => {
+                    const newProductos = [...data.productos];
+                    newProductos[index][field] = field === 'cantidad' || field === 'precioUnitario' ? parseFloat(value) || 0 : value;
+                    setData({...data, productos: newProductos});
+                };
+                
+                const handleSubmit = (e) => {
+                    e.preventDefault();
+                    if (!data.clienteId || data.productos.length === 0 || !data.productos[0].productoId) {
+                        alert('Por favor completa cliente y al menos un producto');
+                        return;
+                    }
+                    saveData('pedidos', data);
+                };
+                
+                return (
+                    <form onSubmit={handleSubmit}>
+                        <h3 className="text-xl font-bold mb-4">Nuevo Pedido</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block font-semibold mb-1">Cliente *</label>
+                                <select value={data.clienteId} onChange={(e) => setData({...data, clienteId: e.target.value})} className="w-full p-2 border rounded" required>
+                                    <option value="">Seleccionar Cliente</option>
+                                    {clientes.map(c => (
+                                        <option key={c.id} value={c.id}>{c.nombre} {c.apellido} - {c.telefono}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="block font-semibold">Productos *</label>
+                                    <button type="button" onClick={addProducto} className="bg-blue-500 text-white px-2 py-1 rounded text-sm">+ Agregar Producto</button>
+                                </div>
+                                {data.productos.map((producto, index) => (
+                                    <div key={index} className="border p-3 rounded mb-2 bg-gray-50">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                            <select 
+                                                value={producto.productoId} 
+                                                onChange={(e) => updateProducto(index, 'productoId', e.target.value)} 
+                                                className="w-full p-2 border rounded"
+                                                required
+                                            >
+                                                <option value="">Seleccionar Producto</option>
+                                                {productos.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                                                ))}
+                                            </select>
+                                            <input 
+                                                type="number" 
+                                                placeholder="Cantidad" 
+                                                value={producto.cantidad} 
+                                                onChange={(e) => updateProducto(index, 'cantidad', e.target.value)} 
+                                                className="w-full p-2 border rounded" 
+                                                min="1"
+                                                required
+                                            />
+                                            <input 
+                                                type="number" 
+                                                step="0.01"
+                                                placeholder="Precio Unitario" 
+                                                value={producto.precioUnitario} 
+                                                onChange={(e) => updateProducto(index, 'precioUnitario', e.target.value)} 
+                                                className="w-full p-2 border rounded" 
+                                                required
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold">${(producto.cantidad * producto.precioUnitario).toFixed(2)}</span>
+                                                {data.productos.length > 1 && (
+                                                    <button type="button" onClick={() => removeProducto(index)} className="bg-red-500 text-white px-2 py-1 rounded text-sm">×</button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <input 
+                                    type="number" 
+                                    step="0.01"
+                                    placeholder="Costo de Envío" 
+                                    value={data.costoEnvio} 
+                                    onChange={(e) => setData({...data, costoEnvio: parseFloat(e.target.value) || 0})} 
+                                    className="w-full p-2 border rounded" 
+                                />
+                                <div className="flex items-center">
+                                    <button type="button" onClick={calcularTotal} className="bg-green-500 text-white px-4 py-2 rounded mr-2">Calcular Total</button>
+                                    <span className="font-bold text-lg">${data.total.toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <input 
+                                    type="date" 
+                                    value={data.fechaEntrega} 
+                                    onChange={(e) => setData({...data, fechaEntrega: e.target.value})} 
+                                    className="w-full p-2 border rounded" 
+                                />
+                                <select value={data.turno} onChange={(e) => setData({...data, turno: e.target.value})} className="w-full p-2 border rounded">
+                                    <option value="mañana">Mañana</option>
+                                    <option value="tarde">Tarde</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                            <button type="submit" className="bg-orange-500 text-white px-4 py-2 rounded">Guardar Pedido</button>
+                            <button type="button" onClick={() => setModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
+                        </div>
+                    </form>
+                );
+            };
+
+            // FORMULARIO PAGOS
+            const PagoForm = () => {
+                const [data, setData] = useState(editing || { 
+                    pedidoId: '',
+                    totalCompra: 0,
+                    pagadoACuenta: 0,
+                    saldoAPagar: 0,
+                    formaPago: 'efectivo',
+                    fecha: new Date().toISOString().split('T')[0]
+                });
+
+                const calcularSaldo = () => {
+                    const saldo = data.totalCompra - data.pagadoACuenta;
+                    setData({...data, saldoAPagar: Math.max(0, saldo)});
+                };
+                
+                const handleSubmit = (e) => {
+                    e.preventDefault();
+                    if (!data.pedidoId) {
+                        alert('Por favor selecciona un pedido');
+                        return;
+                    }
+                    saveData('pagos', data);
+                };
+                
+                return (
+                    <form onSubmit={handleSubmit}>
+                        <h3 className="text-xl font-bold mb-4">Registrar Pago</h3>
+                        <div className="space-y-3">
+                            <select value={data.pedidoId} onChange={(e) => setData({...data, pedidoId: e.target.value})} className="w-full p-2 border rounded" required>
+                                <option value="">Seleccionar Pedido</option>
+                                {pedidos.map(p => (
+                                    <option key={p.id} value={p.id}>Pedido #{p.id.slice(-6)} - {getClienteName(p.clienteId)} - ${p.total}</option>
+                                ))}
+                            </select>
+                            <input 
+                                type="number" 
+                                step="0.01"
+                                placeholder="Total de la Compra" 
+                                value={data.totalCompra} 
+                                onChange={(e) => setData({...data, totalCompra: parseFloat(e.target.value) || 0})} 
+                                className="w-full p-2 border rounded" 
+                                required
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                                <input 
+                                    type="number" 
+                                    step="0.01"
+                                    placeholder="Pagado a Cuenta" 
+                                    value={data.pagadoACuenta} 
+                                    onChange={(e) => setData({...data, pagadoACuenta: parseFloat(e.target.value) || 0})} 
+                                    className="w-full p-2 border rounded" 
+                                />
+                                <div className="flex items-center">
+                                    <button type="button" onClick={calcularSaldo} className="bg-blue-500 text-white px-2 py-1 rounded text-sm mr-2">Calcular</button>
+                                    <span className="font-bold">Saldo: ${data.saldoAPagar.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <select value={data.formaPago} onChange={(e) => setData({...data, formaPago: e.target.value})} className="w-full p-2 border rounded">
+                                <option value="efectivo">Efectivo</option>
+                                <option value="mercadopago">Mercado Pago</option>
+                                <option value="transferencia">Transferencia</option>
+                            </select>
+                            <input 
+                                type="date" 
+                                value={data.fecha} 
+                                onChange={(e) => setData({...data, fecha: e.target.value})} 
+                                className="w-full p-2 border rounded" 
+                            />
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                            <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">Guardar Pago</button>
+                            <button type="button" onClick={() => setModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
+                        </div>
+                    </form>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100">
+                    {/* HEADER */}
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4">
+                        <h1 className="text-2xl font-bold">🥪 Sistema Pastrami - Administración Completa</h1>
+                        <div className="flex items-center gap-2 mt-2">
+                            <div className={`w-2 h-2 rounded-full ${status.includes('✅') ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                            <span className="text-sm">{status}</span>
+                        </div>
+                    </div>
+
+                    {/* NAVEGACIÓN */}
+                    <div className="bg-white border-b flex overflow-x-auto">
+                        <button onClick={() => setTab('pedidos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'pedidos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            📦 Pedidos ({pedidos.length})
+                        </button>
+                        <button onClick={() => setTab('clientes')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'clientes' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            👥 Clientes ({clientes.length})
+                        </button>
+                        <button onClick={() => setTab('productos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'productos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            🛍️ Productos ({productos.length})
+                        </button>
+                        <button onClick={() => setTab('pagos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'pagos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            💰 Pagos ({pagos.length})
+                        </button>
+                        <button onClick={() => setTab('estadisticas')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'estadisticas' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            📊 Estadísticas
+                        </button>
+                    </div>
+
+                    <div className="p-6">
+                        {/* TAB PEDIDOS */}
+                        {tab === 'pedidos' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Gestión de Pedidos</h2>
+                                    <button onClick={() => { setModalType('pedido'); setEditing(null); setModal(true); }} className="bg-orange-500 text-white px-4 py-2 rounded">
+                                        + Nuevo Pedido
+                                    </button>
+                                </div>
+                                <div className="space-y-4">
+                                    {pedidos.map(p => (
+                                        <div key={p.id} className="bg-white p-4 rounded shadow">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-bold text-lg">Pedido #{p.id.slice(-6)}</h3>
+                                                    <p><strong>Cliente:</strong> {getClienteName(p.clienteId)}</p>
+                                                    <p><strong>Productos:</strong></p>
+                                                    <ul className="ml-4">
+                                                        {p.productos?.map((prod, idx) => (
+                                                            <li key={idx}>• {getProductName(prod.productoId)} x{prod.cantidad} = ${(prod.cantidad * prod.precioUnitario).toFixed(2)}</li>
+                                                        ))}
+                                                    </ul>
+                                                    <p><strong>Envío:</strong> ${p.costoEnvio}</p>
+                                                    <p><strong>Total:</strong> ${p.total}</p>
+                                                    <p><strong>Entrega:</strong> {p.fechaEntrega} ({p.turno})</p>
+                                                    <p><strong>Creado:</strong> {p.fechaCreacion}</p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => { setEditing(p); setModalType('pedido'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-sm">Editar</button>
+                                                    <button onClick={() => deleteData('pedidos', p.id)} className="bg-red-500 text-white px-2 py-1 rounded text-sm">Eliminar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {pedidos.length === 0 && (
+                                        <div className="bg-white p-4 rounded shadow text-center text-gray-500">
+                                            No hay pedidos registrados
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB CLIENTES */}
+                        {tab === 'clientes' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Gestión de Clientes</h2>
+                                    <button onClick={() => { setModalType('cliente'); setEditing(null); setModal(true); }} className="bg-green-500 text-white px-4 py-2 rounded">
+                                        + Nuevo Cliente
+                                    </button>
+                                </div>
+                                
+                                <div className="mb-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="🔍 Buscar cliente por nombre..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full p-3 border rounded"
+                                    />
+                                </div>
+
+                                <div className="bg-white rounded shadow overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-2 text-left">Nombre</th>
+                                                <th className="px-4 py-2 text-left">Teléfono</th>
+                                                <th className="px-4 py-2 text-left">Dirección</th>
+                                                <th className="px-4 py-2 text-left">Email</th>
+                                                <th className="px-4 py-2 text-left">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredClientes.map(c => (
+                                                <tr key={c.id} className="border-t">
+                                                    <td className="px-4 py-2 font-semibold">{c.nombre} {c.apellido}</td>
+                                                    <td className="px-4 py-2">{c.telefono}</td>
+                                                    <td className="px-4 py-2">
+                                                        {c.calle} {c.numero}
+                                                        {c.piso && `, ${c.piso}`}
+                                                        <br />
+                                                        {c.localidad} ({c.codigoPostal})
+                                                    </td>
+                                                    <td className="px-4 py-2">{c.email}</td>
+                                                    <td className="px-4 py-2">
+                                                        <button onClick={() => { setEditing(c); setModalType('cliente'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1">Editar</button>
+                                                        <button onClick={() => deleteData('clientes', c.id)} className="bg-red-500 text-white px-2 py-1 rounded text-xs">Eliminar</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {filteredClientes.length === 0 && (
+                                        <div className="p-4 text-center text-gray-500">
+                                            No hay clientes registrados
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB PRODUCTOS */}
+                        {tab === 'productos' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Gestión de Productos</h2>
+                                    <button onClick={() => { setModalType('producto'); setEditing(null); setModal(true); }} className="bg-purple-500 text-white px-4 py-2 rounded">
+                                        + Nuevo Producto
+                                    </button>
+                                </div>
+
+                                <div className="mb-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="🔍 Buscar producto por nombre..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full p-3 border rounded"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {filteredProductos.map(p => (
+                                        <div key={p.id} className="bg-white p-4 rounded shadow">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-bold text-lg">{p.nombre}</h3>
+                                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">ID: {p.id}</span>
+                                            </div>
+                                            <p><strong>Cantidad:</strong> {p.cantidad} {p.tipoMedida}</p>
+                                            
+                                            {p.componentes && p.componentes.length > 0 && (
+                                                <div className="mt-2">
+                                                    <strong>Componentes:</strong>
+                                                    <ul className="ml-4 text-sm">
+                                                        {p.componentes.map((comp, idx) => (
+                                                            <li key={idx}>• {comp.nombre}: {comp.cantidad}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="flex gap-2 mt-3">
+                                                <button onClick={() => { setEditing(p); setModalType('producto'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-sm flex-1">Editar</button>
+                                                <button onClick={() => deleteData('productos', p.id)} className="bg-red-500 text-white px-2 py-1 rounded text-sm flex-1">Eliminar</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {filteredProductos.length === 0 && (
+                                    <div className="bg-white p-4 rounded shadow text-center text-gray-500">
+                                        No hay productos registrados
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* TAB PAGOS */}
+                        {tab === 'pagos' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Gestión de Pagos</h2>
+                                    <button onClick={() => { setModalType('pago'); setEditing(null); setModal(true); }} className="bg-green-500 text-white px-4 py-2 rounded">
+                                        + Registrar Pago
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    {pagos.map(p => (
+                                        <div key={p.id} className="bg-white p-4 rounded shadow">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-bold">Pago #{p.id.slice(-6)}</h3>
+                                                    <p><strong>Pedido:</strong> #{p.pedidoId.slice(-6)}</p>
+                                                    <p><strong>Total Compra:</strong> ${p.totalCompra}</p>
+                                                    <p><strong>Pagado a Cuenta:</strong> ${p.pagadoACuenta}</p>
+                                                    <p><strong>Saldo a Pagar:</strong> ${p.saldoAPagar}</p>
+                                                    <p><strong>Forma de Pago:</strong> {p.formaPago}</p>
+                                                    <p><strong>Fecha:</strong> {p.fecha}</p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => { setEditing(p); setModalType('pago'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-sm">Editar</button>
+                                                    <button onClick={() => deleteData('pagos', p.id)} className="bg-red-500 text-white px-2 py-1 rounded text-sm">Eliminar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {pagos.length === 0 && (
+                                        <div className="bg-white p-4 rounded shadow text-center text-gray-500">
+                                            No hay pagos registrados
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB ESTADÍSTICAS */}
+                        {tab === 'estadisticas' && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-4">Estadísticas y Reportes</h2>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                                    {/* ESTADÍSTICAS GENERALES */}
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-bold mb-2">📊 Resumen General</h3>
+                                        <p>Total Clientes: {clientes.length}</p>
+                                        <p>Total Productos: {productos.length}</p>
+                                        <p>Total Pedidos: {pedidos.length}</p>
+                                        <p>Total Pagos: {pagos.length}</p>
+                                    </div>
+
+                                    {/* PEDIDOS PENDIENTES */}
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-bold mb-2">⏳ Pendientes de Entrega</h3>
+                                        {pedidos.filter(p => {
+                                            const today = new Date().toISOString().split('T')[0];
+                                            return p.fechaEntrega >= today;
+                                        }).slice(0, 5).map(p => (
+                                            <p key={p.id} className="text-sm">• {getClienteName(p.clienteId)} - {p.fechaEntrega}</p>
+                                        ))}
+                                    </div>
+
+                                    {/* PAGOS PENDIENTES */}
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-bold mb-2">💰 Pendientes de Pago</h3>
+                                        {pagos.filter(p => p.saldoAPagar > 0).slice(0, 5).map(p => (
+                                            <p key={p.id} className="text-sm">• Pedido #{p.pedidoId.slice(-6)} - ${p.saldoAPagar}</p>
+                                        ))}
+                                    </div>
+
+                                    {/* STOCK BAJO */}
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-bold mb-2">📦 Stock Bajo</h3>
+                                        {productos.filter(p => parseInt(p.cantidad) < 10).map(p => (
+                                            <p key={p.id} className="text-sm text-red-600">• {p.nombre}: {p.cantidad} {p.tipoMedida}</p>
+                                        ))}
+                                    </div>
+
+                                    {/* FORMAS DE PAGO */}
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-bold mb-2">💳 Por Forma de Pago</h3>
+                                        <p>Efectivo: {pagos.filter(p => p.formaPago === 'efectivo').length}</p>
+                                        <p>Mercado Pago: {pagos.filter(p => p.formaPago === 'mercadopago').length}</p>
+                                        <p>Transferencia: {pagos.filter(p => p.formaPago === 'transferencia').length}</p>
+                                    </div>
+
+                                    {/* CLIENTES TOP */}
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-bold mb-2">🏆 Clientes Top</h3>
+                                        {(() => {
+                                            const clientePedidos = {};
+                                            pedidos.forEach(p => {
+                                                clientePedidos[p.clienteId] = (clientePedidos[p.clienteId] || 0) + 1;
+                                            });
+                                            return Object.entries(clientePedidos)
+                                                .sort(([,a], [,b]) => b - a)
+                                                .slice(0, 5)
+                                                .map(([clienteId, count]) => (
+                                                    <p key={clienteId} className="text-sm">• {getClienteName(clienteId)}: {count} pedidos</p>
+                                                ));
+                                        })()}
+                                    </div>
+                                </div>
+
+                                {/* FILTROS ADICIONALES */}
+                                <div className="bg-white p-4 rounded shadow">
+                                    <h3 className="font-bold mb-4">🔍 Filtros y Búsquedas Avanzadas</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block font-semibold mb-1">Por Código Postal:</label>
+                                            <select className="w-full p-2 border rounded">
+                                                <option value="">Todos los códigos postales</option>
+                                                {[...new Set(clientes.map(c => c.codigoPostal).filter(Boolean))].map(cp => (
+                                                    <option key={cp} value={cp}>{cp}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block font-semibold mb-1">Fecha Desde:</label>
+                                            <input type="date" className="w-full p-2 border rounded" />
+                                        </div>
+                                        <div>
+                                            <label className="block font-semibold mb-1">Fecha Hasta:</label>
+                                            <input type="date" className="w-full p-2 border rounded" />
+                                        </div>
+                                    </div>
+                                    <button className="bg-blue-500 text-white px-4 py-2 rounded mt-4">Aplicar Filtros</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* MODAL */}
+                    {modal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="bg-white rounded p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <button onClick={() => { setModal(false); setEditing(null); }} className="float-right text-gray-500 text-2xl font-bold hover:text-gray-700">×</button>
+                                <div className="clear-both">
+                                    {modalType === 'cliente' && <ClienteForm />}
+                                    {modalType === 'producto' && <ProductoForm />}
+                                    {modalType === 'pedido' && <PedidoForm />}
+                                    {modalType === 'pago' && <PagoForm />}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
