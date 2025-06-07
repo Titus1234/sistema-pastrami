@@ -110,13 +110,32 @@
                 }
             };
 
+            // FUNCIÓN PARA MARCAR COMO ENTREGADO
+            const marcarComoEntregado = async (pedidoId) => {
+                if (confirm('¿Confirmas que este pedido fue ENTREGADO? Se quitará de la vista principal.')) {
+                    try {
+                        await window.db.collection('pedidos').doc(pedidoId).update({
+                            estado: 'entregado',
+                            fechaEntrega: new Date().toISOString().split('T')[0]
+                        });
+                        alert('✅ Pedido marcado como entregado');
+                    } catch (error) {
+                        alert('❌ Error: ' + error.message);
+                        console.error('Error marcando como entregado:', error);
+                    }
+                }
+            };
+
             const filteredClientes = clientes.filter(c => 
                 `${c.nombre} ${c.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())
             );
 
             const filteredProductos = productos
                 .filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
-                .sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDENAMIENTO ALFABÉTICO
+                .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            // SOLO PEDIDOS EN CURSO (NO ENTREGADOS)
+            const pedidosEnCurso = pedidos.filter(p => p.estado !== 'entregado');
 
             const getClienteName = (clienteId) => {
                 const cliente = clientes.find(c => c.id === clienteId);
@@ -129,21 +148,9 @@
             };
 
             const getEstadoBadge = (estado) => {
-                const estilos = {
-                    pendiente: 'bg-yellow-100 text-yellow-800',
-                    en_preparacion: 'bg-blue-100 text-blue-800',
-                    listo: 'bg-green-100 text-green-800',
-                    entregado: 'bg-gray-100 text-gray-800'
-                };
-                const textos = {
-                    pendiente: 'Pendiente',
-                    en_preparacion: 'En Preparación',
-                    listo: 'Listo',
-                    entregado: 'Entregado'
-                };
                 return (
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${estilos[estado] || estilos.pendiente}`}>
-                        {textos[estado] || estado}
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        En Curso
                     </span>
                 );
             };
@@ -197,7 +204,7 @@
                 );
             };
 
-            // FORMULARIO PRODUCTOS MEJORADO - SIN COMPONENTES EN SIMPLES
+            // FORMULARIO PRODUCTOS MEJORADO
             const ProductoForm = () => {
                 const [data, setData] = useState(editing || { 
                     nombre: '', 
@@ -327,7 +334,6 @@
                             </div>
                         </div>
 
-                        {/* COMPONENTES - SOLO PARA CAJAS/COMBOS */}
                         {data.tipo === 'caja' && (
                             <div className="bg-blue-50 p-4 rounded">
                                 <div className="flex justify-between items-center mb-3">
@@ -416,7 +422,6 @@
                             </div>
                         )}
 
-                        {/* MENSAJE PARA PRODUCTOS SIMPLES */}
                         {data.tipo === 'simple' && (
                             <div className="bg-green-50 p-4 rounded border border-green-200">
                                 <div className="flex items-center gap-2">
@@ -487,7 +492,7 @@
                 );
             };
 
-            // FORMULARIO PEDIDOS
+            // FORMULARIO PEDIDOS SIMPLIFICADO
             const PedidoForm = () => {
                 const [data, setData] = useState(editing || { 
                     clienteId: '',
@@ -495,7 +500,7 @@
                     direccionEntrega: '',
                     fechaEntrega: '',
                     turno: 'mañana',
-                    estado: 'pendiente',
+                    estado: 'en_curso', // SIEMPRE EMPIEZA EN CURSO
                     costoEnvio: 0,
                     subtotal: 0,
                     total: 0,
@@ -598,41 +603,28 @@
                             {editing ? 'Editar Pedido' : 'Nuevo Pedido'}
                         </h3>
 
+                        {/* CLIENTE */}
                         <div className="bg-blue-50 p-4 rounded">
-                            <h4 className="font-semibold mb-3">Cliente y Estado</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Cliente *</label>
-                                    <select 
-                                        value={data.clienteId} 
-                                        onChange={(e) => setData({...data, clienteId: e.target.value})} 
-                                        className="w-full p-2 border rounded" 
-                                        required
-                                    >
-                                        <option value="">Seleccionar Cliente</option>
-                                        {clientes.map(c => (
-                                            <option key={c.id} value={c.id}>
-                                                {c.nombre} {c.apellido} - {c.telefono}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Estado del Pedido</label>
-                                    <select 
-                                        value={data.estado} 
-                                        onChange={(e) => setData({...data, estado: e.target.value})} 
-                                        className="w-full p-2 border rounded"
-                                    >
-                                        <option value="pendiente">Pendiente</option>
-                                        <option value="en_preparacion">En Preparación</option>
-                                        <option value="listo">Listo</option>
-                                        <option value="entregado">Entregado</option>
-                                    </select>
-                                </div>
+                            <h4 className="font-semibold mb-3">Información del Cliente</h4>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Cliente *</label>
+                                <select 
+                                    value={data.clienteId} 
+                                    onChange={(e) => setData({...data, clienteId: e.target.value})} 
+                                    className="w-full p-2 border rounded" 
+                                    required
+                                >
+                                    <option value="">Seleccionar Cliente</option>
+                                    {clientes.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.nombre} {c.apellido} - {c.telefono}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
+                        {/* PRODUCTOS */}
                         <div className="bg-green-50 p-4 rounded">
                             <div className="flex justify-between items-center mb-3">
                                 <h4 className="font-semibold">Productos *</h4>
@@ -700,6 +692,7 @@
                             ))}
                         </div>
 
+                        {/* ENTREGA */}
                         <div className="bg-yellow-50 p-4 rounded">
                             <h4 className="font-semibold mb-3">Información de Entrega</h4>
                             <div className="space-y-3">
@@ -750,6 +743,7 @@
                             </div>
                         </div>
 
+                        {/* TOTALES Y PAGO */}
                         <div className="bg-purple-50 p-4 rounded">
                             <h4 className="font-semibold mb-3">Totales y Pago</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -799,6 +793,7 @@
                             </div>
                         </div>
 
+                        {/* BOTONES */}
                         <div className="flex gap-2 pt-4">
                             <button 
                                 type="submit" 
@@ -820,6 +815,7 @@
 
             return (
                 <div className="min-h-screen bg-gray-100">
+                    {/* HEADER */}
                     <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4">
                         <h1 className="text-2xl font-bold">🥪 Sistema Pastrami - Administración Completa</h1>
                         <div className="flex items-center gap-2 mt-2">
@@ -828,9 +824,10 @@
                         </div>
                     </div>
 
+                    {/* NAVEGACIÓN */}
                     <div className="bg-white border-b flex overflow-x-auto">
                         <button onClick={() => setTab('pedidos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'pedidos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
-                            📦 Pedidos ({pedidos.length})
+                            📦 Pedidos en Curso ({pedidosEnCurso.length})
                         </button>
                         <button onClick={() => setTab('clientes')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'clientes' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
                             👥 Clientes ({clientes.length})
@@ -841,52 +838,18 @@
                     </div>
 
                     <div className="p-6">
+                        {/* TAB PEDIDOS - SOLO EN CURSO */}
                         {tab === 'pedidos' && (
                             <div>
                                 <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-2xl font-bold">Gestión de Pedidos</h2>
+                                    <h2 className="text-2xl font-bold">Pedidos en Curso</h2>
                                     <button onClick={() => { setModalType('pedido'); setEditing(null); setModal(true); }} className="bg-orange-500 text-white px-4 py-2 rounded">
                                         + Nuevo Pedido
                                     </button>
                                 </div>
                                 
-                                <div className="mb-4 flex gap-2 overflow-x-auto">
-                                    <button 
-                                        onClick={() => setSearchTerm('')} 
-                                        className={`px-3 py-1 rounded text-sm whitespace-nowrap ${searchTerm === '' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                                    >
-                                        Todos ({pedidos.length})
-                                    </button>
-                                    <button 
-                                        onClick={() => setSearchTerm('pendiente')} 
-                                        className={`px-3 py-1 rounded text-sm whitespace-nowrap ${searchTerm === 'pendiente' ? 'bg-yellow-500 text-white' : 'bg-gray-200'}`}
-                                    >
-                                        Pendientes ({pedidos.filter(p => p.estado === 'pendiente').length})
-                                    </button>
-                                    <button 
-                                        onClick={() => setSearchTerm('en_preparacion')} 
-                                        className={`px-3 py-1 rounded text-sm whitespace-nowrap ${searchTerm === 'en_preparacion' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                                    >
-                                        En Preparación ({pedidos.filter(p => p.estado === 'en_preparacion').length})
-                                    </button>
-                                    <button 
-                                        onClick={() => setSearchTerm('listo')} 
-                                        className={`px-3 py-1 rounded text-sm whitespace-nowrap ${searchTerm === 'listo' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
-                                    >
-                                        Listos ({pedidos.filter(p => p.estado === 'listo').length})
-                                    </button>
-                                    <button 
-                                        onClick={() => setSearchTerm('entregado')} 
-                                        className={`px-3 py-1 rounded text-sm whitespace-nowrap ${searchTerm === 'entregado' ? 'bg-gray-500 text-white' : 'bg-gray-200'}`}
-                                    >
-                                        Entregados ({pedidos.filter(p => p.estado === 'entregado').length})
-                                    </button>
-                                </div>
-
                                 <div className="space-y-4">
-                                    {pedidos
-                                        .filter(p => searchTerm === '' || p.estado === searchTerm)
-                                        .map(p => (
+                                    {pedidosEnCurso.map(p => (
                                         <div key={p.id} className="bg-white p-4 rounded shadow">
                                             <div className="flex justify-between items-start mb-3">
                                                 <div className="flex items-center gap-3">
@@ -894,6 +857,12 @@
                                                     {getEstadoBadge(p.estado)}
                                                 </div>
                                                 <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => marcarComoEntregado(p.id)} 
+                                                        className="bg-green-500 text-white px-3 py-1 rounded text-sm font-medium"
+                                                    >
+                                                        ✓ Marcar Entregado
+                                                    </button>
                                                     <button onClick={() => { setEditing(p); setModalType('pedido'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-sm">Editar</button>
                                                     <button onClick={() => deleteData('pedidos', p.id)} className="bg-red-500 text-white px-2 py-1 rounded text-sm">Eliminar</button>
                                                 </div>
@@ -923,15 +892,24 @@
                                             </div>
                                         </div>
                                     ))}
-                                    {pedidos.filter(p => searchTerm === '' || p.estado === searchTerm).length === 0 && (
-                                        <div className="bg-white p-4 rounded shadow text-center text-gray-500">
-                                            No hay pedidos {searchTerm ? `en estado "${searchTerm}"` : 'registrados'}
+                                    {pedidosEnCurso.length === 0 && (
+                                        <div className="bg-white p-8 rounded shadow text-center text-gray-500">
+                                            <div className="text-4xl mb-4">🎉</div>
+                                            <h3 className="text-xl font-semibold mb-2">¡No hay pedidos en curso!</h3>
+                                            <p>Todos los pedidos han sido entregados o aún no hay pedidos registrados.</p>
+                                            <button 
+                                                onClick={() => { setModalType('pedido'); setEditing(null); setModal(true); }} 
+                                                className="bg-orange-500 text-white px-6 py-2 rounded mt-4"
+                                            >
+                                                Crear Primer Pedido
+                                            </button>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         )}
 
+                        {/* TAB CLIENTES */}
                         {tab === 'clientes' && (
                             <div>
                                 <div className="flex justify-between items-center mb-4">
@@ -1011,7 +989,6 @@
                                     />
                                 </div>
 
-                                {/* LISTA ALFABÉTICA - TABLA */}
                                 <div className="bg-white rounded shadow overflow-x-auto">
                                     <table className="w-full">
                                         <thead className="bg-gray-50">
@@ -1094,7 +1071,6 @@
                                     )}
                                 </div>
 
-                                {/* RESUMEN RÁPIDO */}
                                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="bg-white p-4 rounded shadow">
                                         <h3 className="font-semibold text-gray-600">Total Productos</h3>
@@ -1117,6 +1093,7 @@
                         )}
                     </div>
 
+                    {/* MODAL */}
                     {modal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                             <div className="bg-white rounded p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -1137,3 +1114,17 @@
     </script>
 </body>
 </html>
+                                            <select 
+                                                value={producto.productoId} 
+                                                onChange={(e) => updateProducto(index, 'productoId', e.target.value)} 
+                                                className="w-full p-2 border rounded"
+                                                required
+                                            >
+                                                <option value="">Seleccionar Producto</option>
+                                                {productos.map(p => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.nombre} - ${p.precio} ({p.stock} {p.tipoMedida})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
