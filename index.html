@@ -1,270 +1,595 @@
-// FORMULARIO PRODUCTOS COMPLETO
-const ProductoForm = () => {
-    const [data, setData] = useState(editing || { 
-        nombre: '', 
-        tipo: 'simple', // 'simple' o 'caja'
-        precio: '',
-        stock: '',
-        stockMinimo: '',
-        tipoMedida: 'unidad',
-        descripcion: '',
-        componentes: [{ nombre: '', cantidad: '', precio: '' }] // Para productos simples empieza con 1
-    });
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Pastrami - Administración Completa</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- React y Babel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-    const addComponente = () => {
-        setData({
-            ...data,
-            componentes: [...data.componentes, { nombre: '', cantidad: '', precio: '' }]
-        });
-    };
+        function App() {
+            const [tab, setTab] = useState('clientes');
+            const [clientes, setClientes] = useState([]);
+            const [productos, setProductos] = useState([]);
+            const [pedidos, setPedidos] = useState([]);
+            const [pagos, setPagos] = useState([]);
+            const [modal, setModal] = useState(false);
+            const [modalType, setModalType] = useState('');
+            const [editing, setEditing] = useState(null);
+            const [status, setStatus] = useState('Conectando...');
+            const [searchTerm, setSearchTerm] = useState('');
 
-    const removeComponente = (index) => {
-        if (data.componentes.length > 1) {
-            const newComponentes = data.componentes.filter((_, i) => i !== index);
-            setData({...data, componentes: newComponentes});
-        }
-    };
+            useEffect(() => {
+                initFirebase();
+            }, []);
 
-    const updateComponente = (index, field, value) => {
-        const newComponentes = [...data.componentes];
-        newComponentes[index][field] = value;
-        setData({...data, componentes: newComponentes});
-    };
+            const initFirebase = () => {
+                try {
+                    const config = {
+                        apiKey: "AIzaSyAPeak34o6AYI3cuNxiElmRm3fgK1xPz6I",
+                        authDomain: "pastrami853--claude.firebaseapp.com",
+                        projectId: "pastrami853--claude",
+                        storageBucket: "pastrami853--claude.firebasestorage.app",
+                        messagingSenderId: "186595410450",
+                        appId: "1:186595410450:web:d90cee08d50cf3e5b14ecb"
+                    };
 
-    const handleTipoChange = (nuevoTipo) => {
-        setData({
-            ...data, 
-            tipo: nuevoTipo,
-            componentes: nuevoTipo === 'simple' 
-                ? [{ nombre: '', cantidad: '', precio: '' }] 
-                : data.componentes.length < 2 
-                    ? [{ nombre: '', cantidad: '', precio: '' }, { nombre: '', cantidad: '', precio: '' }]
-                    : data.componentes
-        });
-    };
-
-    const calcularPrecioTotal = () => {
-        const total = data.componentes.reduce((sum, comp) => {
-            return sum + (parseFloat(comp.precio) || 0) * (parseFloat(comp.cantidad) || 0);
-        }, 0);
-        setData({...data, precio: total.toFixed(2)});
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!data.nombre || !data.precio || !data.stock) {
-            alert('Por favor completa nombre, precio y stock');
-            return;
-        }
-        
-        // Validar componentes
-        const componentesValidos = data.componentes.every(comp => comp.nombre && comp.cantidad);
-        if (!componentesValidos) {
-            alert('Por favor completa todos los componentes');
-            return;
-        }
-
-        // Validar tipo de producto
-        if (data.tipo === 'simple' && data.componentes.length !== 1) {
-            alert('Los productos simples deben tener exactamente 1 componente');
-            return;
-        }
-        if (data.tipo === 'caja' && data.componentes.length < 2) {
-            alert('Las cajas deben tener al menos 2 componentes');
-            return;
-        }
-
-        saveData('productos', data);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <h3 className="text-xl font-bold mb-4">
-                {editing ? 'Editar Producto' : 'Nuevo Producto'}
-            </h3>
-
-            {/* INFORMACIÓN BÁSICA */}
-            <div className="bg-gray-50 p-4 rounded">
-                <h4 className="font-semibold mb-3">Información Básica</h4>
-                <div className="space-y-3">
-                    <input 
-                        placeholder="Nombre del Producto *" 
-                        value={data.nombre} 
-                        onChange={(e) => setData({...data, nombre: e.target.value})} 
-                        className="w-full p-2 border rounded" 
-                        required 
-                    />
+                    firebase.initializeApp(config);
+                    window.db = firebase.firestore();
                     
-                    <div className="grid grid-cols-2 gap-2">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Tipo de Producto *</label>
-                            <select 
-                                value={data.tipo} 
-                                onChange={(e) => handleTipoChange(e.target.value)} 
-                                className="w-full p-2 border rounded"
-                            >
-                                <option value="simple">Producto Simple (1 componente)</option>
-                                <option value="caja">Caja/Combo (2+ componentes)</option>
-                            </select>
+                    loadData();
+                    setStatus('✅ Conectado a Firebase');
+                } catch (error) {
+                    setStatus('❌ Error: ' + error.message);
+                    console.error('Error Firebase:', error);
+                }
+            };
+
+            const loadData = () => {
+                try {
+                    window.db.collection('clientes').orderBy('apellido').onSnapshot((snap) => {
+                        setClientes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+                    
+                    window.db.collection('productos').orderBy('nombre').onSnapshot((snap) => {
+                        setProductos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+                    
+                    window.db.collection('pedidos').orderBy('fechaCreacion', 'desc').onSnapshot((snap) => {
+                        setPedidos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+
+                    window.db.collection('pagos').orderBy('fecha', 'desc').onSnapshot((snap) => {
+                        setPagos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+                } catch (error) {
+                    console.error('Error cargando datos:', error);
+                    setStatus('❌ Error cargando datos');
+                }
+            };
+
+            const saveData = async (collectionName, data) => {
+                try {
+                    if (editing) {
+                        await window.db.collection(collectionName).doc(editing.id).update(data);
+                        alert('✅ Actualizado correctamente');
+                    } else {
+                        await window.db.collection(collectionName).add(data);
+                        alert('✅ Guardado correctamente');
+                    }
+                    setModal(false);
+                    setEditing(null);
+                } catch (error) {
+                    alert('❌ Error: ' + error.message);
+                    console.error('Error guardando:', error);
+                }
+            };
+
+            const deleteData = async (collectionName, id) => {
+                if (confirm('¿Seguro que quieres eliminar este elemento?')) {
+                    try {
+                        await window.db.collection(collectionName).doc(id).delete();
+                        alert('✅ Eliminado correctamente');
+                    } catch (error) {
+                        alert('❌ Error: ' + error.message);
+                        console.error('Error eliminando:', error);
+                    }
+                }
+            };
+
+            const filteredClientes = clientes.filter(c => 
+                `${c.nombre} ${c.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            const filteredProductos = productos.filter(p => 
+                p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            const getClienteName = (clienteId) => {
+                const cliente = clientes.find(c => c.id === clienteId);
+                return cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente no encontrado';
+            };
+
+            const getProductName = (productoId) => {
+                const producto = productos.find(p => p.id === productoId);
+                return producto ? producto.nombre : 'Producto no encontrado';
+            };
+
+            // FORMULARIO CLIENTES
+            const ClienteForm = () => {
+                const [data, setData] = useState(editing || { 
+                    nombre: '', 
+                    apellido: '', 
+                    telefono: '', 
+                    calle: '',
+                    numero: '',
+                    piso: '',
+                    codigoPostal: '',
+                    localidad: '',
+                    email: ''
+                });
+                
+                const handleSubmit = (e) => {
+                    e.preventDefault();
+                    if (!data.nombre || !data.apellido || !data.telefono) {
+                        alert('Por favor completa nombre, apellido y teléfono');
+                        return;
+                    }
+                    saveData('clientes', data);
+                };
+                
+                return (
+                    <form onSubmit={handleSubmit}>
+                        <h3 className="text-xl font-bold mb-4">Cliente</h3>
+                        <div className="space-y-3">
+                            <input placeholder="Nombre *" value={data.nombre} onChange={(e) => setData({...data, nombre: e.target.value})} className="w-full p-2 border rounded" required />
+                            <input placeholder="Apellido *" value={data.apellido} onChange={(e) => setData({...data, apellido: e.target.value})} className="w-full p-2 border rounded" required />
+                            <input placeholder="Teléfono *" value={data.telefono} onChange={(e) => setData({...data, telefono: e.target.value})} className="w-full p-2 border rounded" required />
+                            <input placeholder="Calle" value={data.calle} onChange={(e) => setData({...data, calle: e.target.value})} className="w-full p-2 border rounded" />
+                            <div className="grid grid-cols-2 gap-2">
+                                <input placeholder="Número" value={data.numero} onChange={(e) => setData({...data, numero: e.target.value})} className="w-full p-2 border rounded" />
+                                <input placeholder="Piso/Depto" value={data.piso} onChange={(e) => setData({...data, piso: e.target.value})} className="w-full p-2 border rounded" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <input placeholder="Código Postal" value={data.codigoPostal} onChange={(e) => setData({...data, codigoPostal: e.target.value})} className="w-full p-2 border rounded" />
+                                <input placeholder="Localidad" value={data.localidad} onChange={(e) => setData({...data, localidad: e.target.value})} className="w-full p-2 border rounded" />
+                            </div>
+                            <input placeholder="Email" type="email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} className="w-full p-2 border rounded" />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Tipo de Medida</label>
-                            <select 
-                                value={data.tipoMedida} 
-                                onChange={(e) => setData({...data, tipoMedida: e.target.value})} 
-                                className="w-full p-2 border rounded"
-                            >
-                                <option value="unidad">Unidad</option>
-                                <option value="kg">Kilogramos</option>
-                                <option value="g">Gramos</option>
-                                <option value="litro">Litro</option>
-                                <option value="ml">Mililitros</option>
-                                <option value="caja">Caja</option>
-                            </select>
+                        <div className="flex gap-2 mt-4">
+                            <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">Guardar</button>
+                            <button type="button" onClick={() => setModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
                         </div>
-                    </div>
+                    </form>
+                );
+            };
 
-                    <textarea 
-                        placeholder="Descripción (opcional)" 
-                        value={data.descripcion} 
-                        onChange={(e) => setData({...data, descripcion: e.target.value})} 
-                        className="w-full p-2 border rounded h-20"
-                    />
-                </div>
-            </div>
+            // FORMULARIO PRODUCTOS COMPLETO
+            const ProductoForm = () => {
+                const [data, setData] = useState(editing || { 
+                    nombre: '', 
+                    tipo: 'simple', // 'simple' o 'caja'
+                    precio: '',
+                    stock: '',
+                    stockMinimo: '',
+                    tipoMedida: 'unidad',
+                    descripcion: '',
+                    componentes: [{ nombre: '', cantidad: '', precio: '' }] // Para productos simples empieza con 1
+                });
 
-            {/* COMPONENTES */}
-            <div className="bg-blue-50 p-4 rounded">
-                <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-semibold">
-                        Componentes * 
-                        <span className="text-sm text-gray-600">
-                            ({data.tipo === 'simple' ? 'Exactamente 1' : 'Mínimo 2'})
-                        </span>
-                    </h4>
-                    {data.tipo === 'caja' && (
-                        <button 
-                            type="button" 
-                            onClick={addComponente} 
-                            className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                        >
-                            + Agregar Componente
-                        </button>
-                    )}
-                </div>
+                const addComponente = () => {
+                    setData({
+                        ...data,
+                        componentes: [...data.componentes, { nombre: '', cantidad: '', precio: '' }]
+                    });
+                };
 
-                {data.componentes.map((comp, index) => (
-                    <div key={index} className="bg-white p-3 rounded mb-2 border">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                            <input 
-                                placeholder="Nombre del componente *" 
-                                value={comp.nombre} 
-                                onChange={(e) => updateComponente(index, 'nombre', e.target.value)} 
-                                className="w-full p-2 border rounded" 
-                                required
-                            />
-                            <input 
-                                type="number"
-                                step="0.01"
-                                placeholder="Cantidad *" 
-                                value={comp.cantidad} 
-                                onChange={(e) => updateComponente(index, 'cantidad', e.target.value)} 
-                                className="w-full p-2 border rounded" 
-                                required
-                            />
-                            <input 
-                                type="number"
-                                step="0.01"
-                                placeholder="Precio unitario" 
-                                value={comp.precio} 
-                                onChange={(e) => updateComponente(index, 'precio', e.target.value)} 
-                                className="w-full p-2 border rounded" 
-                            />
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold">
-                                    ${((comp.cantidad || 0) * (comp.precio || 0)).toFixed(2)}
-                                </span>
-                                {data.tipo === 'caja' && data.componentes.length > 2 && (
+                const removeComponente = (index) => {
+                    if (data.componentes.length > 1) {
+                        const newComponentes = data.componentes.filter((_, i) => i !== index);
+                        setData({...data, componentes: newComponentes});
+                    }
+                };
+
+                const updateComponente = (index, field, value) => {
+                    const newComponentes = [...data.componentes];
+                    newComponentes[index][field] = value;
+                    setData({...data, componentes: newComponentes});
+                };
+
+                const handleTipoChange = (nuevoTipo) => {
+                    setData({
+                        ...data, 
+                        tipo: nuevoTipo,
+                        componentes: nuevoTipo === 'simple' 
+                            ? [{ nombre: '', cantidad: '', precio: '' }] 
+                            : data.componentes.length < 2 
+                                ? [{ nombre: '', cantidad: '', precio: '' }, { nombre: '', cantidad: '', precio: '' }]
+                                : data.componentes
+                    });
+                };
+
+                const calcularPrecioTotal = () => {
+                    const total = data.componentes.reduce((sum, comp) => {
+                        return sum + (parseFloat(comp.precio) || 0) * (parseFloat(comp.cantidad) || 0);
+                    }, 0);
+                    setData({...data, precio: total.toFixed(2)});
+                };
+
+                const handleSubmit = (e) => {
+                    e.preventDefault();
+                    if (!data.nombre || !data.precio || !data.stock) {
+                        alert('Por favor completa nombre, precio y stock');
+                        return;
+                    }
+                    
+                    // Validar componentes
+                    const componentesValidos = data.componentes.every(comp => comp.nombre && comp.cantidad);
+                    if (!componentesValidos) {
+                        alert('Por favor completa todos los componentes');
+                        return;
+                    }
+
+                    // Validar tipo de producto
+                    if (data.tipo === 'simple' && data.componentes.length !== 1) {
+                        alert('Los productos simples deben tener exactamente 1 componente');
+                        return;
+                    }
+                    if (data.tipo === 'caja' && data.componentes.length < 2) {
+                        alert('Las cajas deben tener al menos 2 componentes');
+                        return;
+                    }
+
+                    saveData('productos', data);
+                };
+
+                return (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <h3 className="text-xl font-bold mb-4">
+                            {editing ? 'Editar Producto' : 'Nuevo Producto'}
+                        </h3>
+
+                        {/* INFORMACIÓN BÁSICA */}
+                        <div className="bg-gray-50 p-4 rounded">
+                            <h4 className="font-semibold mb-3">Información Básica</h4>
+                            <div className="space-y-3">
+                                <input 
+                                    placeholder="Nombre del Producto *" 
+                                    value={data.nombre} 
+                                    onChange={(e) => setData({...data, nombre: e.target.value})} 
+                                    className="w-full p-2 border rounded" 
+                                    required 
+                                />
+                                
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Tipo de Producto *</label>
+                                        <select 
+                                            value={data.tipo} 
+                                            onChange={(e) => handleTipoChange(e.target.value)} 
+                                            className="w-full p-2 border rounded"
+                                        >
+                                            <option value="simple">Producto Simple (1 componente)</option>
+                                            <option value="caja">Caja/Combo (2+ componentes)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Tipo de Medida</label>
+                                        <select 
+                                            value={data.tipoMedida} 
+                                            onChange={(e) => setData({...data, tipoMedida: e.target.value})} 
+                                            className="w-full p-2 border rounded"
+                                        >
+                                            <option value="unidad">Unidad</option>
+                                            <option value="kg">Kilogramos</option>
+                                            <option value="g">Gramos</option>
+                                            <option value="litro">Litro</option>
+                                            <option value="ml">Mililitros</option>
+                                            <option value="caja">Caja</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <textarea 
+                                    placeholder="Descripción (opcional)" 
+                                    value={data.descripcion} 
+                                    onChange={(e) => setData({...data, descripcion: e.target.value})} 
+                                    className="w-full p-2 border rounded h-20"
+                                />
+                            </div>
+                        </div>
+
+                        {/* COMPONENTES */}
+                        <div className="bg-blue-50 p-4 rounded">
+                            <div className="flex justify-between items-center mb-3">
+                                <h4 className="font-semibold">
+                                    Componentes * 
+                                    <span className="text-sm text-gray-600">
+                                        ({data.tipo === 'simple' ? 'Exactamente 1' : 'Mínimo 2'})
+                                    </span>
+                                </h4>
+                                {data.tipo === 'caja' && (
                                     <button 
                                         type="button" 
-                                        onClick={() => removeComponente(index)} 
-                                        className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                                        onClick={addComponente} 
+                                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
                                     >
-                                        ×
+                                        + Agregar Componente
                                     </button>
                                 )}
                             </div>
+
+                            {data.componentes.map((comp, index) => (
+                                <div key={index} className="bg-white p-3 rounded mb-2 border">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                        <input 
+                                            placeholder="Nombre del componente *" 
+                                            value={comp.nombre} 
+                                            onChange={(e) => updateComponente(index, 'nombre', e.target.value)} 
+                                            className="w-full p-2 border rounded" 
+                                            required
+                                        />
+                                        <input 
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="Cantidad *" 
+                                            value={comp.cantidad} 
+                                            onChange={(e) => updateComponente(index, 'cantidad', e.target.value)} 
+                                            className="w-full p-2 border rounded" 
+                                            required
+                                        />
+                                        <input 
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="Precio unitario" 
+                                            value={comp.precio} 
+                                            onChange={(e) => updateComponente(index, 'precio', e.target.value)} 
+                                            className="w-full p-2 border rounded" 
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold">
+                                                ${((comp.cantidad || 0) * (comp.precio || 0)).toFixed(2)}
+                                            </span>
+                                            {data.tipo === 'caja' && data.componentes.length > 2 && (
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => removeComponente(index)} 
+                                                    className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            <div className="flex justify-end mt-2">
+                                <button 
+                                    type="button" 
+                                    onClick={calcularPrecioTotal} 
+                                    className="bg-green-500 text-white px-4 py-2 rounded text-sm"
+                                >
+                                    Calcular Precio Total
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* PRECIOS Y STOCK */}
+                        <div className="bg-green-50 p-4 rounded">
+                            <h4 className="font-semibold mb-3">Precios y Stock</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Precio de Venta *</label>
+                                    <input 
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00" 
+                                        value={data.precio} 
+                                        onChange={(e) => setData({...data, precio: e.target.value})} 
+                                        className="w-full p-2 border rounded" 
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Stock Actual *</label>
+                                    <input 
+                                        type="number"
+                                        placeholder="0" 
+                                        value={data.stock} 
+                                        onChange={(e) => setData({...data, stock: e.target.value})} 
+                                        className="w-full p-2 border rounded" 
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Stock Mínimo</label>
+                                    <input 
+                                        type="number"
+                                        placeholder="5" 
+                                        value={data.stockMinimo} 
+                                        onChange={(e) => setData({...data, stockMinimo: e.target.value})} 
+                                        className="w-full p-2 border rounded" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BOTONES */}
+                        <div className="flex gap-2 pt-4">
+                            <button 
+                                type="submit" 
+                                className="bg-purple-500 text-white px-6 py-2 rounded font-semibold"
+                            >
+                                {editing ? 'Actualizar Producto' : 'Guardar Producto'}
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setModal(false)} 
+                                className="bg-gray-500 text-white px-6 py-2 rounded"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100">
+                    {/* HEADER */}
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4">
+                        <h1 className="text-2xl font-bold">🥪 Sistema Pastrami - Administración Completa</h1>
+                        <div className="flex items-center gap-2 mt-2">
+                            <div className={`w-2 h-2 rounded-full ${status.includes('✅') ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                            <span className="text-sm">{status}</span>
                         </div>
                     </div>
-                ))}
 
-                <div className="flex justify-end mt-2">
-                    <button 
-                        type="button" 
-                        onClick={calcularPrecioTotal} 
-                        className="bg-green-500 text-white px-4 py-2 rounded text-sm"
-                    >
-                        Calcular Precio Total
-                    </button>
-                </div>
-            </div>
+                    {/* NAVEGACIÓN */}
+                    <div className="bg-white border-b flex overflow-x-auto">
+                        <button onClick={() => setTab('clientes')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'clientes' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            👥 Clientes ({clientes.length})
+                        </button>
+                        <button onClick={() => setTab('productos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'productos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            🛍️ Productos ({productos.length})
+                        </button>
+                    </div>
 
-            {/* PRECIOS Y STOCK */}
-            <div className="bg-green-50 p-4 rounded">
-                <h4 className="font-semibold mb-3">Precios y Stock</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Precio de Venta *</label>
-                        <input 
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00" 
-                            value={data.precio} 
-                            onChange={(e) => setData({...data, precio: e.target.value})} 
-                            className="w-full p-2 border rounded" 
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Stock Actual *</label>
-                        <input 
-                            type="number"
-                            placeholder="0" 
-                            value={data.stock} 
-                            onChange={(e) => setData({...data, stock: e.target.value})} 
-                            className="w-full p-2 border rounded" 
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Stock Mínimo</label>
-                        <input 
-                            type="number"
-                            placeholder="5" 
-                            value={data.stockMinimo} 
-                            onChange={(e) => setData({...data, stockMinimo: e.target.value})} 
-                            className="w-full p-2 border rounded" 
-                        />
-                    </div>
-                </div>
-            </div>
+                    <div className="p-6">
+                        {/* TAB CLIENTES */}
+                        {tab === 'clientes' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Gestión de Clientes</h2>
+                                    <button onClick={() => { setModalType('cliente'); setEditing(null); setModal(true); }} className="bg-green-500 text-white px-4 py-2 rounded">
+                                        + Nuevo Cliente
+                                    </button>
+                                </div>
+                                
+                                <div className="mb-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="🔍 Buscar cliente por nombre..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full p-3 border rounded"
+                                    />
+                                </div>
 
-            {/* BOTONES */}
-            <div className="flex gap-2 pt-4">
-                <button 
-                    type="submit" 
-                    className="bg-purple-500 text-white px-6 py-2 rounded font-semibold"
-                >
-                    {editing ? 'Actualizar Producto' : 'Guardar Producto'}
-                </button>
-                <button 
-                    type="button" 
-                    onClick={() => setModal(false)} 
-                    className="bg-gray-500 text-white px-6 py-2 rounded"
-                >
-                    Cancelar
-                </button>
-            </div>
-        </form>
-    );
-};
+                                <div className="bg-white rounded shadow overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-2 text-left">Nombre</th>
+                                                <th className="px-4 py-2 text-left">Teléfono</th>
+                                                <th className="px-4 py-2 text-left">Dirección</th>
+                                                <th className="px-4 py-2 text-left">Email</th>
+                                                <th className="px-4 py-2 text-left">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredClientes.map(c => (
+                                                <tr key={c.id} className="border-t">
+                                                    <td className="px-4 py-2 font-semibold">{c.nombre} {c.apellido}</td>
+                                                    <td className="px-4 py-2">{c.telefono}</td>
+                                                    <td className="px-4 py-2">
+                                                        {c.calle} {c.numero}
+                                                        {c.piso && `, ${c.piso}`}
+                                                        <br />
+                                                        {c.localidad} ({c.codigoPostal})
+                                                    </td>
+                                                    <td className="px-4 py-2">{c.email}</td>
+                                                    <td className="px-4 py-2">
+                                                        <button onClick={() => { setEditing(c); setModalType('cliente'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1">Editar</button>
+                                                        <button onClick={() => deleteData('clientes', c.id)} className="bg-red-500 text-white px-2 py-1 rounded text-xs">Eliminar</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {filteredClientes.length === 0 && (
+                                        <div className="p-4 text-center text-gray-500">
+                                            No hay clientes registrados
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB PRODUCTOS */}
+                        {tab === 'productos' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Gestión de Productos</h2>
+                                    <button onClick={() => { setModalType('producto'); setEditing(null); setModal(true); }} className="bg-purple-500 text-white px-4 py-2 rounded">
+                                        + Nuevo Producto
+                                    </button>
+                                </div>
+
+                                <div className="mb-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="🔍 Buscar producto por nombre..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full p-3 border rounded"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {filteredProductos.map(p => (
+                                        <div key={p.id} className="bg-white p-4 rounded shadow">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-bold text-lg">{p.nombre}</h3>
+                                                <span className={`px-2 py-1 rounded text-xs ${p.tipo === 'simple' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
+                                                    {p.tipo === 'simple' ? 'Simple' : 'Caja'}
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="space-y-1 text-sm">
+                                                <p><strong>Precio:</strong> ${p.precio}</p>
+                                                <p><strong>Stock:</strong> {p.stock} {p.tipoMedida}</p>
+                                                {p.stockMinimo && (
+                                                    <p className={`${parseInt(p.stock) <= parseInt(p.stockMinimo) ? 'text-red-600 font-bold' : ''}`}>
+                                                        <strong>Stock mín:</strong> {p.stockMinimo}
+                                                    </p>
+                                                )}
+                                                {p.descripcion && <p><strong>Desc:</strong> {p.descripcion}</p>}
+                                            </div>
+                                            
+                                            {p.componentes && p.componentes.length > 0 && (
+                                                <div className="mt-2">
+                                                    <strong className="text-sm">Componentes:</strong>
+                                                    <ul className="ml-4 text-xs">
+                                                        {p.componentes.map((comp, idx) => (
+                                                            <li key={idx}>• {comp.nombre} x{comp.cantidad} {comp.precio && `($${comp.precio})`}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="flex gap-2 mt-3">
+                                                <button onClick={() => { setEditing(p); setModalType('producto'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-sm flex-1">Editar</button>
+                                                <button onClick={() => deleteData('productos', p.id)} className="bg-red-500 text-white px-2 py-1 rounded text-sm flex-1">Eliminar</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {filteredProductos.length === 0 && (
+                                    <div className="bg-white p-4 rounded shadow text-center text-gray-500">
+                                        No hay productos registrados
+                                    </div>
