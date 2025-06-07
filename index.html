@@ -533,12 +533,19 @@
                 <div id="productos-pedido"></div>
 
                 <div class="form-group">
+                    <label for="pedido-envio">Costo de Envío:</label>
+                    <input type="number" id="pedido-envio" step="0.01" value="0" onchange="mostrarProductosPedido()">
+                </div>
+
+                <div class="form-group">
                     <label for="pedido-notas">Notas:</label>
                     <textarea id="pedido-notas" rows="3" placeholder="Instrucciones especiales..."></textarea>
                 </div>
 
                 <div class="form-group">
-                    <strong>Total del Pedido: $<span id="total-pedido">0.00</span></strong>
+                    <strong>Subtotal Productos: $<span id="subtotal-productos">0.00</span></strong><br>
+                    <strong>Costo Envío: $<span id="costo-envio-display">0.00</span></strong><br>
+                    <strong>TOTAL PEDIDO: $<span id="total-pedido">0.00</span></strong>
                 </div>
 
                 <button type="submit" class="btn btn-primary">💾 Guardar Pedido</button>
@@ -1125,6 +1132,7 @@
             const cliente = document.getElementById('pedido-cliente').value;
             const fecha = document.getElementById('pedido-fecha').value;
             const hora = document.getElementById('pedido-hora').value;
+            const costoEnvio = parseFloat(document.getElementById('pedido-envio').value) || 0;
             const notas = document.getElementById('pedido-notas').value.trim();
             
             if (!cliente || !fecha || !hora) {
@@ -1137,7 +1145,8 @@
                 return;
             }
             
-            const total = productosPedidoTemp.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            const subtotalProductos = productosPedidoTemp.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            const total = subtotalProductos + costoEnvio;
             
             const pedido = {
                 id: editandoPedido ? editandoPedido.id : Date.now(),
@@ -1145,6 +1154,8 @@
                 fecha,
                 hora,
                 productos: [...productosPedidoTemp],
+                subtotalProductos,
+                costoEnvio,
                 total,
                 notas,
                 estado: 'En curso',
@@ -1262,6 +1273,7 @@
             document.getElementById('pedido-cliente').value = pedido.cliente;
             document.getElementById('pedido-fecha').value = pedido.fecha;
             document.getElementById('pedido-hora').value = pedido.hora || '';
+            document.getElementById('pedido-envio').value = pedido.costoEnvio || 0;
             document.getElementById('pedido-notas').value = pedido.notas || '';
             
             mostrarProductosPedido();
