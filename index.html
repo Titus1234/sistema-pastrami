@@ -511,6 +511,16 @@
                         <label for="pedido-fecha">Fecha de Entrega:</label>
                         <input type="date" id="pedido-fecha" required>
                     </div>
+                    <div class="form-col">
+                        <label for="pedido-hora">Franja Horaria:</label>
+                        <select id="pedido-hora" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="Mañana (9-12hs)">Mañana (9-12hs)</option>
+                            <option value="Mediodía (12-15hs)">Mediodía (12-15hs)</option>
+                            <option value="Tarde (15-18hs)">Tarde (15-18hs)</option>
+                            <option value="Noche (18-21hs)">Noche (18-21hs)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -1114,9 +1124,10 @@
             
             const cliente = document.getElementById('pedido-cliente').value;
             const fecha = document.getElementById('pedido-fecha').value;
+            const hora = document.getElementById('pedido-hora').value;
             const notas = document.getElementById('pedido-notas').value.trim();
             
-            if (!cliente || !fecha) {
+            if (!cliente || !fecha || !hora) {
                 alert('Por favor completa todos los campos obligatorios');
                 return;
             }
@@ -1132,6 +1143,7 @@
                 id: editandoPedido ? editandoPedido.id : Date.now(),
                 cliente,
                 fecha,
+                hora,
                 productos: [...productosPedidoTemp],
                 total,
                 notas,
@@ -1249,6 +1261,7 @@
             
             document.getElementById('pedido-cliente').value = pedido.cliente;
             document.getElementById('pedido-fecha').value = pedido.fecha;
+            document.getElementById('pedido-hora').value = pedido.hora || '';
             document.getElementById('pedido-notas').value = pedido.notas || '';
             
             mostrarProductosPedido();
