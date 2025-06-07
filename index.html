@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Pastrami - Con Pagos</title>
+    <title>Sistema Pastrami - Completo</title>
     <style>
         * {
             margin: 0;
@@ -98,6 +98,10 @@
             margin-bottom: 8px;
             font-weight: 600;
             color: #495057;
+        }
+
+        .required {
+            color: #dc3545;
         }
 
         input, select, textarea {
@@ -364,11 +368,12 @@
     <div class="container">
         <div class="header">
             <h1>🥪 Sistema Pastrami</h1>
-            <p>Gestión completa con control de pagos</p>
+            <p>Gestión completa de pastrami</p>
         </div>
 
         <div class="tabs">
             <div class="tab active" onclick="showTab('productos')">📦 Productos</div>
+            <div class="tab" onclick="showTab('clientes')">👥 Clientes</div>
             <div class="tab" onclick="showTab('pedidos')">📋 Pedidos</div>
             <div class="tab" onclick="showTab('pagos')">💰 Pagos</div>
         </div>
@@ -426,6 +431,70 @@
             </div>
         </div>
 
+        <!-- TAB CLIENTES -->
+        <div id="clientes" class="tab-content">
+            <h2>👥 Gestión de Clientes</h2>
+            
+            <form id="cliente-form">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-nombre">Nombre <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-nombre" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-apellido">Apellido <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-apellido" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
+                        <input type="tel" id="cliente-telefono" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-calle">Calle:</label>
+                        <input type="text" id="cliente-calle">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-numero">Número:</label>
+                        <input type="text" id="cliente-numero">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-piso">Piso:</label>
+                        <input type="text" id="cliente-piso">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-departamento">Departamento:</label>
+                        <input type="text" id="cliente-departamento">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-email">Email:</label>
+                        <input type="email" id="cliente-email">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-localidad">Localidad:</label>
+                        <input type="text" id="cliente-localidad">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-codigo-postal">Código Postal:</label>
+                        <input type="text" id="cliente-codigo-postal">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarCliente()">❌ Cancelar</button>
+            </form>
+
+            <div class="item-list">
+                <h3>Lista de Clientes</h3>
+                <div id="clientes-lista"></div>
+            </div>
+        </div>
+
         <!-- TAB PEDIDOS -->
         <div id="pedidos" class="tab-content">
             <h2>📋 Gestión de Pedidos</h2>
@@ -434,7 +503,9 @@
                 <div class="form-row">
                     <div class="form-col">
                         <label for="pedido-cliente">Cliente:</label>
-                        <input type="text" id="pedido-cliente" required>
+                        <select id="pedido-cliente" required>
+                            <option value="">Seleccionar cliente...</option>
+                        </select>
                     </div>
                     <div class="form-col">
                         <label for="pedido-fecha">Fecha de Entrega:</label>
@@ -585,9 +656,11 @@
     <script>
         // Variables globales
         let productos = JSON.parse(localStorage.getItem('productos') || '[]');
+        let clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
         let pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
         let pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
         let editandoProducto = null;
+        let editandoCliente = null;
         let editandoPedido = null;
         let componentesTemp = [];
         let productosPedidoTemp = [];
@@ -595,9 +668,11 @@
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
             mostrarProductos();
+            mostrarClientes();
             mostrarPedidos();
             mostrarPagos();
             actualizarSelectProductos();
+            actualizarSelectClientes();
             actualizarSelectPedidos();
             actualizarEstadisticasPagos();
             
@@ -782,6 +857,183 @@
             mostrarComponentesTemp();
         }
 
+        // FUNCIONES DE CLIENTES
+        document.getElementById('cliente-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const apellido = document.getElementById('cliente-apellido').value.trim();
+            const telefono = document.getElementById('cliente-telefono').value.trim();
+            const calle = document.getElementById('cliente-calle').value.trim();
+            const numero = document.getElementById('cliente-numero').value.trim();
+            const piso = document.getElementById('cliente-piso').value.trim();
+            const departamento = document.getElementById('cliente-departamento').value.trim();
+            const email = document.getElementById('cliente-email').value.trim();
+            const localidad = document.getElementById('cliente-localidad').value.trim();
+            const codigoPostal = document.getElementById('cliente-codigo-postal').value.trim();
+            
+            if (!nombre || !apellido || !telefono) {
+                alert('Nombre, Apellido y Teléfono son obligatorios');
+                return;
+            }
+            
+            const cliente = {
+                id: editandoCliente ? editandoCliente.id : Date.now(),
+                nombre,
+                apellido,
+                telefono,
+                calle,
+                numero,
+                piso,
+                departamento,
+                email,
+                localidad,
+                codigoPostal,
+                fechaCreacion: editandoCliente ? editandoCliente.fechaCreacion : new Date().toISOString().split('T')[0]
+            };
+            
+            if (editandoCliente) {
+                const index = clientes.findIndex(c => c.id === editandoCliente.id);
+                clientes[index] = cliente;
+                editandoCliente = null;
+            } else {
+                clientes.push(cliente);
+            }
+            
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+            mostrarClientes();
+            actualizarSelectClientes();
+            limpiarFormularioCliente();
+        });
+
+        function mostrarClientes() {
+            const lista = document.getElementById('clientes-lista');
+            
+            if (clientes.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
+                return;
+            }
+            
+            // Ordenar clientes alfabéticamente por apellido, luego nombre
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            lista.innerHTML = clientesOrdenados.map(cliente => {
+                // Calcular estadísticas del cliente
+                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+                const pedidosCliente = pedidos.filter(p => p.cliente === nombreCompleto);
+                const totalPedidos = pedidosCliente.length;
+                const totalComprado = pedidosCliente.reduce((sum, p) => sum + p.total, 0);
+                
+                // Construir dirección
+                let direccion = '';
+                if (cliente.calle || cliente.numero) {
+                    direccion = `${cliente.calle || ''} ${cliente.numero || ''}`.trim();
+                    if (cliente.piso) direccion += `, Piso ${cliente.piso}`;
+                    if (cliente.departamento) direccion += `, Dto ${cliente.departamento}`;
+                    if (cliente.localidad) direccion += `, ${cliente.localidad}`;
+                    if (cliente.codigoPostal) direccion += ` (${cliente.codigoPostal})`;
+                }
+                
+                return `
+                    <div class="item">
+                        <div class="item-header">
+                            <div class="item-title">${nombreCompleto}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-warning btn-small" onclick="editarCliente(${cliente.id})">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarCliente(${cliente.id})">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Teléfono:</strong> ${cliente.telefono}
+                            ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
+                            | <strong>Pedidos realizados:</strong> ${totalPedidos}
+                            ${totalPedidos > 0 ? ` | <strong>Total comprado:</strong> ${totalComprado.toFixed(2)}` : ''}
+                        </div>
+                        ${direccion ? `
+                            <div class="item-details">
+                                <strong>Dirección:</strong> ${direccion}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            editandoCliente = cliente;
+            
+            document.getElementById('cliente-nombre').value = cliente.nombre;
+            document.getElementById('cliente-apellido').value = cliente.apellido;
+            document.getElementById('cliente-telefono').value = cliente.telefono;
+            document.getElementById('cliente-calle').value = cliente.calle || '';
+            document.getElementById('cliente-numero').value = cliente.numero || '';
+            document.getElementById('cliente-piso').value = cliente.piso || '';
+            document.getElementById('cliente-departamento').value = cliente.departamento || '';
+            document.getElementById('cliente-email').value = cliente.email || '';
+            document.getElementById('cliente-localidad').value = cliente.localidad || '';
+            document.getElementById('cliente-codigo-postal').value = cliente.codigoPostal || '';
+        }
+
+        function eliminarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            // Verificar si tiene pedidos
+            const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+            const tienePedidos = pedidos.some(p => p.cliente === nombreCompleto);
+            
+            if (tienePedidos) {
+                alert('No se puede eliminar este cliente porque tiene pedidos asociados.');
+                return;
+            }
+            
+            if (confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+                clientes = clientes.filter(c => c.id !== id);
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+                actualizarSelectClientes();
+            }
+        }
+
+        function cancelarCliente() {
+            limpiarFormularioCliente();
+        }
+
+        function limpiarFormularioCliente() {
+            document.getElementById('cliente-form').reset();
+            editandoCliente = null;
+        }
+
+        function actualizarSelectClientes() {
+            const select = document.getElementById('pedido-cliente');
+            select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+            
+            // Ordenar clientes alfabéticamente por apellido
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            clientesOrdenados.forEach(cliente => {
+                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+                select.innerHTML += `<option value="${nombreCompleto}">${nombreCompleto}</option>`;
+            });
+        }
+
         // FUNCIONES DE PEDIDOS
         function actualizarSelectProductos() {
             const select = document.getElementById('pedido-productos');
@@ -790,7 +1042,7 @@
             const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
             
             productosOrdenados.forEach(producto => {
-                select.innerHTML += `<option value="${producto.id}">${producto.nombre} - $${producto.precio.toFixed(2)}</option>`;
+                select.innerHTML += `<option value="${producto.id}">${producto.nombre} - ${producto.precio.toFixed(2)}</option>`;
             });
         }
 
@@ -838,9 +1090,9 @@
                         total += subtotal;
                         return `
                             <div class="component-item">
-                                <span>${item.cantidad}x ${item.nombre} - $${item.precio.toFixed(2)} c/u</span>
+                                <span>${item.cantidad}x ${item.nombre} - ${item.precio.toFixed(2)} c/u</span>
                                 <div>
-                                    <span style="font-weight: 600;">$${subtotal.toFixed(2)}</span>
+                                    <span style="font-weight: 600;">${subtotal.toFixed(2)}</span>
                                     <button type="button" class="btn btn-danger btn-small" onclick="eliminarProductoPedido(${index})" style="margin-left: 10px;">❌</button>
                                 </div>
                             </div>
@@ -860,7 +1112,7 @@
         document.getElementById('pedido-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const cliente = document.getElementById('pedido-cliente').value.trim();
+            const cliente = document.getElementById('pedido-cliente').value;
             const fecha = document.getElementById('pedido-fecha').value;
             const notas = document.getElementById('pedido-notas').value.trim();
             
