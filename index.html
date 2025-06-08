@@ -492,7 +492,7 @@
                 );
             };
 
-            // FORMULARIO PEDIDOS SIMPLIFICADO
+            // FORMULARIO PEDIDOS CON AUTOCOMPLETADO MEJORADO
             const PedidoForm = () => {
                 const [data, setData] = useState(editing || { 
                     clienteId: '',
@@ -500,7 +500,7 @@
                     direccionEntrega: '',
                     fechaEntrega: '',
                     turno: 'mañana',
-                    estado: 'en_curso', // SIEMPRE EMPIEZA EN CURSO
+                    estado: 'en_curso',
                     costoEnvio: 0,
                     subtotal: 0,
                     total: 0,
@@ -508,6 +508,30 @@
                     notasEspeciales: '',
                     fechaCreacion: new Date().toISOString().split('T')[0]
                 });
+
+                // Estados para autocompletado
+                const [clienteSearch, setClienteSearch] = useState('');
+                const [showClienteSuggestions, setShowClienteSuggestions] = useState(false);
+                const [productoSearches, setProductoSearches] = useState(['']);
+                const [showProductoSuggestions, setShowProductoSuggestions] = useState([false]);
+
+                useEffect(() => {
+                    if (editing && editing.clienteId) {
+                        const cliente = clientes.find(c => c.id === editing.clienteId);
+                        if (cliente) {
+                            setClienteSearch(`${cliente.nombre} ${cliente.apellido}`);
+                        }
+                        
+                        // Configurar búsquedas de productos para edición
+                        const searches = editing.productos?.map(p => {
+                            const producto = productos.find(prod => prod.id === p.productoId);
+                            return producto ? producto.nombre : '';
+                        }) || [''];
+                        
+                        setProductoSearches(searches);
+                        setShowProductoSuggestions(new Array(searches.length).fill(false));
+                    }
+                }, [editing, clientes, productos]);
 
                 useEffect(() => {
                     if (data.clienteId && clientes.length > 0) {
@@ -519,35 +543,77 @@
                     }
                 }, [data.clienteId, clientes]);
 
+                // Filtrar clientes para autocompletado
+                const filteredClientes = clientes.filter(cliente => 
+                    `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(clienteSearch.toLowerCase())
+                ).slice(0, 5);
+
+                // Filtrar productos para autocompletado
+                const getFilteredProductos = (searchTerm) => {
+                    return productos.filter(producto => 
+                        producto.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+                    ).slice(0, 5);
+                };
+
+                // Seleccionar cliente
+                const selectCliente = (cliente) => {
+                    setData({...data, clienteId: cliente.id});
+                    setClienteSearch(`${cliente.nombre} ${cliente.apellido}`);
+                    setShowClienteSuggestions(false);
+                    
+                    // Auto-rellenar dirección
+                    const direccion = `${cliente.calle || ''} ${cliente.numero || ''} ${cliente.piso ? ', ' + cliente.piso : ''}, ${cliente.localidad || ''} (${cliente.codigoPostal || ''})`.trim();
+                    setData(prev => ({...prev, direccionEntrega: direccion}));
+                };
+
+                // Seleccionar producto
+                const selectProducto = (index, producto) => {
+                    const newProductos = [...data.productos];
+                    newProductos[index] = {
+                        ...newProductos[index],
+                        productoId: producto.id,
+                        precioUnitario: parseFloat(producto.precio)
+                    };
+                    setData({...data, productos: newProductos});
+                    
+                    // Actualizar búsqueda de producto
+                    const newSearches = [...productoSearches];
+                    newSearches[index] = producto.nombre;
+                    setProductoSearches(newSearches);
+                    
+                    // Ocultar sugerencias
+                    const newShowSuggestions = [...showProductoSuggestions];
+                    newShowSuggestions[index] = false;
+                    setShowProductoSuggestions(newShowSuggestions);
+                    
+                    calcularTotales(newProductos, data.costoEnvio);
+                };
+
                 const addProducto = () => {
                     setData({
                         ...data,
                         productos: [...data.productos, { productoId: '', cantidad: 1, precioUnitario: 0 }]
                     });
+                    setProductoSearches([...productoSearches, '']);
+                    setShowProductoSuggestions([...showProductoSuggestions, false]);
                 };
 
                 const removeProducto = (index) => {
                     if (data.productos.length > 1) {
                         const newProductos = data.productos.filter((_, i) => i !== index);
+                        const newSearches = productoSearches.filter((_, i) => i !== index);
+                        const newShowSuggestions = showProductoSuggestions.filter((_, i) => i !== index);
+                        
                         setData({...data, productos: newProductos});
+                        setProductoSearches(newSearches);
+                        setShowProductoSuggestions(newShowSuggestions);
                         calcularTotales(newProductos, data.costoEnvio);
                     }
                 };
 
                 const updateProducto = (index, field, value) => {
                     const newProductos = [...data.productos];
-                    
-                    if (field === 'productoId') {
-                        const producto = productos.find(p => p.id === value);
-                        newProductos[index] = {
-                            ...newProductos[index],
-                            productoId: value,
-                            precioUnitario: producto ? parseFloat(producto.precio) : 0
-                        };
-                    } else {
-                        newProductos[index][field] = field === 'cantidad' || field === 'precioUnitario' ? parseFloat(value) || 0 : value;
-                    }
-                    
+                    newProductos[index][field] = field === 'cantidad' || field === 'precioUnitario' ? parseFloat(value) || 0 : value;
                     setData({...data, productos: newProductos});
                     calcularTotales(newProductos, data.costoEnvio);
                 };
@@ -572,11 +638,11 @@
                     e.preventDefault();
                     
                     if (!data.clienteId) {
-                        alert('Por favor selecciona un cliente');
+                        alert('Por favor selecciona un cliente del autocompletado');
                         return;
                     }
                     if (!data.productos[0].productoId) {
-                        alert('Por favor agrega al menos un producto');
+                        alert('Por favor selecciona al menos un producto del autocompletado');
                         return;
                     }
                     if (!data.fechaEntrega) {
@@ -590,7 +656,7 @@
 
                     const productosValidos = data.productos.every(p => p.productoId && p.cantidad > 0);
                     if (!productosValidos) {
-                        alert('Todos los productos deben tener cantidad mayor a 0');
+                        alert('Todos los productos deben estar seleccionados y tener cantidad mayor a 0');
                         return;
                     }
 
@@ -603,28 +669,62 @@
                             {editing ? 'Editar Pedido' : 'Nuevo Pedido'}
                         </h3>
 
-                        {/* CLIENTE */}
+                        {/* CLIENTE CON AUTOCOMPLETADO */}
                         <div className="bg-blue-50 p-4 rounded">
                             <h4 className="font-semibold mb-3">Información del Cliente</h4>
-                            <div>
+                            <div className="relative">
                                 <label className="block text-sm font-medium mb-1">Cliente *</label>
-                                <select 
-                                    value={data.clienteId} 
-                                    onChange={(e) => setData({...data, clienteId: e.target.value})} 
-                                    className="w-full p-2 border rounded" 
+                                <input
+                                    type="text"
+                                    placeholder="Escribe el nombre del cliente..."
+                                    value={clienteSearch}
+                                    onChange={(e) => {
+                                        setClienteSearch(e.target.value);
+                                        setShowClienteSuggestions(true);
+                                        if (!e.target.value) {
+                                            setData({...data, clienteId: ''});
+                                        }
+                                    }}
+                                    onFocus={() => setShowClienteSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowClienteSuggestions(false), 200)}
+                                    className="w-full p-2 border rounded"
                                     required
-                                >
-                                    <option value="">Seleccionar Cliente</option>
-                                    {clientes.map(c => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.nombre} {c.apellido} - {c.telefono}
-                                        </option>
-                                    ))}
-                                </select>
+                                />
+                                
+                                {showClienteSuggestions && clienteSearch && filteredClientes.length > 0 && (
+                                    <div className="absolute z-10 w-full bg-white border rounded-b shadow-lg max-h-48 overflow-y-auto">
+                                        {filteredClientes.map(cliente => (
+                                            <div
+                                                key={cliente.id}
+                                                onClick={() => selectCliente(cliente)}
+                                                className="p-3 hover:bg-blue-50 cursor-pointer border-b"
+                                            >
+                                                <div className="font-semibold">{cliente.nombre} {cliente.apellido}</div>
+                                                <div className="text-sm text-gray-600">{cliente.telefono}</div>
+                                                <div className="text-xs text-gray-500">
+                                                    {cliente.calle} {cliente.numero}, {cliente.localidad}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                {showClienteSuggestions && clienteSearch && filteredClientes.length === 0 && (
+                                    <div className="absolute z-10 w-full bg-white border rounded-b shadow-lg p-3 text-gray-500">
+                                        No se encontraron clientes. 
+                                        <button 
+                                            type="button"
+                                            onClick={() => { setModalType('cliente'); setEditing(null); setModal(true); }}
+                                            className="text-blue-500 underline ml-1"
+                                        >
+                                            ¿Crear nuevo cliente?
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* PRODUCTOS */}
+                        {/* PRODUCTOS CON AUTOCOMPLETADO */}
                         <div className="bg-green-50 p-4 rounded">
                             <div className="flex justify-between items-center mb-3">
                                 <h4 className="font-semibold">Productos *</h4>
@@ -640,20 +740,63 @@
                             {data.productos.map((producto, index) => (
                                 <div key={index} className="bg-white p-3 rounded mb-2 border">
                                     <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                                        <div className="md:col-span-2">
-                                            <select 
-                                                value={producto.productoId} 
-                                                onChange={(e) => updateProducto(index, 'productoId', e.target.value)} 
+                                        <div className="md:col-span-2 relative">
+                                            <input
+                                                type="text"
+                                                placeholder="Escribe el nombre del producto..."
+                                                value={productoSearches[index] || ''}
+                                                onChange={(e) => {
+                                                    const newSearches = [...productoSearches];
+                                                    newSearches[index] = e.target.value;
+                                                    setProductoSearches(newSearches);
+                                                    
+                                                    const newShowSuggestions = [...showProductoSuggestions];
+                                                    newShowSuggestions[index] = true;
+                                                    setShowProductoSuggestions(newShowSuggestions);
+                                                    
+                                                    if (!e.target.value) {
+                                                        const newProductos = [...data.productos];
+                                                        newProductos[index] = { ...newProductos[index], productoId: '', precioUnitario: 0 };
+                                                        setData({...data, productos: newProductos});
+                                                    }
+                                                }}
+                                                onFocus={() => {
+                                                    const newShowSuggestions = [...showProductoSuggestions];
+                                                    newShowSuggestions[index] = true;
+                                                    setShowProductoSuggestions(newShowSuggestions);
+                                                }}
+                                                onBlur={() => {
+                                                    setTimeout(() => {
+                                                        const newShowSuggestions = [...showProductoSuggestions];
+                                                        newShowSuggestions[index] = false;
+                                                        setShowProductoSuggestions(newShowSuggestions);
+                                                    }, 200);
+                                                }}
                                                 className="w-full p-2 border rounded"
                                                 required
-                                            >
-                                                <option value="">Seleccionar Producto</option>
-                                                {productos.map(p => (
-                                                    <option key={p.id} value={p.id}>
-                                                        {p.nombre} - ${p.precio} ({p.stock} {p.tipoMedida})
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            />
+                                            
+                                            {showProductoSuggestions[index] && productoSearches[index] && (
+                                                <div className="absolute z-10 w-full bg-white border rounded-b shadow-lg max-h-32 overflow-y-auto">
+                                                    {getFilteredProductos(productoSearches[index]).map(prod => (
+                                                        <div
+                                                            key={prod.id}
+                                                            onClick={() => selectProducto(index, prod)}
+                                                            className="p-2 hover:bg-green-50 cursor-pointer border-b text-sm"
+                                                        >
+                                                            <div className="font-semibold">{prod.nombre}</div>
+                                                            <div className="text-xs text-gray-600">
+                                                                ${prod.precio} - Stock: {prod.stock} {prod.tipoMedida}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    {getFilteredProductos(productoSearches[index]).length === 0 && (
+                                                        <div className="p-2 text-gray-500 text-sm">
+                                                            No se encontraron productos
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                         <input 
                                             type="number" 
@@ -1054,7 +1197,6 @@
                                                                 onClick={() => deleteData('productos', p.id)} 
                                                                 className="bg-red-500 text-white px-2 py-1 rounded text-xs"
                                                             >
-                                                                Eliminar
                                                             </button>
                                                         </div>
                                                     </td>
@@ -1113,18 +1255,4 @@
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
-</html>
-                                            <select 
-                                                value={producto.productoId} 
-                                                onChange={(e) => updateProducto(index, 'productoId', e.target.value)} 
-                                                className="w-full p-2 border rounded"
-                                                required
-                                            >
-                                                <option value="">Seleccionar Producto</option>
-                                                {productos.map(p => (
-                                                    <option key={p.id} value={p.id}>
-                                                        {p.nombre} - ${p.precio} ({p.stock} {p.tipoMedida})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+</html>e([false]);
