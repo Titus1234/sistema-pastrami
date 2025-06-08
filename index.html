@@ -1,714 +1,1130 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Plus, User, Package, ShoppingCart, CreditCard, BarChart3, Filter, Calendar, DollarSign, MapPin, Phone, Mail } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Pastrami - Administración Completa</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- React y Babel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-const PastramiApp = () => {
-  // Estados principales
-  const [activeSection, setActiveSection] = useState('pedidos');
-  const [clientes, setClientes] = useState([]);
-  const [productos, setProductos] = useState([]);
-  const [pedidos, setPedidos] = useState([]);
-  const [pagos, setPagos] = useState([]);
-  
-  // Estados para formularios
-  const [showClienteForm, setShowClienteForm] = useState(false);
-  const [showProductoForm, setShowProductoForm] = useState(false);
-  const [showPedidoForm, setShowPedidoForm] = useState(false);
-  const [filtros, setFiltros] = useState({});
+        function App() {
+            const [tab, setTab] = useState('pedidos');
+            const [clientes, setClientes] = useState([]);
+            const [productos, setProductos] = useState([]);
+            const [pedidos, setPedidos] = useState([]);
+            const [pagos, setPagos] = useState([]);
+            const [modal, setModal] = useState(false);
+            const [modalType, setModalType] = useState('');
+            const [editing, setEditing] = useState(null);
+            const [status, setStatus] = useState('Conectando...');
+            const [searchTerm, setSearchTerm] = useState('');
 
-  // Inicializar datos de ejemplo
-  useEffect(() => {
-    // Datos iniciales de ejemplo
-    setClientes([
-      {
-        id: 1,
-        nombre: 'Juan',
-        apellido: 'Pérez',
-        telefono: '11-4567-8900',
-        direccion: {
-          calle: 'Av. Corrientes',
-          numero: '1234',
-          piso: '5A',
-          codigoPostal: '1043',
-          localidad: 'Capital Federal'
-        },
-        email: 'juan.perez@email.com'
-      }
-    ]);
+            useEffect(() => {
+                initFirebase();
+            }, []);
 
-    setProductos([
-      {
-        id: 'PASTR001',
-        nombre: 'Pastrami Clásico 500g',
-        componentes: [
-          { item: 'Carne pastrami', cantidad: 500, unidad: 'gramos' }
-        ]
-      },
-      {
-        id: 'COMBO001',
-        nombre: 'Combo Familiar',
-        componentes: [
-          { item: 'Pastrami', cantidad: 1, unidad: 'kg' },
-          { item: 'Pan de centeno', cantidad: 2, unidad: 'unidades' },
-          { item: 'Pepinillos', cantidad: 1, unidad: 'frasco' }
-        ]
-      }
-    ]);
-  }, []);
+            const initFirebase = () => {
+                try {
+                    const config = {
+                        apiKey: "AIzaSyAPeak34o6AYI3cuNxiElmRm3fgK1xPz6I",
+                        authDomain: "pastrami853--claude.firebaseapp.com",
+                        projectId: "pastrami853--claude",
+                        storageBucket: "pastrami853--claude.firebasestorage.app",
+                        messagingSenderId: "186595410450",
+                        appId: "1:186595410450:web:d90cee08d50cf3e5b14ecb"
+                    };
 
-  // Componente para formulario de cliente
-  const ClienteForm = ({ cliente = null, onSave, onCancel }) => {
-    const [formData, setFormData] = useState({
-      nombre: cliente?.nombre || '',
-      apellido: cliente?.apellido || '',
-      telefono: cliente?.telefono || '',
-      calle: cliente?.direccion?.calle || '',
-      numero: cliente?.direccion?.numero || '',
-      piso: cliente?.direccion?.piso || '',
-      codigoPostal: cliente?.direccion?.codigoPostal || '',
-      localidad: cliente?.direccion?.localidad || '',
-      email: cliente?.email || ''
-    });
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      const nuevoCliente = {
-        id: cliente?.id || Date.now(),
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        telefono: formData.telefono,
-        direccion: {
-          calle: formData.calle,
-          numero: formData.numero,
-          piso: formData.piso,
-          codigoPostal: formData.codigoPostal,
-          localidad: formData.localidad
-        },
-        email: formData.email
-      };
-      onSave(nuevoCliente);
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
-          <h3 className="text-lg font-bold mb-4">{cliente ? 'Editar Cliente' : 'Nuevo Cliente'}</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Nombre *"
-                value={formData.nombre}
-                onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                className="border rounded p-2"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Apellido *"
-                value={formData.apellido}
-                onChange={(e) => setFormData({...formData, apellido: e.target.value})}
-                className="border rounded p-2"
-                required
-              />
-            </div>
-            <input
-              type="tel"
-              placeholder="Teléfono *"
-              value={formData.telefono}
-              onChange={(e) => setFormData({...formData, telefono: e.target.value})}
-              className="w-full border rounded p-2"
-              required
-            />
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                type="text"
-                placeholder="Calle"
-                value={formData.calle}
-                onChange={(e) => setFormData({...formData, calle: e.target.value})}
-                className="border rounded p-2 col-span-2"
-              />
-              <input
-                type="text"
-                placeholder="Número"
-                value={formData.numero}
-                onChange={(e) => setFormData({...formData, numero: e.target.value})}
-                className="border rounded p-2"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Piso/Depto"
-                value={formData.piso}
-                onChange={(e) => setFormData({...formData, piso: e.target.value})}
-                className="border rounded p-2"
-              />
-              <input
-                type="text"
-                placeholder="Código Postal"
-                value={formData.codigoPostal}
-                onChange={(e) => setFormData({...formData, codigoPostal: e.target.value})}
-                className="border rounded p-2"
-              />
-            </div>
-            <input
-              type="text"
-              placeholder="Localidad"
-              value={formData.localidad}
-              onChange={(e) => setFormData({...formData, localidad: e.target.value})}
-              className="w-full border rounded p-2"
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full border rounded p-2"
-            />
-            <div className="flex gap-2">
-              <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                Guardar
-              </button>
-              <button type="button" onClick={onCancel} className="flex-1 bg-gray-300 py-2 rounded hover:bg-gray-400">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  // Componente para formulario de producto
-  const ProductoForm = ({ producto = null, onSave, onCancel }) => {
-    const [formData, setFormData] = useState({
-      id: producto?.id || '',
-      nombre: producto?.nombre || '',
-      componentes: producto?.componentes || [{ item: '', cantidad: '', unidad: '' }]
-    });
-
-    const agregarComponente = () => {
-      setFormData({
-        ...formData,
-        componentes: [...formData.componentes, { item: '', cantidad: '', unidad: '' }]
-      });
-    };
-
-    const eliminarComponente = (index) => {
-      const nuevosComponentes = formData.componentes.filter((_, i) => i !== index);
-      setFormData({ ...formData, componentes: nuevosComponentes });
-    };
-
-    const actualizarComponente = (index, campo, valor) => {
-      const nuevosComponentes = [...formData.componentes];
-      nuevosComponentes[index][campo] = valor;
-      setFormData({ ...formData, componentes: nuevosComponentes });
-    };
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      const nuevoProducto = {
-        id: formData.id || `PROD${Date.now()}`,
-        nombre: formData.nombre,
-        componentes: formData.componentes.filter(c => c.item && c.cantidad)
-      };
-      onSave(nuevoProducto);
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
-          <h3 className="text-lg font-bold mb-4">{producto ? 'Editar Producto' : 'Nuevo Producto'}</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="ID del Producto"
-              value={formData.id}
-              onChange={(e) => setFormData({...formData, id: e.target.value})}
-              className="w-full border rounded p-2"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Nombre del Producto"
-              value={formData.nombre}
-              onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-              className="w-full border rounded p-2"
-              required
-            />
-            
-            <div className="space-y-2">
-              <label className="font-semibold">Componentes:</label>
-              {formData.componentes.map((componente, index) => (
-                <div key={index} className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    placeholder="Item"
-                    value={componente.item}
-                    onChange={(e) => actualizarComponente(index, 'item', e.target.value)}
-                    className="flex-1 border rounded p-2 text-sm"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Cant."
-                    value={componente.cantidad}
-                    onChange={(e) => actualizarComponente(index, 'cantidad', e.target.value)}
-                    className="w-16 border rounded p-2 text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Unidad"
-                    value={componente.unidad}
-                    onChange={(e) => actualizarComponente(index, 'unidad', e.target.value)}
-                    className="w-20 border rounded p-2 text-sm"
-                  />
-                  {formData.componentes.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => eliminarComponente(index)}
-                      className="text-red-600 hover:text-red-800 text-sm"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={agregarComponente}
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                + Agregar componente
-              </button>
-            </div>
-
-            <div className="flex gap-2">
-              <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                Guardar
-              </button>
-              <button type="button" onClick={onCancel} className="flex-1 bg-gray-300 py-2 rounded hover:bg-gray-400">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  // Componente para formulario de pedido
-  const PedidoForm = ({ pedido = null, onSave, onCancel }) => {
-    const [formData, setFormData] = useState({
-      clienteId: pedido?.clienteId || '',
-      productos: pedido?.productos || [{ productoId: '', cantidad: 1, precioUnitario: 0 }],
-      costoEnvio: pedido?.costoEnvio || 0,
-      fechaEntrega: pedido?.fechaEntrega || '',
-      turno: pedido?.turno || 'mañana',
-      formaPago: pedido?.formaPago || 'efectivo',
-      pagadoACuenta: pedido?.pagadoACuenta || 0
-    });
-
-    const [busquedaCliente, setBusquedaCliente] = useState('');
-    const [clientesFiltrados, setClientesFiltrados] = useState([]);
-
-    useEffect(() => {
-      if (busquedaCliente) {
-        const filtrados = clientes.filter(c => 
-          c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase()) ||
-          c.apellido.toLowerCase().includes(busquedaCliente.toLowerCase())
-        );
-        setClientesFiltrados(filtrados);
-      } else {
-        setClientesFiltrados([]);
-      }
-    }, [busquedaCliente, clientes]);
-
-    const calcularTotal = () => {
-      const totalProductos = formData.productos.reduce((sum, p) => sum + (p.cantidad * p.precioUnitario), 0);
-      return totalProductos + parseFloat(formData.costoEnvio || 0);
-    };
-
-    const agregarProducto = () => {
-      setFormData({
-        ...formData,
-        productos: [...formData.productos, { productoId: '', cantidad: 1, precioUnitario: 0 }]
-      });
-    };
-
-    const eliminarProducto = (index) => {
-      const nuevosProductos = formData.productos.filter((_, i) => i !== index);
-      setFormData({ ...formData, productos: nuevosProductos });
-    };
-
-    const actualizarProducto = (index, campo, valor) => {
-      const nuevosProductos = [...formData.productos];
-      nuevosProductos[index][campo] = valor;
-      setFormData({ ...formData, productos: nuevosProductos });
-    };
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      const total = calcularTotal();
-      const nuevoPedido = {
-        id: pedido?.id || Date.now(),
-        clienteId: formData.clienteId,
-        productos: formData.productos.filter(p => p.productoId),
-        costoEnvio: parseFloat(formData.costoEnvio),
-        total: total,
-        fechaEntrega: formData.fechaEntrega,
-        turno: formData.turno,
-        formaPago: formData.formaPago,
-        pagadoACuenta: parseFloat(formData.pagadoACuenta),
-        saldoPendiente: total - parseFloat(formData.pagadoACuenta),
-        fecha: new Date().toISOString().split('T')[0],
-        estado: 'pendiente'
-      };
-      onSave(nuevoPedido);
-    };
-
-    const clienteSeleccionado = clientes.find(c => c.id.toString() === formData.clienteId.toString());
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-          <h3 className="text-lg font-bold mb-4">{pedido ? 'Editar Pedido' : 'Nuevo Pedido'}</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Selección de Cliente */}
-            <div className="space-y-2">
-              <label className="font-semibold">Cliente:</label>
-              <input
-                type="text"
-                placeholder="Buscar cliente..."
-                value={busquedaCliente}
-                onChange={(e) => setBusquedaCliente(e.target.value)}
-                className="w-full border rounded p-2"
-              />
-              {clientesFiltrados.length > 0 && (
-                <div className="border rounded max-h-32 overflow-y-auto">
-                  {clientesFiltrados.map(cliente => (
-                    <div
-                      key={cliente.id}
-                      onClick={() => {
-                        setFormData({...formData, clienteId: cliente.id});
-                        setBusquedaCliente(`${cliente.nombre} ${cliente.apellido}`);
-                        setClientesFiltrados([]);
-                      }}
-                      className="p-2 hover:bg-gray-100 cursor-pointer"
-                    >
-                      {cliente.nombre} {cliente.apellido} - {cliente.telefono}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {clienteSeleccionado && (
-                <div className="bg-gray-100 p-2 rounded text-sm">
-                  <strong>{clienteSeleccionado.nombre} {clienteSeleccionado.apellido}</strong><br/>
-                  {clienteSeleccionado.direccion.calle} {clienteSeleccionado.direccion.numero}, {clienteSeleccionado.direccion.localidad}
-                </div>
-              )}
-            </div>
-
-            {/* Productos */}
-            <div className="space-y-2">
-              <label className="font-semibold">Productos:</label>
-              {formData.productos.map((producto, index) => (
-                <div key={index} className="flex gap-2 items-center">
-                  <select
-                    value={producto.productoId}
-                    onChange={(e) => actualizarProducto(index, 'productoId', e.target.value)}
-                    className="flex-1 border rounded p-2"
-                    required
-                  >
-                    <option value="">Seleccionar producto</option>
-                    {productos.map(p => (
-                      <option key={p.id} value={p.id}>{p.nombre}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Cant."
-                    value={producto.cantidad}
-                    onChange={(e) => actualizarProducto(index, 'cantidad', parseInt(e.target.value))}
-                    className="w-16 border rounded p-2"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Precio"
-                    value={producto.precioUnitario}
-                    onChange={(e) => actualizarProducto(index, 'precioUnitario', parseFloat(e.target.value))}
-                    className="w-20 border rounded p-2"
-                  />
-                  {formData.productos.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => eliminarProducto(index)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={agregarProducto}
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                + Agregar producto
-              </button>
-            </div>
-
-            {/* Detalles del pedido */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold">Costo de Envío:</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.costoEnvio}
-                  onChange={(e) => setFormData({...formData, costoEnvio: e.target.value})}
-                  className="w-full border rounded p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold">Total: ${calcularTotal().toFixed(2)}</label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold">Fecha de Entrega:</label>
-                <input
-                  type="date"
-                  value={formData.fechaEntrega}
-                  onChange={(e) => setFormData({...formData, fechaEntrega: e.target.value})}
-                  className="w-full border rounded p-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold">Turno:</label>
-                <select
-                  value={formData.turno}
-                  onChange={(e) => setFormData({...formData, turno: e.target.value})}
-                  className="w-full border rounded p-2"
-                >
-                  <option value="mañana">Mañana</option>
-                  <option value="tarde">Tarde</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold">Forma de Pago:</label>
-                <select
-                  value={formData.formaPago}
-                  onChange={(e) => setFormData({...formData, formaPago: e.target.value})}
-                  className="w-full border rounded p-2"
-                >
-                  <option value="efectivo">Efectivo</option>
-                  <option value="mercadopago">Mercado Pago</option>
-                  <option value="transferencia">Transferencia</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold">Pagado a Cuenta:</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.pagadoACuenta}
-                  onChange={(e) => setFormData({...formData, pagadoACuenta: e.target.value})}
-                  className="w-full border rounded p-2"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                Guardar Pedido
-              </button>
-              <button type="button" onClick={onCancel} className="flex-1 bg-gray-300 py-2 rounded hover:bg-gray-400">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  // Funciones para manejar formularios
-  const handleSaveCliente = (cliente) => {
-    if (cliente.id && clientes.find(c => c.id === cliente.id)) {
-      setClientes(clientes.map(c => c.id === cliente.id ? cliente : c));
-    } else {
-      if (!cliente.id) cliente.id = Math.max(...clientes.map(c => c.id), 0) + 1;
-      setClientes([...clientes, cliente]);
-    }
-    setShowClienteForm(false);
-  };
-
-  const handleSaveProducto = (producto) => {
-    if (productos.find(p => p.id === producto.id)) {
-      setProductos(productos.map(p => p.id === producto.id ? producto : p));
-    } else {
-      setProductos([...productos, producto]);
-    }
-    setShowProductoForm(false);
-  };
-
-  const handleSavePedido = (pedido) => {
-    if (pedidos.find(p => p.id === pedido.id)) {
-      setPedidos(pedidos.map(p => p.id === pedido.id ? pedido : p));
-    } else {
-      setPedidos([...pedidos, pedido]);
-    }
-    setShowPedidoForm(false);
-  };
-
-  // Función para generar estadísticas
-  const generarEstadisticas = () => {
-    const stats = {
-      pedidosPendientes: pedidos.filter(p => p.estado === 'pendiente').length,
-      pedidosConSaldo: pedidos.filter(p => p.saldoPendiente > 0).length,
-      totalVentas: pedidos.reduce((sum, p) => sum + p.total, 0),
-      clientesActivos: clientes.length,
-      productosMasVendidos: {}
-    };
-
-    // Calcular productos más vendidos
-    pedidos.forEach(pedido => {
-      pedido.productos.forEach(item => {
-        const producto = productos.find(p => p.id === item.productoId);
-        if (producto) {
-          stats.productosMasVendidos[producto.nombre] = 
-            (stats.productosMasVendidos[producto.nombre] || 0) + item.cantidad;
-        }
-      });
-    });
-
-    return stats;
-  };
-
-  // Renderizar sección activa
-  const renderSection = () => {
-    switch (activeSection) {
-      case 'clientes':
-        return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Clientes</h2>
-              <button
-                onClick={() => setShowClienteForm(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Plus size={16} /> Nuevo Cliente
-              </button>
-            </div>
-            
-            <div className="grid gap-4">
-              {clientes.map(cliente => (
-                <div key={cliente.id} className="border rounded p-4 bg-white shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">{cliente.nombre} {cliente.apellido}</h3>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone size={14} /> {cliente.telefono}
-                      </p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <MapPin size={14} /> {cliente.direccion.calle} {cliente.direccion.numero}, {cliente.direccion.localidad}
-                      </p>
-                      {cliente.email && (
-                        <p className="text-sm text-gray-600 flex items-center gap-1">
-                          <Mail size={14} /> {cliente.email}
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">#{cliente.id}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'productos':
-        return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Productos</h2>
-              <button
-                onClick={() => setShowProductoForm(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Plus size={16} /> Nuevo Producto
-              </button>
-            </div>
-            
-            <div className="grid gap-4">
-              {productos.map(producto => (
-                <div key={producto.id} className="border rounded p-4 bg-white shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">{producto.nombre}</h3>
-                      <p className="text-sm text-gray-600">ID: {producto.id}</p>
-                      <div className="mt-2">
-                        <p className="text-xs font-semibold text-gray-700">Componentes:</p>
-                        {producto.componentes.map((comp, idx) => (
-                          <p key={idx} className="text-xs text-gray-600">
-                            • {comp.item}: {comp.cantidad} {comp.unidad}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'pedidos':
-        return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Pedidos</h2>
-              <button
-                onClick={() => setShowPedidoForm(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Plus size={16} /> Nuevo Pedido
-              </button>
-            </div>
-            
-            <div className="grid gap-4">
-              {pedidos.map(pedido => {
-                const cliente = clientes.find(c => c.id.toString() === pedido.clienteId.toString());
-                return (
-                  <div key={pedido.id} className="border rounded p-4 bg-white shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold">
-                          {cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente no encontrado'}
-                        </h3>
-                        <p className="text-sm text-gray-600">Pedido #{pedido.id}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">${pedido.total.toFixed(2)}</p>
-                        {pedido.saldoPendiente > 0 && (
-                          <p className="text-sm text-red-600">Saldo: ${pedido.saldoPendiente.toFixed(2)}</p>
-                        )}
-                      </div>
-                    </div>
+                    firebase.initializeApp(config);
+                    window.db = firebase.firestore();
                     
-                    <div className="text-sm space-y-1">
-                      <p><strong>Productos:</strong></p>
-                      {pedido.productos.map((item, idx) => {
-                        const producto = productos.find(p => p.id === item.productoId);
-                        return (
-                          <p key={idx} className="text-gray-600 ml-2">
-                            • {producto?.nombre || 'Producto no encontrado'
+                    loadData();
+                    setStatus('✅ Conectado a Firebase');
+                } catch (error) {
+                    setStatus('❌ Error: ' + error.message);
+                    console.error('Error Firebase:', error);
+                }
+            };
+
+            const loadData = () => {
+                try {
+                    window.db.collection('clientes').orderBy('apellido').onSnapshot((snap) => {
+                        setClientes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+                    
+                    window.db.collection('productos').orderBy('nombre').onSnapshot((snap) => {
+                        setProductos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+                    
+                    window.db.collection('pedidos').orderBy('fechaCreacion', 'desc').onSnapshot((snap) => {
+                        setPedidos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+
+                    window.db.collection('pagos').orderBy('fecha', 'desc').onSnapshot((snap) => {
+                        setPagos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+                } catch (error) {
+                    console.error('Error cargando datos:', error);
+                    setStatus('❌ Error cargando datos');
+                }
+            };
+
+            const saveData = async (collectionName, data) => {
+                try {
+                    if (editing) {
+                        await window.db.collection(collectionName).doc(editing.id).update(data);
+                        alert('✅ Actualizado correctamente');
+                    } else {
+                        await window.db.collection(collectionName).add(data);
+                        alert('✅ Guardado correctamente');
+                    }
+                    setModal(false);
+                    setEditing(null);
+                } catch (error) {
+                    alert('❌ Error: ' + error.message);
+                    console.error('Error guardando:', error);
+                }
+            };
+
+            const deleteData = async (collectionName, id) => {
+                if (confirm('¿Seguro que quieres eliminar este elemento?')) {
+                    try {
+                        await window.db.collection(collectionName).doc(id).delete();
+                        alert('✅ Eliminado correctamente');
+                    } catch (error) {
+                        alert('❌ Error: ' + error.message);
+                        console.error('Error eliminando:', error);
+                    }
+                }
+            };
+
+            // FUNCIÓN PARA MARCAR COMO ENTREGADO
+            const marcarComoEntregado = async (pedidoId) => {
+                if (confirm('¿Confirmas que este pedido fue ENTREGADO? Se quitará de la vista principal.')) {
+                    try {
+                        await window.db.collection('pedidos').doc(pedidoId).update({
+                            estado: 'entregado',
+                            fechaEntrega: new Date().toISOString().split('T')[0]
+                        });
+                        alert('✅ Pedido marcado como entregado');
+                    } catch (error) {
+                        alert('❌ Error: ' + error.message);
+                        console.error('Error marcando como entregado:', error);
+                    }
+                }
+            };
+
+            const filteredClientes = clientes.filter(c => 
+                `${c.nombre} ${c.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            const filteredProductos = productos
+                .filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
+                .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            // SOLO PEDIDOS EN CURSO (NO ENTREGADOS)
+            const pedidosEnCurso = pedidos.filter(p => p.estado !== 'entregado');
+
+            const getClienteName = (clienteId) => {
+                const cliente = clientes.find(c => c.id === clienteId);
+                return cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente no encontrado';
+            };
+
+            const getProductName = (productoId) => {
+                const producto = productos.find(p => p.id === productoId);
+                return producto ? producto.nombre : 'Producto no encontrado';
+            };
+
+            const getEstadoBadge = (estado) => {
+                return (
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        En Curso
+                    </span>
+                );
+            };
+
+            // FORMULARIO CLIENTES
+            const ClienteForm = () => {
+                const [data, setData] = useState(editing || { 
+                    nombre: '', 
+                    apellido: '', 
+                    telefono: '', 
+                    calle: '',
+                    numero: '',
+                    piso: '',
+                    codigoPostal: '',
+                    localidad: '',
+                    email: ''
+                });
+                
+                const handleSubmit = (e) => {
+                    e.preventDefault();
+                    if (!data.nombre || !data.apellido || !data.telefono) {
+                        alert('Por favor completa nombre, apellido y teléfono');
+                        return;
+                    }
+                    saveData('clientes', data);
+                };
+                
+                return (
+                    <form onSubmit={handleSubmit}>
+                        <h3 className="text-xl font-bold mb-4">Cliente</h3>
+                        <div className="space-y-3">
+                            <input placeholder="Nombre *" value={data.nombre} onChange={(e) => setData({...data, nombre: e.target.value})} className="w-full p-2 border rounded" required />
+                            <input placeholder="Apellido *" value={data.apellido} onChange={(e) => setData({...data, apellido: e.target.value})} className="w-full p-2 border rounded" required />
+                            <input placeholder="Teléfono *" value={data.telefono} onChange={(e) => setData({...data, telefono: e.target.value})} className="w-full p-2 border rounded" required />
+                            <input placeholder="Calle" value={data.calle} onChange={(e) => setData({...data, calle: e.target.value})} className="w-full p-2 border rounded" />
+                            <div className="grid grid-cols-2 gap-2">
+                                <input placeholder="Número" value={data.numero} onChange={(e) => setData({...data, numero: e.target.value})} className="w-full p-2 border rounded" />
+                                <input placeholder="Piso/Depto" value={data.piso} onChange={(e) => setData({...data, piso: e.target.value})} className="w-full p-2 border rounded" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <input placeholder="Código Postal" value={data.codigoPostal} onChange={(e) => setData({...data, codigoPostal: e.target.value})} className="w-full p-2 border rounded" />
+                                <input placeholder="Localidad" value={data.localidad} onChange={(e) => setData({...data, localidad: e.target.value})} className="w-full p-2 border rounded" />
+                            </div>
+                            <input placeholder="Email" type="email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} className="w-full p-2 border rounded" />
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                            <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">Guardar</button>
+                            <button type="button" onClick={() => setModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
+                        </div>
+                    </form>
+                );
+            };
+
+            // FORMULARIO PRODUCTOS MEJORADO
+            const ProductoForm = () => {
+                const [data, setData] = useState(editing || { 
+                    nombre: '', 
+                    tipo: 'simple',
+                    precio: '',
+                    stock: '',
+                    stockMinimo: '',
+                    tipoMedida: 'unidad',
+                    descripcion: '',
+                    componentes: []
+                });
+
+                const addComponente = () => {
+                    setData({
+                        ...data,
+                        componentes: [...data.componentes, { nombre: '', cantidad: '', precio: '' }]
+                    });
+                };
+
+                const removeComponente = (index) => {
+                    if (data.componentes.length > 1) {
+                        const newComponentes = data.componentes.filter((_, i) => i !== index);
+                        setData({...data, componentes: newComponentes});
+                    }
+                };
+
+                const updateComponente = (index, field, value) => {
+                    const newComponentes = [...data.componentes];
+                    newComponentes[index][field] = value;
+                    setData({...data, componentes: newComponentes});
+                };
+
+                const handleTipoChange = (nuevoTipo) => {
+                    setData({
+                        ...data, 
+                        tipo: nuevoTipo,
+                        componentes: nuevoTipo === 'simple' 
+                            ? []
+                            : data.componentes.length < 2 
+                                ? [{ nombre: '', cantidad: '', precio: '' }, { nombre: '', cantidad: '', precio: '' }]
+                                : data.componentes
+                    });
+                };
+
+                const calcularPrecioTotal = () => {
+                    if (data.tipo === 'simple') {
+                        alert('Los productos simples no calculan precio por componentes');
+                        return;
+                    }
+                    const total = data.componentes.reduce((sum, comp) => {
+                        return sum + (parseFloat(comp.precio) || 0) * (parseFloat(comp.cantidad) || 0);
+                    }, 0);
+                    setData({...data, precio: total.toFixed(2)});
+                };
+
+                const handleSubmit = (e) => {
+                    e.preventDefault();
+                    if (!data.nombre || !data.precio || !data.stock) {
+                        alert('Por favor completa nombre, precio y stock');
+                        return;
+                    }
+                    
+                    if (data.tipo === 'simple') {
+                        saveData('productos', data);
+                    } else {
+                        const componentesValidos = data.componentes.every(comp => comp.nombre && comp.cantidad);
+                        if (!componentesValidos || data.componentes.length < 2) {
+                            alert('Las cajas/combos deben tener al menos 2 componentes completos');
+                            return;
+                        }
+                        saveData('productos', data);
+                    }
+                };
+
+                return (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <h3 className="text-xl font-bold mb-4">
+                            {editing ? 'Editar Producto' : 'Nuevo Producto'}
+                        </h3>
+
+                        <div className="bg-gray-50 p-4 rounded">
+                            <h4 className="font-semibold mb-3">Información Básica</h4>
+                            <div className="space-y-3">
+                                <input 
+                                    placeholder="Nombre del Producto *" 
+                                    value={data.nombre} 
+                                    onChange={(e) => setData({...data, nombre: e.target.value})} 
+                                    className="w-full p-2 border rounded" 
+                                    required 
+                                />
+                                
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Tipo de Producto *</label>
+                                        <select 
+                                            value={data.tipo} 
+                                            onChange={(e) => handleTipoChange(e.target.value)} 
+                                            className="w-full p-2 border rounded"
+                                        >
+                                            <option value="simple">Producto Simple</option>
+                                            <option value="caja">Caja/Combo (con componentes)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Tipo de Medida</label>
+                                        <select 
+                                            value={data.tipoMedida} 
+                                            onChange={(e) => setData({...data, tipoMedida: e.target.value})} 
+                                            className="w-full p-2 border rounded"
+                                        >
+                                            <option value="unidad">Unidad</option>
+                                            <option value="kg">Kilogramos</option>
+                                            <option value="g">Gramos</option>
+                                            <option value="litro">Litro</option>
+                                            <option value="ml">Mililitros</option>
+                                            <option value="caja">Caja</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <textarea 
+                                    placeholder="Descripción (opcional)" 
+                                    value={data.descripcion} 
+                                    onChange={(e) => setData({...data, descripcion: e.target.value})} 
+                                    className="w-full p-2 border rounded h-20"
+                                />
+                            </div>
+                        </div>
+
+                        {data.tipo === 'caja' && (
+                            <div className="bg-blue-50 p-4 rounded">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h4 className="font-semibold">
+                                        Componentes de la Caja/Combo *
+                                        <span className="text-sm text-gray-600"> (Mínimo 2)</span>
+                                    </h4>
+                                    <button 
+                                        type="button" 
+                                        onClick={addComponente} 
+                                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
+                                    >
+                                        + Agregar Componente
+                                    </button>
+                                </div>
+
+                                {data.componentes.length === 0 && (
+                                    <div className="text-center p-4 text-gray-500">
+                                        <p>No hay componentes agregados</p>
+                                        <button 
+                                            type="button" 
+                                            onClick={addComponente} 
+                                            className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
+                                        >
+                                            Agregar Primer Componente
+                                        </button>
+                                    </div>
+                                )}
+
+                                {data.componentes.map((comp, index) => (
+                                    <div key={index} className="bg-white p-3 rounded mb-2 border">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                            <input 
+                                                placeholder="Nombre del componente *" 
+                                                value={comp.nombre} 
+                                                onChange={(e) => updateComponente(index, 'nombre', e.target.value)} 
+                                                className="w-full p-2 border rounded" 
+                                                required
+                                            />
+                                            <input 
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="Cantidad *" 
+                                                value={comp.cantidad} 
+                                                onChange={(e) => updateComponente(index, 'cantidad', e.target.value)} 
+                                                className="w-full p-2 border rounded" 
+                                                required
+                                            />
+                                            <input 
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="Precio unitario" 
+                                                value={comp.precio} 
+                                                onChange={(e) => updateComponente(index, 'precio', e.target.value)} 
+                                                className="w-full p-2 border rounded" 
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold">
+                                                    ${((comp.cantidad || 0) * (comp.precio || 0)).toFixed(2)}
+                                                </span>
+                                                {data.componentes.length > 1 && (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => removeComponente(index)} 
+                                                        className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {data.componentes.length > 0 && (
+                                    <div className="flex justify-end mt-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={calcularPrecioTotal} 
+                                            className="bg-green-500 text-white px-4 py-2 rounded text-sm"
+                                        >
+                                            Calcular Precio Total de Componentes
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {data.tipo === 'simple' && (
+                            <div className="bg-green-50 p-4 rounded border border-green-200">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-600 text-xl">✓</span>
+                                    <div>
+                                        <h4 className="font-semibold text-green-800">Producto Simple</h4>
+                                        <p className="text-sm text-green-600">Este producto no requiere componentes. Solo completa precio y stock abajo.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="bg-green-50 p-4 rounded">
+                            <h4 className="font-semibold mb-3">Precios y Stock</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Precio de Venta *</label>
+                                    <input 
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00" 
+                                        value={data.precio} 
+                                        onChange={(e) => setData({...data, precio: e.target.value})} 
+                                        className="w-full p-2 border rounded" 
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Stock Actual *</label>
+                                    <input 
+                                        type="number"
+                                        placeholder="0" 
+                                        value={data.stock} 
+                                        onChange={(e) => setData({...data, stock: e.target.value})} 
+                                        className="w-full p-2 border rounded" 
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Stock Mínimo</label>
+                                    <input 
+                                        type="number"
+                                        placeholder="5" 
+                                        value={data.stockMinimo} 
+                                        onChange={(e) => setData({...data, stockMinimo: e.target.value})} 
+                                        className="w-full p-2 border rounded" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-4">
+                            <button 
+                                type="submit" 
+                                className="bg-purple-500 text-white px-6 py-2 rounded font-semibold"
+                            >
+                                {editing ? 'Actualizar Producto' : 'Guardar Producto'}
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setModal(false)} 
+                                className="bg-gray-500 text-white px-6 py-2 rounded"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                );
+            };
+
+            // FORMULARIO PEDIDOS SIMPLIFICADO
+            const PedidoForm = () => {
+                const [data, setData] = useState(editing || { 
+                    clienteId: '',
+                    productos: [{ productoId: '', cantidad: 1, precioUnitario: 0 }],
+                    direccionEntrega: '',
+                    fechaEntrega: '',
+                    turno: 'mañana',
+                    estado: 'en_curso', // SIEMPRE EMPIEZA EN CURSO
+                    costoEnvio: 0,
+                    subtotal: 0,
+                    total: 0,
+                    metodoPago: 'efectivo',
+                    notasEspeciales: '',
+                    fechaCreacion: new Date().toISOString().split('T')[0]
+                });
+
+                useEffect(() => {
+                    if (data.clienteId && clientes.length > 0) {
+                        const cliente = clientes.find(c => c.id === data.clienteId);
+                        if (cliente && !editing) {
+                            const direccion = `${cliente.calle || ''} ${cliente.numero || ''} ${cliente.piso ? ', ' + cliente.piso : ''}, ${cliente.localidad || ''} (${cliente.codigoPostal || ''})`.trim();
+                            setData(prev => ({...prev, direccionEntrega: direccion}));
+                        }
+                    }
+                }, [data.clienteId, clientes]);
+
+                const addProducto = () => {
+                    setData({
+                        ...data,
+                        productos: [...data.productos, { productoId: '', cantidad: 1, precioUnitario: 0 }]
+                    });
+                };
+
+                const removeProducto = (index) => {
+                    if (data.productos.length > 1) {
+                        const newProductos = data.productos.filter((_, i) => i !== index);
+                        setData({...data, productos: newProductos});
+                        calcularTotales(newProductos, data.costoEnvio);
+                    }
+                };
+
+                const updateProducto = (index, field, value) => {
+                    const newProductos = [...data.productos];
+                    
+                    if (field === 'productoId') {
+                        const producto = productos.find(p => p.id === value);
+                        newProductos[index] = {
+                            ...newProductos[index],
+                            productoId: value,
+                            precioUnitario: producto ? parseFloat(producto.precio) : 0
+                        };
+                    } else {
+                        newProductos[index][field] = field === 'cantidad' || field === 'precioUnitario' ? parseFloat(value) || 0 : value;
+                    }
+                    
+                    setData({...data, productos: newProductos});
+                    calcularTotales(newProductos, data.costoEnvio);
+                };
+
+                const calcularTotales = (productos = data.productos, envio = data.costoEnvio) => {
+                    const subtotal = productos.reduce((sum, p) => sum + (p.cantidad * p.precioUnitario), 0);
+                    const total = subtotal + parseFloat(envio || 0);
+                    setData(prev => ({
+                        ...prev, 
+                        subtotal: subtotal,
+                        total: total
+                    }));
+                };
+
+                const handleCostoEnvioChange = (valor) => {
+                    const envio = parseFloat(valor) || 0;
+                    setData(prev => ({...prev, costoEnvio: envio}));
+                    calcularTotales(data.productos, envio);
+                };
+
+                const handleSubmit = (e) => {
+                    e.preventDefault();
+                    
+                    if (!data.clienteId) {
+                        alert('Por favor selecciona un cliente');
+                        return;
+                    }
+                    if (!data.productos[0].productoId) {
+                        alert('Por favor agrega al menos un producto');
+                        return;
+                    }
+                    if (!data.fechaEntrega) {
+                        alert('Por favor selecciona fecha de entrega');
+                        return;
+                    }
+                    if (!data.direccionEntrega.trim()) {
+                        alert('Por favor completa la dirección de entrega');
+                        return;
+                    }
+
+                    const productosValidos = data.productos.every(p => p.productoId && p.cantidad > 0);
+                    if (!productosValidos) {
+                        alert('Todos los productos deben tener cantidad mayor a 0');
+                        return;
+                    }
+
+                    saveData('pedidos', data);
+                };
+
+                return (
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <h3 className="text-xl font-bold mb-4">
+                            {editing ? 'Editar Pedido' : 'Nuevo Pedido'}
+                        </h3>
+
+                        {/* CLIENTE */}
+                        <div className="bg-blue-50 p-4 rounded">
+                            <h4 className="font-semibold mb-3">Información del Cliente</h4>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Cliente *</label>
+                                <select 
+                                    value={data.clienteId} 
+                                    onChange={(e) => setData({...data, clienteId: e.target.value})} 
+                                    className="w-full p-2 border rounded" 
+                                    required
+                                >
+                                    <option value="">Seleccionar Cliente</option>
+                                    {clientes.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.nombre} {c.apellido} - {c.telefono}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* PRODUCTOS */}
+                        <div className="bg-green-50 p-4 rounded">
+                            <div className="flex justify-between items-center mb-3">
+                                <h4 className="font-semibold">Productos *</h4>
+                                <button 
+                                    type="button" 
+                                    onClick={addProducto} 
+                                    className="bg-green-500 text-white px-3 py-1 rounded text-sm"
+                                >
+                                    + Agregar Producto
+                                </button>
+                            </div>
+
+                            {data.productos.map((producto, index) => (
+                                <div key={index} className="bg-white p-3 rounded mb-2 border">
+                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                                        <div className="md:col-span-2">
+                                            <select 
+                                                value={producto.productoId} 
+                                                onChange={(e) => updateProducto(index, 'productoId', e.target.value)} 
+                                                className="w-full p-2 border rounded"
+                                                required
+                                            >
+                                                <option value="">Seleccionar Producto</option>
+                                                {productos.map(p => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.nombre} - ${p.precio} ({p.stock} {p.tipoMedida})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            placeholder="Cantidad" 
+                                            value={producto.cantidad} 
+                                            onChange={(e) => updateProducto(index, 'cantidad', e.target.value)} 
+                                            className="w-full p-2 border rounded" 
+                                            min="1"
+                                            required
+                                        />
+                                        <input 
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="Precio Unit." 
+                                            value={producto.precioUnitario} 
+                                            onChange={(e) => updateProducto(index, 'precioUnitario', e.target.value)} 
+                                            className="w-full p-2 border rounded" 
+                                            required
+                                        />
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-bold text-green-600">
+                                                ${(producto.cantidad * producto.precioUnitario).toFixed(2)}
+                                            </span>
+                                            {data.productos.length > 1 && (
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => removeProducto(index)} 
+                                                    className="bg-red-500 text-white px-2 py-1 rounded text-sm ml-2"
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* ENTREGA */}
+                        <div className="bg-yellow-50 p-4 rounded">
+                            <h4 className="font-semibold mb-3">Información de Entrega</h4>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Dirección de Entrega *</label>
+                                    <textarea 
+                                        placeholder="Dirección completa de entrega" 
+                                        value={data.direccionEntrega} 
+                                        onChange={(e) => setData({...data, direccionEntrega: e.target.value})} 
+                                        className="w-full p-2 border rounded h-20"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Fecha de Entrega *</label>
+                                        <input 
+                                            type="date" 
+                                            value={data.fechaEntrega} 
+                                            onChange={(e) => setData({...data, fechaEntrega: e.target.value})} 
+                                            className="w-full p-2 border rounded" 
+                                            min={new Date().toISOString().split('T')[0]}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Turno</label>
+                                        <select 
+                                            value={data.turno} 
+                                            onChange={(e) => setData({...data, turno: e.target.value})} 
+                                            className="w-full p-2 border rounded"
+                                        >
+                                            <option value="mañana">Mañana (8:00 - 12:00)</option>
+                                            <option value="tarde">Tarde (14:00 - 18:00)</option>
+                                            <option value="noche">Noche (18:00 - 22:00)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Notas Especiales</label>
+                                    <textarea 
+                                        placeholder="Instrucciones especiales (ej: sin cebolla, tocar timbre, etc.)" 
+                                        value={data.notasEspeciales} 
+                                        onChange={(e) => setData({...data, notasEspeciales: e.target.value})} 
+                                        className="w-full p-2 border rounded h-16"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* TOTALES Y PAGO */}
+                        <div className="bg-purple-50 p-4 rounded">
+                            <h4 className="font-semibold mb-3">Totales y Pago</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Costo de Envío</label>
+                                        <input 
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00" 
+                                            value={data.costoEnvio} 
+                                            onChange={(e) => handleCostoEnvioChange(e.target.value)} 
+                                            className="w-full p-2 border rounded" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Método de Pago</label>
+                                        <select 
+                                            value={data.metodoPago} 
+                                            onChange={(e) => setData({...data, metodoPago: e.target.value})} 
+                                            className="w-full p-2 border rounded"
+                                        >
+                                            <option value="efectivo">Efectivo</option>
+                                            <option value="transferencia">Transferencia</option>
+                                            <option value="mercadopago">Mercado Pago</option>
+                                            <option value="tarjeta">Tarjeta</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="bg-white p-3 rounded border">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                            <span>Subtotal:</span>
+                                            <span className="font-semibold">${data.subtotal.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Envío:</span>
+                                            <span className="font-semibold">${data.costoEnvio.toFixed(2)}</span>
+                                        </div>
+                                        <hr />
+                                        <div className="flex justify-between text-lg font-bold text-green-600">
+                                            <span>TOTAL:</span>
+                                            <span>${data.total.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BOTONES */}
+                        <div className="flex gap-2 pt-4">
+                            <button 
+                                type="submit" 
+                                className="bg-orange-500 text-white px-6 py-2 rounded font-semibold"
+                            >
+                                {editing ? 'Actualizar Pedido' : 'Crear Pedido'}
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setModal(false)} 
+                                className="bg-gray-500 text-white px-6 py-2 rounded"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100">
+                    {/* HEADER */}
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4">
+                        <h1 className="text-2xl font-bold">🥪 Sistema Pastrami - Administración Completa</h1>
+                        <div className="flex items-center gap-2 mt-2">
+                            <div className={`w-2 h-2 rounded-full ${status.includes('✅') ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                            <span className="text-sm">{status}</span>
+                        </div>
+                    </div>
+
+                    {/* NAVEGACIÓN */}
+                    <div className="bg-white border-b flex overflow-x-auto">
+                        <button onClick={() => setTab('pedidos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'pedidos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            📦 Pedidos en Curso ({pedidosEnCurso.length})
+                        </button>
+                        <button onClick={() => setTab('clientes')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'clientes' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            👥 Clientes ({clientes.length})
+                        </button>
+                        <button onClick={() => setTab('productos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'productos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
+                            🛍️ Productos ({productos.length})
+                        </button>
+                    </div>
+
+                    <div className="p-6">
+                        {/* TAB PEDIDOS - SOLO EN CURSO */}
+                        {tab === 'pedidos' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Pedidos en Curso</h2>
+                                    <button onClick={() => { setModalType('pedido'); setEditing(null); setModal(true); }} className="bg-orange-500 text-white px-4 py-2 rounded">
+                                        + Nuevo Pedido
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    {pedidosEnCurso.map(p => (
+                                        <div key={p.id} className="bg-white p-4 rounded shadow">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="font-bold text-lg">Pedido #{p.id.slice(-6)}</h3>
+                                                    {getEstadoBadge(p.estado)}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => marcarComoEntregado(p.id)} 
+                                                        className="bg-green-500 text-white px-3 py-1 rounded text-sm font-medium"
+                                                    >
+                                                        ✓ Marcar Entregado
+                                                    </button>
+                                                    <button onClick={() => { setEditing(p); setModalType('pedido'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-sm">Editar</button>
+                                                    <button onClick={() => deleteData('pedidos', p.id)} className="bg-red-500 text-white px-2 py-1 rounded text-sm">Eliminar</button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <p><strong>Cliente:</strong> {getClienteName(p.clienteId)}</p>
+                                                    <p><strong>Entrega:</strong> {p.fechaEntrega} ({p.turno})</p>
+                                                    <p><strong>Dirección:</strong> {p.direccionEntrega}</p>
+                                                    {p.notasEspeciales && <p><strong>Notas:</strong> {p.notasEspeciales}</p>}
+                                                </div>
+                                                <div>
+                                                    <p><strong>Productos:</strong></p>
+                                                    <ul className="ml-4 text-sm">
+                                                        {p.productos?.map((prod, idx) => (
+                                                            <li key={idx}>• {getProductName(prod.productoId)} x{prod.cantidad} = ${(prod.cantidad * prod.precioUnitario).toFixed(2)}</li>
+                                                        ))}
+                                                    </ul>
+                                                    <div className="mt-2 space-y-1">
+                                                        <p><strong>Subtotal:</strong> ${p.subtotal?.toFixed(2) || '0.00'}</p>
+                                                        <p><strong>Envío:</strong> ${p.costoEnvio?.toFixed(2) || '0.00'}</p>
+                                                        <p><strong>Total:</strong> <span className="text-lg font-bold text-green-600">${p.total?.toFixed(2) || '0.00'}</span></p>
+                                                        <p><strong>Pago:</strong> {p.metodoPago || 'No especificado'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {pedidosEnCurso.length === 0 && (
+                                        <div className="bg-white p-8 rounded shadow text-center text-gray-500">
+                                            <div className="text-4xl mb-4">🎉</div>
+                                            <h3 className="text-xl font-semibold mb-2">¡No hay pedidos en curso!</h3>
+                                            <p>Todos los pedidos han sido entregados o aún no hay pedidos registrados.</p>
+                                            <button 
+                                                onClick={() => { setModalType('pedido'); setEditing(null); setModal(true); }} 
+                                                className="bg-orange-500 text-white px-6 py-2 rounded mt-4"
+                                            >
+                                                Crear Primer Pedido
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB CLIENTES */}
+                        {tab === 'clientes' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Gestión de Clientes</h2>
+                                    <button onClick={() => { setModalType('cliente'); setEditing(null); setModal(true); }} className="bg-green-500 text-white px-4 py-2 rounded">
+                                        + Nuevo Cliente
+                                    </button>
+                                </div>
+                                
+                                <div className="mb-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="🔍 Buscar cliente por nombre..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full p-3 border rounded"
+                                    />
+                                </div>
+
+                                <div className="bg-white rounded shadow overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-2 text-left">Nombre</th>
+                                                <th className="px-4 py-2 text-left">Teléfono</th>
+                                                <th className="px-4 py-2 text-left">Dirección</th>
+                                                <th className="px-4 py-2 text-left">Email</th>
+                                                <th className="px-4 py-2 text-left">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredClientes.map(c => (
+                                                <tr key={c.id} className="border-t">
+                                                    <td className="px-4 py-2 font-semibold">{c.nombre} {c.apellido}</td>
+                                                    <td className="px-4 py-2">{c.telefono}</td>
+                                                    <td className="px-4 py-2">
+                                                        {c.calle} {c.numero}
+                                                        {c.piso && `, ${c.piso}`}
+                                                        <br />
+                                                        {c.localidad} ({c.codigoPostal})
+                                                    </td>
+                                                    <td className="px-4 py-2">{c.email}</td>
+                                                    <td className="px-4 py-2">
+                                                        <button onClick={() => { setEditing(c); setModalType('cliente'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1">Editar</button>
+                                                        <button onClick={() => deleteData('clientes', c.id)} className="bg-red-500 text-white px-2 py-1 rounded text-xs">Eliminar</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {filteredClientes.length === 0 && (
+                                        <div className="p-4 text-center text-gray-500">
+                                            No hay clientes registrados
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB PRODUCTOS - LISTA ALFABÉTICA */}
+                        {tab === 'productos' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold">Gestión de Productos</h2>
+                                    <button onClick={() => { setModalType('producto'); setEditing(null); setModal(true); }} className="bg-purple-500 text-white px-4 py-2 rounded">
+                                        + Nuevo Producto
+                                    </button>
+                                </div>
+
+                                <div className="mb-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="🔍 Buscar producto por nombre..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full p-3 border rounded"
+                                    />
+                                </div>
+
+                                <div className="bg-white rounded shadow overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left">Producto</th>
+                                                <th className="px-4 py-3 text-left">Tipo</th>
+                                                <th className="px-4 py-3 text-left">Precio</th>
+                                                <th className="px-4 py-3 text-left">Stock</th>
+                                                <th className="px-4 py-3 text-left">Descripción</th>
+                                                <th className="px-4 py-3 text-left">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredProductos.map(p => (
+                                                <tr key={p.id} className="border-t hover:bg-gray-50">
+                                                    <td className="px-4 py-3">
+                                                        <div>
+                                                            <h3 className="font-semibold">{p.nombre}</h3>
+                                                            {p.componentes && p.componentes.length > 0 && (
+                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                    <strong>Componentes:</strong> {p.componentes.map(c => c.nombre).join(', ')}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={`px-2 py-1 rounded text-xs ${p.tipo === 'simple' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
+                                                            {p.tipo === 'simple' ? 'Simple' : 'Caja'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 font-semibold text-green-600">
+                                                        ${p.precio}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div>
+                                                            <span className={`font-semibold ${parseInt(p.stock) <= parseInt(p.stockMinimo || 0) ? 'text-red-600' : ''}`}>
+                                                                {p.stock} {p.tipoMedida}
+                                                            </span>
+                                                            {p.stockMinimo && (
+                                                                <div className="text-xs text-gray-500">
+                                                                    Mín: {p.stockMinimo}
+                                                                </div>
+                                                            )}
+                                                            {parseInt(p.stock) <= parseInt(p.stockMinimo || 0) && (
+                                                                <div className="text-xs text-red-600 font-bold">
+                                                                    ⚠️ Stock bajo
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">
+                                                        {p.descripcion ? p.descripcion.substring(0, 100) + (p.descripcion.length > 100 ? '...' : '') : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex gap-1">
+                                                            <button 
+                                                                onClick={() => { setEditing(p); setModalType('producto'); setModal(true); }} 
+                                                                className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => deleteData('productos', p.id)} 
+                                                                className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {filteredProductos.length === 0 && (
+                                        <div className="p-8 text-center text-gray-500">
+                                            <div className="text-xl mb-2">📦</div>
+                                            <div className="font-medium">No hay productos registrados</div>
+                                            <div className="text-sm">Agrega tu primer producto haciendo clic en "+ Nuevo Producto"</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-semibold text-gray-600">Total Productos</h3>
+                                        <p className="text-2xl font-bold text-blue-600">{productos.length}</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-semibold text-gray-600">Stock Bajo</h3>
+                                        <p className="text-2xl font-bold text-red-600">
+                                            {productos.filter(p => parseInt(p.stock) <= parseInt(p.stockMinimo || 0)).length}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded shadow">
+                                        <h3 className="font-semibold text-gray-600">Productos Simples</h3>
+                                        <p className="text-2xl font-bold text-green-600">
+                                            {productos.filter(p => p.tipo === 'simple').length}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* MODAL */}
+                    {modal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="bg-white rounded p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+                                <button onClick={() => { setModal(false); setEditing(null); }} className="float-right text-gray-500 text-2xl font-bold hover:text-gray-700">×</button>
+                                <div className="clear-both">
+                                    {modalType === 'cliente' && <ClienteForm />}
+                                    {modalType === 'producto' && <ProductoForm />}
+                                    {modalType === 'pedido' && <PedidoForm />}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
+                                            <select 
+                                                value={producto.productoId} 
+                                                onChange={(e) => updateProducto(index, 'productoId', e.target.value)} 
+                                                className="w-full p-2 border rounded"
+                                                required
+                                            >
+                                                <option value="">Seleccionar Producto</option>
+                                                {productos.map(p => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.nombre} - ${p.precio} ({p.stock} {p.tipoMedida})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
