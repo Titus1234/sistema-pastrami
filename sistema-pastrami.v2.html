@@ -516,35 +516,23 @@
     <!-- Notificaciones -->
     <div id="notification" class="notification"></div>
 
-    <!-- Firebase v9 SDK -->
-    <script type="module">
+    <!-- Firebase v9 SDK - Versión Compatible -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
         // ========================================
-        // 🔥 FIREBASE V9 MODERNO - CONFIGURACIÓN
+        // 🔥 FIREBASE V9 - CONFIGURACIÓN COMPATIBLE
         // ========================================
         
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            getDocs, 
-            doc, 
-            updateDoc, 
-            deleteDoc, 
-            onSnapshot,
-            serverTimestamp,
-            connectFirestoreEmulator
-        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-
-        // 🔧 CONFIGURACIÓN - REEMPLAZA CON TU PROYECTO NUEVO
+        // 🔧 CONFIGURACIÓN FIREBASE V2 - REAL
         const firebaseConfig = {
-            // AQUÍ VAS A PONER LA CONFIGURACIÓN DE TU NUEVO PROYECTO
-            apiKey: "TU_API_KEY_AQUI",
-            authDomain: "tu-proyecto.firebaseapp.com",
-            projectId: "tu-proyecto",
-            storageBucket: "tu-proyecto.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "tu-app-id"
+            apiKey: "AIzaSyBpX91Usin1H8DRHB7IjHIs3dwd3-9JZw",
+            authDomain: "pastrami-v2.firebaseapp.com",
+            projectId: "pastrami-v2",
+            storageBucket: "pastrami-v2.firebasestorage.app",
+            messagingSenderId: "388841758248",
+            appId: "1:388841758248:web:dc76b4f5fd1383a4db5f1d"
         };
 
         // Variables globales
@@ -564,14 +552,14 @@
             try {
                 console.log('🚀 Iniciando Sistema Pastrami v2.0...');
                 
-                // Verificar configuración
-                if (firebaseConfig.apiKey === "TU_API_KEY_AQUI") {
-                    throw new Error("Configuración de Firebase no completada");
+                // Verificar que Firebase esté disponible
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK no cargado');
                 }
                 
                 // Inicializar Firebase
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
+                app = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
                 
                 console.log('✅ Firebase v9 inicializado correctamente');
                 
@@ -579,7 +567,9 @@
                 await testFirebaseConnection();
                 
                 // Configurar listeners en tiempo real
-                setupRealtimeListeners();
+                if (isFirebaseConnected) {
+                    setupRealtimeListeners();
+                }
                 
                 mostrarNotificacion('🎉 Sistema iniciado correctamente', 'success');
                 
@@ -594,14 +584,17 @@
                 updateStatus('loading', 'Probando conexión...');
                 
                 // Hacer una consulta simple para probar conexión
-                const testCollection = collection(db, 'productos');
-                await getDocs(testCollection);
+                const testCollection = db.collection('productos');
+                await testCollection.get();
                 
                 isFirebaseConnected = true;
                 updateStatus('online', 'Conectado');
                 updateFirebaseStatus('connected', '✅ Firebase v9 conectado y funcionando');
                 
                 console.log('✅ Conexión a Firebase confirmada');
+                
+                // Cargar datos
+                await cargarDatosDesdeFirebase();
                 
             } catch (error) {
                 console.error('❌ Error de conexión:', error);
@@ -614,62 +607,108 @@
             }
         }
 
-        function setupRealtimeListeners() {
-            if (!isFirebaseConnected) return;
-            
+        async function cargarDatosDesdeFirebase() {
             try {
+                console.log('📥 Cargando datos desde Firebase...');
+                
+                // Cargar productos
+                const productosSnapshot = await db.collection('productos').get();
+                productos = productosSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    synced: true
+                }));
+                
+                // Cargar clientes
+                const clientesSnapshot = await db.collection('clientes').get();
+                clientes = clientesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    synced: true
+                }));
+                
+                // Guardar backup local
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                
+                // Mostrar datos
+                mostrarProductos();
+                mostrarClientes();
+                
+                console.log(`✅ Cargados ${productos.length} productos y ${clientes.length} clientes`);
+                
+            } catch (error) {
+                console.error('❌ Error cargando desde Firebase:', error);
+                cargarDatosLocales();
+            }
+        }
+
+        function setupRealtimeListeners() {
+            try {
+                console.log('🔄 Configurando listeners en tiempo real...');
+                
                 // Listener para productos
-                const productosRef = collection(db, 'productos');
-                onSnapshot(productosRef, (snapshot) => {
+                db.collection('productos').onSnapshot((snapshot) => {
                     console.log('📥 Actualización de productos recibida');
                     
-                    productos = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data(),
-                        synced: true
-                    }));
-                    
-                    // Guardar backup local
-                    localStorage.setItem('productos_backup', JSON.stringify(productos));
-                    
-                    // Actualizar UI
-                    mostrarProductos();
-                    
-                    if (snapshot.docChanges().length > 0) {
-                        const cambio = snapshot.docChanges()[0];
-                        if (cambio.type === 'added') {
-                            mostrarNotificacion('➕ Producto agregado', 'success');
-                        } else if (cambio.type === 'removed') {
-                            mostrarNotificacion('🗑️ Producto eliminado', 'warning');
+                    snapshot.docChanges().forEach((change) => {
+                        const producto = { 
+                            id: change.doc.id, 
+                            ...change.doc.data(),
+                            synced: true
+                        };
+                        
+                        if (change.type === 'added') {
+                            const exists = productos.find(p => p.id === producto.id);
+                            if (!exists) {
+                                productos.push(producto);
+                                mostrarNotificacion(`➕ Nuevo producto: ${producto.nombre}`, 'success');
+                            }
+                        } else if (change.type === 'modified') {
+                            const index = productos.findIndex(p => p.id === producto.id);
+                            if (index >= 0) {
+                                productos[index] = producto;
+                            }
+                        } else if (change.type === 'removed') {
+                            productos = productos.filter(p => p.id !== producto.id);
+                            mostrarNotificacion(`🗑️ Producto eliminado: ${producto.nombre}`, 'warning');
                         }
-                    }
+                    });
+                    
+                    localStorage.setItem('productos_backup', JSON.stringify(productos));
+                    mostrarProductos();
                 });
 
                 // Listener para clientes
-                const clientesRef = collection(db, 'clientes');
-                onSnapshot(clientesRef, (snapshot) => {
+                db.collection('clientes').onSnapshot((snapshot) => {
                     console.log('📥 Actualización de clientes recibida');
                     
-                    clientes = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data(),
-                        synced: true
-                    }));
-                    
-                    // Guardar backup local
-                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                    
-                    // Actualizar UI
-                    mostrarClientes();
-                    
-                    if (snapshot.docChanges().length > 0) {
-                        const cambio = snapshot.docChanges()[0];
-                        if (cambio.type === 'added') {
-                            mostrarNotificacion('➕ Cliente agregado', 'success');
-                        } else if (cambio.type === 'removed') {
-                            mostrarNotificacion('🗑️ Cliente eliminado', 'warning');
+                    snapshot.docChanges().forEach((change) => {
+                        const cliente = { 
+                            id: change.doc.id, 
+                            ...change.doc.data(),
+                            synced: true
+                        };
+                        
+                        if (change.type === 'added') {
+                            const exists = clientes.find(c => c.id === cliente.id);
+                            if (!exists) {
+                                clientes.push(cliente);
+                                mostrarNotificacion(`➕ Nuevo cliente: ${cliente.nombre}`, 'success');
+                            }
+                        } else if (change.type === 'modified') {
+                            const index = clientes.findIndex(c => c.id === cliente.id);
+                            if (index >= 0) {
+                                clientes[index] = cliente;
+                            }
+                        } else if (change.type === 'removed') {
+                            clientes = clientes.filter(c => c.id !== cliente.id);
+                            mostrarNotificacion(`🗑️ Cliente eliminado: ${cliente.nombre}`, 'warning');
                         }
-                    }
+                    });
+                    
+                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                    mostrarClientes();
                 });
                 
                 console.log('✅ Listeners en tiempo real configurados');
@@ -702,7 +741,7 @@
         // 🛠️ FUNCIONES DE PRODUCTOS
         // ========================================
         
-        window.guardarProducto = async function(event) {
+        function guardarProducto(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('producto-nombre').value.trim();
@@ -720,54 +759,50 @@
                 precio,
                 categoria,
                 descripcion,
-                fechaCreacion: new Date().toISOString(),
-                fechaModificacion: new Date().toISOString()
+                fechaCreacion: firebase.firestore.Timestamp.now(),
+                fechaModificacion: firebase.firestore.Timestamp.now()
             };
             
-            try {
-                if (isFirebaseConnected) {
-                    if (editandoProductoId) {
-                        // Actualizar
-                        const docRef = doc(db, 'productos', editandoProductoId);
-                        await updateDoc(docRef, {
-                            ...producto,
-                            fechaModificacion: serverTimestamp()
-                        });
+            if (isFirebaseConnected) {
+                if (editandoProductoId) {
+                    // Actualizar
+                    db.collection('productos').doc(editandoProductoId).update({
+                        ...producto,
+                        fechaModificacion: firebase.firestore.Timestamp.now()
+                    }).then(() => {
                         mostrarNotificacion(`✅ Producto "${nombre}" actualizado`, 'success');
-                    } else {
-                        // Crear nuevo
-                        await addDoc(collection(db, 'productos'), {
-                            ...producto,
-                            fechaCreacion: serverTimestamp(),
-                            fechaModificacion: serverTimestamp()
-                        });
-                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
-                    }
+                        limpiarFormularioProducto();
+                    }).catch(error => {
+                        console.error('Error actualizando producto:', error);
+                        mostrarNotificacion('❌ Error actualizando producto', 'error');
+                    });
                 } else {
-                    // Modo offline
-                    if (editandoProductoId) {
-                        const index = productos.findIndex(p => p.id === editandoProductoId);
-                        productos[index] = { ...producto, id: editandoProductoId, synced: false };
-                    } else {
-                        productos.push({ ...producto, id: Date.now().toString(), synced: false });
-                    }
-                    
-                    localStorage.setItem('productos_backup', JSON.stringify(productos));
-                    mostrarProductos();
-                    mostrarNotificacion(`💾 Producto "${nombre}" guardado localmente`, 'warning');
+                    // Crear nuevo
+                    db.collection('productos').add(producto).then(() => {
+                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
+                        limpiarFormularioProducto();
+                    }).catch(error => {
+                        console.error('Error creando producto:', error);
+                        mostrarNotificacion('❌ Error creando producto', 'error');
+                    });
+                }
+            } else {
+                // Modo offline
+                if (editandoProductoId) {
+                    const index = productos.findIndex(p => p.id === editandoProductoId);
+                    productos[index] = { ...producto, id: editandoProductoId, synced: false };
+                } else {
+                    productos.push({ ...producto, id: Date.now().toString(), synced: false });
                 }
                 
-                // Limpiar formulario
-                document.getElementById('productos-form').reset();
-                editandoProductoId = null;
-                
-            } catch (error) {
-                console.error('❌ Error guardando producto:', error);
-                mostrarNotificacion('❌ Error guardando producto', 'error');
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                mostrarProductos();
+                mostrarNotificacion(`💾 Producto "${nombre}" guardado localmente`, 'warning');
+                limpiarFormularioProducto();
             }
-        };
+        }
 
-        window.editarProducto = function(id) {
+        function editarProducto(id) {
             const producto = productos.find(p => p.id === id);
             if (!producto) return;
             
@@ -778,36 +813,38 @@
             document.getElementById('producto-categoria').value = producto.categoria || 'sandwich';
             document.getElementById('producto-descripcion').value = producto.descripcion || '';
             
-            // Scroll al formulario
             document.getElementById('productos-form').scrollIntoView({ behavior: 'smooth' });
-        };
+        }
 
-        window.eliminarProducto = async function(id) {
+        function eliminarProducto(id) {
             const producto = productos.find(p => p.id === id);
             if (!producto) return;
             
             if (!confirm(`¿Eliminar "${producto.nombre}"?`)) return;
             
-            try {
-                if (isFirebaseConnected) {
-                    await deleteDoc(doc(db, 'productos', id));
+            if (isFirebaseConnected) {
+                db.collection('productos').doc(id).delete().then(() => {
                     mostrarNotificacion('🗑️ Producto eliminado', 'success');
-                } else {
-                    productos = productos.filter(p => p.id !== id);
-                    localStorage.setItem('productos_backup', JSON.stringify(productos));
-                    mostrarProductos();
-                    mostrarNotificacion('🗑️ Producto eliminado localmente', 'warning');
-                }
-            } catch (error) {
-                console.error('❌ Error eliminando producto:', error);
-                mostrarNotificacion('❌ Error eliminando producto', 'error');
+                }).catch(error => {
+                    console.error('Error eliminando producto:', error);
+                    mostrarNotificacion('❌ Error eliminando producto', 'error');
+                });
+            } else {
+                productos = productos.filter(p => p.id !== id);
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                mostrarProductos();
+                mostrarNotificacion('🗑️ Producto eliminado localmente', 'warning');
             }
-        };
+        }
 
-        window.cancelarProducto = function() {
+        function cancelarProducto() {
+            limpiarFormularioProducto();
+        }
+
+        function limpiarFormularioProducto() {
             document.getElementById('productos-form').reset();
             editandoProductoId = null;
-        };
+        }
 
         function mostrarProductos() {
             const container = document.getElementById('productos-lista');
@@ -817,7 +854,6 @@
                 return;
             }
             
-            // Ordenar por nombre
             const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
             
             container.innerHTML = productosOrdenados.map(producto => `
@@ -839,7 +875,7 @@
                     </div>
                     
                     <div class="item-details">
-                        <strong>Precio:</strong> $${producto.precio?.toFixed(2)} | 
+                        <strong>Precio:</strong> ${producto.precio?.toFixed(2)} | 
                         <strong>Categoría:</strong> ${producto.categoria || 'Sin categoría'}
                         ${producto.descripcion ? `<br><strong>Descripción:</strong> ${producto.descripcion}` : ''}
                         <br><small><strong>Creado:</strong> ${formatDate(producto.fechaCreacion)}</small>
@@ -852,7 +888,7 @@
         // 🛠️ FUNCIONES DE CLIENTES
         // ========================================
         
-        window.guardarCliente = async function(event) {
+        function guardarCliente(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('cliente-nombre').value.trim();
@@ -874,46 +910,50 @@
                 email,
                 direccion,
                 ciudad,
-                fechaCreacion: new Date().toISOString(),
-                fechaModificacion: new Date().toISOString()
+                fechaCreacion: firebase.firestore.Timestamp.now(),
+                fechaModificacion: firebase.firestore.Timestamp.now()
             };
             
-            try {
-                if (isFirebaseConnected) {
-                    if (editandoClienteId) {
-                        // Actualizar
-                        const docRef = doc(db, 'clientes', editandoClienteId);
-                        await updateDoc(docRef, {
-                            ...cliente,
-                            fechaModificacion: serverTimestamp()
-                        });
-                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" creado`, 'success');
-                    }
+            if (isFirebaseConnected) {
+                if (editandoClienteId) {
+                    // Actualizar
+                    db.collection('clientes').doc(editandoClienteId).update({
+                        ...cliente,
+                        fechaModificacion: firebase.firestore.Timestamp.now()
+                    }).then(() => {
+                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" actualizado`, 'success');
+                        limpiarFormularioCliente();
+                    }).catch(error => {
+                        console.error('Error actualizando cliente:', error);
+                        mostrarNotificacion('❌ Error actualizando cliente', 'error');
+                    });
                 } else {
-                    // Modo offline
-                    if (editandoClienteId) {
-                        const index = clientes.findIndex(c => c.id === editandoClienteId);
-                        clientes[index] = { ...cliente, id: editandoClienteId, synced: false };
-                    } else {
-                        clientes.push({ ...cliente, id: Date.now().toString(), synced: false });
-                    }
-                    
-                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                    mostrarClientes();
-                    mostrarNotificacion(`💾 Cliente "${nombre} ${apellido}" guardado localmente`, 'warning');
+                    // Crear nuevo
+                    db.collection('clientes').add(cliente).then(() => {
+                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" creado`, 'success');
+                        limpiarFormularioCliente();
+                    }).catch(error => {
+                        console.error('Error creando cliente:', error);
+                        mostrarNotificacion('❌ Error creando cliente', 'error');
+                    });
+                }
+            } else {
+                // Modo offline
+                if (editandoClienteId) {
+                    const index = clientes.findIndex(c => c.id === editandoClienteId);
+                    clientes[index] = { ...cliente, id: editandoClienteId, synced: false };
+                } else {
+                    clientes.push({ ...cliente, id: Date.now().toString(), synced: false });
                 }
                 
-                // Limpiar formulario
-                document.getElementById('clientes-form').reset();
-                editandoClienteId = null;
-                
-            } catch (error) {
-                console.error('❌ Error guardando cliente:', error);
-                mostrarNotificacion('❌ Error guardando cliente', 'error');
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                mostrarClientes();
+                mostrarNotificacion(`💾 Cliente "${nombre} ${apellido}" guardado localmente`, 'warning');
+                limpiarFormularioCliente();
             }
-        };
+        }
 
-        window.editarCliente = function(id) {
+        function editarCliente(id) {
             const cliente = clientes.find(c => c.id === id);
             if (!cliente) return;
             
@@ -926,36 +966,38 @@
             document.getElementById('cliente-direccion').value = cliente.direccion || '';
             document.getElementById('cliente-ciudad').value = cliente.ciudad || '';
             
-            // Scroll al formulario
             document.getElementById('clientes-form').scrollIntoView({ behavior: 'smooth' });
-        };
+        }
 
-        window.eliminarCliente = async function(id) {
+        function eliminarCliente(id) {
             const cliente = clientes.find(c => c.id === id);
             if (!cliente) return;
             
             if (!confirm(`¿Eliminar "${cliente.nombre} ${cliente.apellido}"?`)) return;
             
-            try {
-                if (isFirebaseConnected) {
-                    await deleteDoc(doc(db, 'clientes', id));
+            if (isFirebaseConnected) {
+                db.collection('clientes').doc(id).delete().then(() => {
                     mostrarNotificacion('🗑️ Cliente eliminado', 'success');
-                } else {
-                    clientes = clientes.filter(c => c.id !== id);
-                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                    mostrarClientes();
-                    mostrarNotificacion('🗑️ Cliente eliminado localmente', 'warning');
-                }
-            } catch (error) {
-                console.error('❌ Error eliminando cliente:', error);
-                mostrarNotificacion('❌ Error eliminando cliente', 'error');
+                }).catch(error => {
+                    console.error('Error eliminando cliente:', error);
+                    mostrarNotificacion('❌ Error eliminando cliente', 'error');
+                });
+            } else {
+                clientes = clientes.filter(c => c.id !== id);
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                mostrarClientes();
+                mostrarNotificacion('🗑️ Cliente eliminado localmente', 'warning');
             }
-        };
+        }
 
-        window.cancelarCliente = function() {
+        function cancelarCliente() {
+            limpiarFormularioCliente();
+        }
+
+        function limpiarFormularioCliente() {
             document.getElementById('clientes-form').reset();
             editandoClienteId = null;
-        };
+        }
 
         function mostrarClientes() {
             const container = document.getElementById('clientes-lista');
@@ -965,7 +1007,6 @@
                 return;
             }
             
-            // Ordenar por apellido, luego nombre
             const clientesOrdenados = [...clientes].sort((a, b) => {
                 const apellidoA = a.apellido.toLowerCase();
                 const apellidoB = b.apellido.toLowerCase();
@@ -1009,36 +1050,33 @@
         // 🛠️ FUNCIONES DE UI
         // ========================================
         
-        window.showTab = function(tabName, tabElement) {
-            // Remover active de todos los tabs
+        function showTab(tabName, tabElement) {
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            // Activar tab seleccionado
             tabElement.classList.add('active');
             document.getElementById(tabName).classList.add('active');
-        };
+        }
 
-        window.manualSync = async function() {
+        function manualSync() {
             if (!isFirebaseConnected) {
                 mostrarNotificacion('❌ Firebase no conectado', 'error');
                 return;
             }
             
-            try {
-                updateStatus('loading', 'Sincronizando...');
-                
-                // Re-testear conexión
-                await testFirebaseConnection();
-                
-                mostrarNotificacion('🔄 Sincronización manual completada', 'success');
-                
-            } catch (error) {
-                console.error('❌ Error en sincronización manual:', error);
-                mostrarNotificacion('❌ Error en sincronización', 'error');
-                updateStatus('offline', 'Error conexión');
-            }
-        };
+            updateStatus('loading', 'Sincronizando...');
+            
+            setTimeout(async () => {
+                try {
+                    await testFirebaseConnection();
+                    mostrarNotificacion('🔄 Sincronización manual completada', 'success');
+                } catch (error) {
+                    console.error('Error en sincronización manual:', error);
+                    mostrarNotificacion('❌ Error en sincronización', 'error');
+                    updateStatus('offline', 'Error conexión');
+                }
+            }, 1000);
+        }
 
         function updateStatus(status, text) {
             const dot = document.getElementById('status-dot');
@@ -1074,8 +1112,8 @@
                 mensaje = 'Sin permisos para acceder a Firebase';
             } else if (error.code === 'unavailable') {
                 mensaje = 'Firebase temporalmente no disponible';
-            } else if (error.message.includes('Configuración')) {
-                mensaje = 'Configuración de Firebase incompleta';
+            } else if (error.message.includes('SDK no cargado')) {
+                mensaje = 'Firebase SDK no se pudo cargar';
             } else {
                 mensaje = error.message;
             }
@@ -1083,22 +1121,24 @@
             updateFirebaseStatus('error', `❌ ${mensaje}`);
             updateStatus('offline', 'Error Firebase');
             
-            // Cargar datos locales como respaldo
             cargarDatosLocales();
-            
             mostrarNotificacion(`❌ ${mensaje}. Usando modo offline.`, 'error');
         }
 
-        function formatDate(dateString) {
-            if (!dateString) return 'Sin fecha';
+        function formatDate(dateField) {
+            if (!dateField) return 'Sin fecha';
             
             try {
-                const date = new Date(dateString);
-                if (dateString.includes('seconds')) {
-                    // Es un timestamp de Firebase
-                    return new Date(dateString.seconds * 1000).toLocaleDateString();
+                if (dateField.toDate) {
+                    // Es un Timestamp de Firebase
+                    return dateField.toDate().toLocaleDateString();
+                } else if (dateField.seconds) {
+                    // Es un timestamp con seconds
+                    return new Date(dateField.seconds * 1000).toLocaleDateString();
+                } else {
+                    // Es una fecha normal
+                    return new Date(dateField).toLocaleDateString();
                 }
-                return date.toLocaleDateString();
             } catch (error) {
                 return 'Fecha inválida';
             }
@@ -1109,7 +1149,20 @@
         // ========================================
         
         // Inicializar cuando se carga la página
-        document.addEventListener('DOMContentLoaded', inicializarApp);
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎯 Iniciando Sistema Pastrami v2.0...');
+            
+            // Verificar que Firebase esté disponible
+            if (typeof firebase !== 'undefined') {
+                console.log('✅ Firebase SDK detectado');
+                inicializarApp();
+            } else {
+                console.error('❌ Firebase SDK no disponible');
+                updateFirebaseStatus('error', '❌ Firebase SDK no cargado');
+                updateStatus('offline', 'SDK Error');
+                cargarDatosLocales();
+            }
+        });
 
         // Debug - Exponer funciones globalmente para testing
         window.debug = {
@@ -1119,20 +1172,13 @@
             clearLocal: () => {
                 localStorage.clear();
                 location.reload();
-            }
+            },
+            testConnection: testFirebaseConnection
         };
 
-        console.log('🎯 Sistema Pastrami v2.0 cargado');
+        console.log('🎯 Sistema Pastrami v2.0 cargado - Versión Compatible');
         console.log('🔧 Para debug: window.debug');
         
     </script>
 </body>
-</html>} ${apellido}" actualizado`, 'success');
-                    } else {
-                        // Crear nuevo
-                        await addDoc(collection(db, 'clientes'), {
-                            ...cliente,
-                            fechaCreacion: serverTimestamp(),
-                            fechaModificacion: serverTimestamp()
-                        });
-                        mostrarNotificacion(`✅ Cliente "${nombre
+</html>
