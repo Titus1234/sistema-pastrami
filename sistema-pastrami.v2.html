@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Pastrami v2.0 - Sincronización Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* INDICADOR DE ESTADO */
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online { background: #28a745; }
+        .status-offline { background: #dc3545; animation: none; }
+        .status-loading { background: #ffc107; animation: spin 1s linear infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .sync-btn {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .sync-btn:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* ESTADO DE FIREBASE */
+        .firebase-status {
+            margin: 20px 30px;
+            padding: 20px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .firebase-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .firebase-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .firebase-status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 1.1em;
+            border: none;
+        }
+
+        .tab:hover {
+            background: #dee2e6;
+            transform: translateY(-2px);
+        }
+
+        .tab.active {
+            background: white;
+            color: #ff6b6b;
+            border-bottom: 3px solid #ff6b6b;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            min-height: 500px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* FORMULARIOS */
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        /* LISTAS */
+        .items-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .item-card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .item-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .item-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .item-details {
+            color: #6c757d;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        /* BADGES DE ESTADO */
+        .sync-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .sync-badge.synced {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sync-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .sync-badge.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .no-items {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+            font-size: 1.1em;
+        }
+
+        /* NOTIFICACIONES */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            font-weight: 600;
+            max-width: 350px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .notification.info {
+            background: #007bff;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .status-indicator {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-top: 15px;
+                justify-content: center;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🥪 Sistema Pastrami v2.0</h1>
+            <p>Sincronización real con Firebase v9</p>
+            
+            <div class="status-indicator">
+                <div id="status-dot" class="status-dot status-loading"></div>
+                <span id="status-text">Inicializando...</span>
+                <button id="sync-btn" class="sync-btn" onclick="manualSync()">🔄 Sync</button>
+            </div>
+        </div>
+
+        <!-- Estado de Firebase -->
+        <div id="firebase-status" class="firebase-status loading">
+            🔄 Conectando a Firebase v9...
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('productos', this)">📦 Productos</button>
+            <button class="tab" onclick="showTab('clientes', this)">👥 Clientes</button>
+        </div>
+
+        <!-- TAB PRODUCTOS -->
+        <div id="productos" class="tab-content active">
+            <h2>📦 Gestión de Productos</h2>
+            
+            <form id="productos-form" onsubmit="guardarProducto(event)">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-nombre">Nombre del Producto <span class="required">*</span>:</label>
+                        <input type="text" id="producto-nombre" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-precio">Precio <span class="required">*</span>:</label>
+                        <input type="number" id="producto-precio" step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-categoria">Categoría:</label>
+                        <select id="producto-categoria">
+                            <option value="sandwich">Sandwich</option>
+                            <option value="bebida">Bebida</option>
+                            <option value="acompañamiento">Acompañamiento</option>
+                            <option value="postre">Postre</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-descripcion">Descripción:</label>
+                        <input type="text" id="producto-descripcion" placeholder="Descripción opcional">
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelarProducto()">❌ Cancelar</button>
+                </div>
+            </form>
+
+            <div class="items-container">
+                <h3>Lista de Productos</h3>
+                <div id="productos-lista">
+                    <div class="no-items">Cargando productos...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB CLIENTES -->
+        <div id="clientes" class="tab-content">
+            <h2>👥 Gestión de Clientes</h2>
+            
+            <form id="clientes-form" onsubmit="guardarCliente(event)">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-nombre">Nombre <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-nombre" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-apellido">Apellido <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-apellido" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
+                        <input type="tel" id="cliente-telefono" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-email">Email:</label>
+                        <input type="email" id="cliente-email">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-direccion">Dirección:</label>
+                        <input type="text" id="cliente-direccion" placeholder="Calle y número">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-ciudad">Ciudad:</label>
+                        <input type="text" id="cliente-ciudad">
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelarCliente()">❌ Cancelar</button>
+                </div>
+            </form>
+
+            <div class="items-container">
+                <h3>Lista de Clientes</h3>
+                <div id="clientes-lista">
+                    <div class="no-items">Cargando clientes...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Firebase v9 SDK -->
+    <script type="module">
+        // ========================================
+        // 🔥 FIREBASE V9 MODERNO - CONFIGURACIÓN
+        // ========================================
+        
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs, 
+            doc, 
+            updateDoc, 
+            deleteDoc, 
+            onSnapshot,
+            serverTimestamp,
+            connectFirestoreEmulator
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+        // 🔧 CONFIGURACIÓN - REEMPLAZA CON TU PROYECTO NUEVO
+        const firebaseConfig = {
+            // AQUÍ VAS A PONER LA CONFIGURACIÓN DE TU NUEVO PROYECTO
+            apiKey: "TU_API_KEY_AQUI",
+            authDomain: "tu-proyecto.firebaseapp.com",
+            projectId: "tu-proyecto",
+            storageBucket: "tu-proyecto.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "tu-app-id"
+        };
+
+        // Variables globales
+        let app;
+        let db;
+        let isFirebaseConnected = false;
+        let productos = [];
+        let clientes = [];
+        let editandoProductoId = null;
+        let editandoClienteId = null;
+
+        // ========================================
+        // 🚀 INICIALIZACIÓN
+        // ========================================
+        
+        async function inicializarApp() {
+            try {
+                console.log('🚀 Iniciando Sistema Pastrami v2.0...');
+                
+                // Verificar configuración
+                if (firebaseConfig.apiKey === "TU_API_KEY_AQUI") {
+                    throw new Error("Configuración de Firebase no completada");
+                }
+                
+                // Inicializar Firebase
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                
+                console.log('✅ Firebase v9 inicializado correctamente');
+                
+                // Probar conexión
+                await testFirebaseConnection();
+                
+                // Configurar listeners en tiempo real
+                setupRealtimeListeners();
+                
+                mostrarNotificacion('🎉 Sistema iniciado correctamente', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error inicializando:', error);
+                handleFirebaseError(error);
+            }
+        }
+
+        async function testFirebaseConnection() {
+            try {
+                updateStatus('loading', 'Probando conexión...');
+                
+                // Hacer una consulta simple para probar conexión
+                const testCollection = collection(db, 'productos');
+                await getDocs(testCollection);
+                
+                isFirebaseConnected = true;
+                updateStatus('online', 'Conectado');
+                updateFirebaseStatus('connected', '✅ Firebase v9 conectado y funcionando');
+                
+                console.log('✅ Conexión a Firebase confirmada');
+                
+            } catch (error) {
+                console.error('❌ Error de conexión:', error);
+                isFirebaseConnected = false;
+                updateStatus('offline', 'Error conexión');
+                updateFirebaseStatus('error', `❌ Error: ${error.message}`);
+                
+                // Cargar datos locales como respaldo
+                cargarDatosLocales();
+            }
+        }
+
+        function setupRealtimeListeners() {
+            if (!isFirebaseConnected) return;
+            
+            try {
+                // Listener para productos
+                const productosRef = collection(db, 'productos');
+                onSnapshot(productosRef, (snapshot) => {
+                    console.log('📥 Actualización de productos recibida');
+                    
+                    productos = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        synced: true
+                    }));
+                    
+                    // Guardar backup local
+                    localStorage.setItem('productos_backup', JSON.stringify(productos));
+                    
+                    // Actualizar UI
+                    mostrarProductos();
+                    
+                    if (snapshot.docChanges().length > 0) {
+                        const cambio = snapshot.docChanges()[0];
+                        if (cambio.type === 'added') {
+                            mostrarNotificacion('➕ Producto agregado', 'success');
+                        } else if (cambio.type === 'removed') {
+                            mostrarNotificacion('🗑️ Producto eliminado', 'warning');
+                        }
+                    }
+                });
+
+                // Listener para clientes
+                const clientesRef = collection(db, 'clientes');
+                onSnapshot(clientesRef, (snapshot) => {
+                    console.log('📥 Actualización de clientes recibida');
+                    
+                    clientes = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        synced: true
+                    }));
+                    
+                    // Guardar backup local
+                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                    
+                    // Actualizar UI
+                    mostrarClientes();
+                    
+                    if (snapshot.docChanges().length > 0) {
+                        const cambio = snapshot.docChanges()[0];
+                        if (cambio.type === 'added') {
+                            mostrarNotificacion('➕ Cliente agregado', 'success');
+                        } else if (cambio.type === 'removed') {
+                            mostrarNotificacion('🗑️ Cliente eliminado', 'warning');
+                        }
+                    }
+                });
+                
+                console.log('✅ Listeners en tiempo real configurados');
+                
+            } catch (error) {
+                console.error('❌ Error configurando listeners:', error);
+            }
+        }
+
+        function cargarDatosLocales() {
+            try {
+                productos = JSON.parse(localStorage.getItem('productos_backup') || '[]');
+                clientes = JSON.parse(localStorage.getItem('clientes_backup') || '[]');
+                
+                mostrarProductos();
+                mostrarClientes();
+                
+                console.log(`📂 Cargados ${productos.length} productos y ${clientes.length} clientes locales`);
+                
+            } catch (error) {
+                console.error('❌ Error cargando datos locales:', error);
+                productos = [];
+                clientes = [];
+                mostrarProductos();
+                mostrarClientes();
+            }
+        }
+
+        // ========================================
+        // 🛠️ FUNCIONES DE PRODUCTOS
+        // ========================================
+        
+        window.guardarProducto = async function(event) {
+            event.preventDefault();
+            
+            const nombre = document.getElementById('producto-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('producto-precio').value);
+            const categoria = document.getElementById('producto-categoria').value;
+            const descripcion = document.getElementById('producto-descripcion').value.trim();
+            
+            if (!nombre || !precio) {
+                mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
+                return;
+            }
+            
+            const producto = {
+                nombre,
+                precio,
+                categoria,
+                descripcion,
+                fechaCreacion: new Date().toISOString(),
+                fechaModificacion: new Date().toISOString()
+            };
+            
+            try {
+                if (isFirebaseConnected) {
+                    if (editandoProductoId) {
+                        // Actualizar
+                        const docRef = doc(db, 'productos', editandoProductoId);
+                        await updateDoc(docRef, {
+                            ...producto,
+                            fechaModificacion: serverTimestamp()
+                        });
+                        mostrarNotificacion(`✅ Producto "${nombre}" actualizado`, 'success');
+                    } else {
+                        // Crear nuevo
+                        await addDoc(collection(db, 'productos'), {
+                            ...producto,
+                            fechaCreacion: serverTimestamp(),
+                            fechaModificacion: serverTimestamp()
+                        });
+                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
+                    }
+                } else {
+                    // Modo offline
+                    if (editandoProductoId) {
+                        const index = productos.findIndex(p => p.id === editandoProductoId);
+                        productos[index] = { ...producto, id: editandoProductoId, synced: false };
+                    } else {
+                        productos.push({ ...producto, id: Date.now().toString(), synced: false });
+                    }
+                    
+                    localStorage.setItem('productos_backup', JSON.stringify(productos));
+                    mostrarProductos();
+                    mostrarNotificacion(`💾 Producto "${nombre}" guardado localmente`, 'warning');
+                }
+                
+                // Limpiar formulario
+                document.getElementById('productos-form').reset();
+                editandoProductoId = null;
+                
+            } catch (error) {
+                console.error('❌ Error guardando producto:', error);
+                mostrarNotificacion('❌ Error guardando producto', 'error');
+            }
+        };
+
+        window.editarProducto = function(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+            
+            editandoProductoId = id;
+            
+            document.getElementById('producto-nombre').value = producto.nombre;
+            document.getElementById('producto-precio').value = producto.precio;
+            document.getElementById('producto-categoria').value = producto.categoria || 'sandwich';
+            document.getElementById('producto-descripcion').value = producto.descripcion || '';
+            
+            // Scroll al formulario
+            document.getElementById('productos-form').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        window.eliminarProducto = async function(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+            
+            if (!confirm(`¿Eliminar "${producto.nombre}"?`)) return;
+            
+            try {
+                if (isFirebaseConnected) {
+                    await deleteDoc(doc(db, 'productos', id));
+                    mostrarNotificacion('🗑️ Producto eliminado', 'success');
+                } else {
+                    productos = productos.filter(p => p.id !== id);
+                    localStorage.setItem('productos_backup', JSON.stringify(productos));
+                    mostrarProductos();
+                    mostrarNotificacion('🗑️ Producto eliminado localmente', 'warning');
+                }
+            } catch (error) {
+                console.error('❌ Error eliminando producto:', error);
+                mostrarNotificacion('❌ Error eliminando producto', 'error');
+            }
+        };
+
+        window.cancelarProducto = function() {
+            document.getElementById('productos-form').reset();
+            editandoProductoId = null;
+        };
+
+        function mostrarProductos() {
+            const container = document.getElementById('productos-lista');
+            
+            if (productos.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay productos registrados</div>';
+                return;
+            }
+            
+            // Ordenar por nombre
+            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            container.innerHTML = productosOrdenados.map(producto => `
+                <div class="item-card">
+                    <div class="sync-badge ${producto.synced ? 'synced' : 'pending'}">
+                        ${producto.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
+                    <div class="item-header">
+                        <div class="item-title">${producto.nombre}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="editarProducto('${producto.id}')">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="eliminarProducto('${producto.id}')">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="item-details">
+                        <strong>Precio:</strong> $${producto.precio?.toFixed(2)} | 
+                        <strong>Categoría:</strong> ${producto.categoria || 'Sin categoría'}
+                        ${producto.descripcion ? `<br><strong>Descripción:</strong> ${producto.descripcion}` : ''}
+                        <br><small><strong>Creado:</strong> ${formatDate(producto.fechaCreacion)}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ========================================
+        // 🛠️ FUNCIONES DE CLIENTES
+        // ========================================
+        
+        window.guardarCliente = async function(event) {
+            event.preventDefault();
+            
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const apellido = document.getElementById('cliente-apellido').value.trim();
+            const telefono = document.getElementById('cliente-telefono').value.trim();
+            const email = document.getElementById('cliente-email').value.trim();
+            const direccion = document.getElementById('cliente-direccion').value.trim();
+            const ciudad = document.getElementById('cliente-ciudad').value.trim();
+            
+            if (!nombre || !apellido || !telefono) {
+                mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
+                return;
+            }
+            
+            const cliente = {
+                nombre,
+                apellido,
+                telefono,
+                email,
+                direccion,
+                ciudad,
+                fechaCreacion: new Date().toISOString(),
+                fechaModificacion: new Date().toISOString()
+            };
+            
+            try {
+                if (isFirebaseConnected) {
+                    if (editandoClienteId) {
+                        // Actualizar
+                        const docRef = doc(db, 'clientes', editandoClienteId);
+                        await updateDoc(docRef, {
+                            ...cliente,
+                            fechaModificacion: serverTimestamp()
+                        });
+                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" creado`, 'success');
+                    }
+                } else {
+                    // Modo offline
+                    if (editandoClienteId) {
+                        const index = clientes.findIndex(c => c.id === editandoClienteId);
+                        clientes[index] = { ...cliente, id: editandoClienteId, synced: false };
+                    } else {
+                        clientes.push({ ...cliente, id: Date.now().toString(), synced: false });
+                    }
+                    
+                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                    mostrarClientes();
+                    mostrarNotificacion(`💾 Cliente "${nombre} ${apellido}" guardado localmente`, 'warning');
+                }
+                
+                // Limpiar formulario
+                document.getElementById('clientes-form').reset();
+                editandoClienteId = null;
+                
+            } catch (error) {
+                console.error('❌ Error guardando cliente:', error);
+                mostrarNotificacion('❌ Error guardando cliente', 'error');
+            }
+        };
+
+        window.editarCliente = function(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            editandoClienteId = id;
+            
+            document.getElementById('cliente-nombre').value = cliente.nombre;
+            document.getElementById('cliente-apellido').value = cliente.apellido;
+            document.getElementById('cliente-telefono').value = cliente.telefono;
+            document.getElementById('cliente-email').value = cliente.email || '';
+            document.getElementById('cliente-direccion').value = cliente.direccion || '';
+            document.getElementById('cliente-ciudad').value = cliente.ciudad || '';
+            
+            // Scroll al formulario
+            document.getElementById('clientes-form').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        window.eliminarCliente = async function(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            if (!confirm(`¿Eliminar "${cliente.nombre} ${cliente.apellido}"?`)) return;
+            
+            try {
+                if (isFirebaseConnected) {
+                    await deleteDoc(doc(db, 'clientes', id));
+                    mostrarNotificacion('🗑️ Cliente eliminado', 'success');
+                } else {
+                    clientes = clientes.filter(c => c.id !== id);
+                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                    mostrarClientes();
+                    mostrarNotificacion('🗑️ Cliente eliminado localmente', 'warning');
+                }
+            } catch (error) {
+                console.error('❌ Error eliminando cliente:', error);
+                mostrarNotificacion('❌ Error eliminando cliente', 'error');
+            }
+        };
+
+        window.cancelarCliente = function() {
+            document.getElementById('clientes-form').reset();
+            editandoClienteId = null;
+        };
+
+        function mostrarClientes() {
+            const container = document.getElementById('clientes-lista');
+            
+            if (clientes.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
+                return;
+            }
+            
+            // Ordenar por apellido, luego nombre
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            container.innerHTML = clientesOrdenados.map(cliente => `
+                <div class="item-card">
+                    <div class="sync-badge ${cliente.synced ? 'synced' : 'pending'}">
+                        ${cliente.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
+                    <div class="item-header">
+                        <div class="item-title">${cliente.nombre} ${cliente.apellido}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="editarCliente('${cliente.id}')">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="eliminarCliente('${cliente.id}')">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="item-details">
+                        <strong>Teléfono:</strong> ${cliente.telefono}
+                        ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
+                        <br>
+                        ${cliente.direccion ? `<strong>Dirección:</strong> ${cliente.direccion}` : ''}
+                        ${cliente.ciudad ? ` - ${cliente.ciudad}` : ''}
+                        <br><small><strong>Registrado:</strong> ${formatDate(cliente.fechaCreacion)}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ========================================
+        // 🛠️ FUNCIONES DE UI
+        // ========================================
+        
+        window.showTab = function(tabName, tabElement) {
+            // Remover active de todos los tabs
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Activar tab seleccionado
+            tabElement.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        };
+
+        window.manualSync = async function() {
+            if (!isFirebaseConnected) {
+                mostrarNotificacion('❌ Firebase no conectado', 'error');
+                return;
+            }
+            
+            try {
+                updateStatus('loading', 'Sincronizando...');
+                
+                // Re-testear conexión
+                await testFirebaseConnection();
+                
+                mostrarNotificacion('🔄 Sincronización manual completada', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error en sincronización manual:', error);
+                mostrarNotificacion('❌ Error en sincronización', 'error');
+                updateStatus('offline', 'Error conexión');
+            }
+        };
+
+        function updateStatus(status, text) {
+            const dot = document.getElementById('status-dot');
+            const textEl = document.getElementById('status-text');
+            
+            dot.className = `status-dot status-${status}`;
+            textEl.textContent = text;
+        }
+
+        function updateFirebaseStatus(type, message) {
+            const statusEl = document.getElementById('firebase-status');
+            statusEl.className = `firebase-status ${type}`;
+            statusEl.textContent = message;
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = `notification ${tipo}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function handleFirebaseError(error) {
+            console.error('🔥 Firebase Error:', error);
+            
+            let mensaje = 'Error de Firebase desconocido';
+            
+            if (error.code === 'permission-denied') {
+                mensaje = 'Sin permisos para acceder a Firebase';
+            } else if (error.code === 'unavailable') {
+                mensaje = 'Firebase temporalmente no disponible';
+            } else if (error.message.includes('Configuración')) {
+                mensaje = 'Configuración de Firebase incompleta';
+            } else {
+                mensaje = error.message;
+            }
+            
+            updateFirebaseStatus('error', `❌ ${mensaje}`);
+            updateStatus('offline', 'Error Firebase');
+            
+            // Cargar datos locales como respaldo
+            cargarDatosLocales();
+            
+            mostrarNotificacion(`❌ ${mensaje}. Usando modo offline.`, 'error');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Sin fecha';
+            
+            try {
+                const date = new Date(dateString);
+                if (dateString.includes('seconds')) {
+                    // Es un timestamp de Firebase
+                    return new Date(dateString.seconds * 1000).toLocaleDateString();
+                }
+                return date.toLocaleDateString();
+            } catch (error) {
+                return 'Fecha inválida';
+            }
+        }
+
+        // ========================================
+        // 🚀 INICIO DE LA APLICACIÓN
+        // ========================================
+        
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', inicializarApp);
+
+        // Debug - Exponer funciones globalmente para testing
+        window.debug = {
+            productos: () => productos,
+            clientes: () => clientes,
+            firebase: () => ({ app, db, connected: isFirebaseConnected }),
+            clearLocal: () => {
+                localStorage.clear();
+                location.reload();
+            }
+        };
+
+        console.log('🎯 Sistema Pastrami v2.0 cargado');
+        console.log('🔧 Para debug: window.debug');
+        
+    </script>
+</body>
+</html>} ${apellido}" actualizado`, 'success');
+                    } else {
+                        // Crear nuevo
+                        await addDoc(collection(db, 'clientes'), {
+                            ...cliente,
+                            fechaCreacion: serverTimestamp(),
+                            fechaModificacion: serverTimestamp()
+                        });
+                        mostrarNotificacion(`✅ Cliente "${nombre
