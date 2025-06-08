@@ -1231,7 +1231,7 @@ onChange={(e) => setData({...data, numeroTransaccion: e.target.value})}
                                             type="text"
                                             placeholder={data.metodoPago === 'mercadopago' ? 'ID de Mercado Pago' : 'Número de transferencia'}
                                             value={data.numeroTransaccion}
-                                            onChange={(e) => setData({...data, numeroTransaccion:<!DOCTYPE html>
+                                            onChange={(e) => setData({...data, numeroTransaccion: e<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -1869,4 +1869,5 @@ onChange={(e) => setData({...data, numeroTransaccion: e.target.value})}
                     calcularTotales(newProductos, data.costoEnvio);
                 };
 
-                const
+                const calcularTotales = (productos = data.productos, envio = data.costoEnvio) => {
+                    const
