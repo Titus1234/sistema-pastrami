@@ -189,10 +189,39 @@
                         <label>Precio:</label>
                         <input type="number" id="productoPrecio" step="0.01" required>
                     </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Tipo:</label>
+                        <select id="productoTipo" onchange="toggleComponentes()" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="simple">Producto Simple</option>
+                            <option value="caja">Caja con Componentes</option>
+                        </select>
+                    </div>
                     <div class="form-col">
                         <label>Stock:</label>
                         <input type="number" id="productoStock" value="0">
                     </div>
+                </div>
+
+                <div id="componentes-section" style="display: none;">
+                    <h3>Componentes de la Caja</h3>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>ID Componente:</label>
+                            <input type="text" id="componenteId" placeholder="ID del producto componente">
+                        </div>
+                        <div class="form-col">
+                            <label>Cantidad:</label>
+                            <input type="number" id="componenteCantidad" min="1" placeholder="Cantidad">
+                        </div>
+                        <div class="form-col">
+                            <button type="button" class="btn btn-primary" onclick="agregarComponente()">➕ Agregar</button>
+                        </div>
+                    </div>
+                    <div id="lista-componentes"></div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
@@ -303,11 +332,12 @@
     </div>
 
     <script>
-        let clientes = JSON.parse(localStorage.getItem('pastramix_clientes') || '[]');
-        let productos = JSON.parse(localStorage.getItem('pastramix_productos') || '[]');
-        let pedidos = JSON.parse(localStorage.getItem('pastramix_pedidos') || '[]');
-        let pagos = JSON.parse(localStorage.getItem('pastramix_pagos') || '[]');
+        let clientes = JSON.parse(localStorage.getItem('sistema_pastrami_clientes') || '[]');
+        let productos = JSON.parse(localStorage.getItem('sistema_pastrami_productos') || '[]');
+        let pedidos = JSON.parse(localStorage.getItem('sistema_pastrami_pedidos') || '[]');
+        let pagos = JSON.parse(localStorage.getItem('sistema_pastrami_pagos') || '[]');
         let productosEnPedido = [];
+        let componentesTemp = [];
         let contadorId = Math.max(0, ...clientes.map(c => c.id || 0)) + 1;
 
         function mostrarTab(tabName) {
@@ -335,7 +365,13 @@
             };
             
             clientes.push(cliente);
-            localStorage.setItem('pastramix_clientes', JSON.stringify(clientes));
+            localStorage.setItem('sistema_pastrami_clientes', JSON.stringify(clientes));
+            
+            // FORZAR SINCRONIZACIÓN
+            setTimeout(function() {
+                window.location.reload();
+            }, 500);
+            
             mostrarClientes();
             actualizarSelects();
             event.target.reset();
@@ -375,20 +411,103 @@
         function eliminarCliente(id) {
             if (confirm('¿Eliminar cliente?')) {
                 clientes = clientes.filter(c => c.id !== id);
-                localStorage.setItem('pastramix_clientes', JSON.stringify(clientes));
+                localStorage.setItem('sistema_pastrami_clientes', JSON.stringify(clientes));
+                
+                // FORZAR SINCRONIZACIÓN
+                setTimeout(function() {
+                    window.location.reload();
+                }, 500);
+                
                 mostrarClientes();
                 actualizarSelects();
             }
         }
 
+        function toggleComponentes() {
+            const tipo = document.getElementById('productoTipo').value;
+            const section = document.getElementById('componentes-section');
+            
+            if (tipo === 'caja') {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+                componentesTemp = [];
+                mostrarComponentes();
+            }
+        }
+
+        function agregarComponente() {
+            const id = document.getElementById('componenteId').value.trim();
+            const cantidad = parseInt(document.getElementById('componenteCantidad').value);
+            
+            if (!id || !cantidad) {
+                alert('Completa ID y cantidad');
+                return;
+            }
+            
+            const existe = productos.find(p => p.id === id);
+            if (!existe) {
+                alert('El producto componente no existe. Créalo primero.');
+                return;
+            }
+            
+            const yaAgregado = componentesTemp.find(c => c.id === id);
+            if (yaAgregado) {
+                alert('Componente ya agregado');
+                return;
+            }
+            
+            componentesTemp.push({
+                id: id,
+                nombre: existe.nombre,
+                cantidad: cantidad
+            });
+            
+            mostrarComponentes();
+            document.getElementById('componenteId').value = '';
+            document.getElementById('componenteCantidad').value = '';
+        }
+
+        function mostrarComponentes() {
+            const lista = document.getElementById('lista-componentes');
+            
+            if (componentesTemp.length === 0) {
+                lista.innerHTML = '<div style="color: #666; padding: 10px;">Sin componentes</div>';
+                return;
+            }
+            
+            lista.innerHTML = componentesTemp.map((comp, index) => `
+                <div class="item">
+                    <div class="item-header">
+                        <div><strong>${comp.id}</strong> - ${comp.nombre} (${comp.cantidad} unidades)</div>
+                        <button class="btn btn-danger" onclick="quitarComponente(${index})">❌</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function quitarComponente(index) {
+            componentesTemp.splice(index, 1);
+            mostrarComponentes();
+        }
+
         function guardarProducto(event) {
             event.preventDefault();
+            
+            const tipo = document.getElementById('productoTipo').value;
+            
+            if (tipo === 'caja' && componentesTemp.length === 0) {
+                alert('Las cajas deben tener componentes');
+                return;
+            }
             
             const producto = {
                 id: document.getElementById('productoId').value,
                 nombre: document.getElementById('productoNombre').value,
                 precio: parseFloat(document.getElementById('productoPrecio').value),
-                stock: parseInt(document.getElementById('productoStock').value)
+                stock: parseInt(document.getElementById('productoStock').value),
+                tipo: tipo,
+                componentes: tipo === 'caja' ? componentesTemp.slice() : []
             };
             
             if (productos.find(p => p.id === producto.id)) {
@@ -397,9 +516,18 @@
             }
             
             productos.push(producto);
-            localStorage.setItem('pastramix_productos', JSON.stringify(productos));
+            localStorage.setItem('sistema_pastrami_productos', JSON.stringify(productos));
+            
+            // FORZAR SINCRONIZACIÓN
+            setTimeout(function() {
+                window.location.reload();
+            }, 500);
+            
             mostrarProductos();
             actualizarSelects();
+            componentesTemp = [];
+            mostrarComponentes();
+            document.getElementById('componentes-section').style.display = 'none';
             event.target.reset();
             alert('Producto guardado');
         }
@@ -418,7 +546,13 @@
                         <div><strong>${p.id} - ${p.nombre}</strong></div>
                         <button class="btn btn-danger" onclick="eliminarProducto('${p.id}')">🗑️</button>
                     </div>
-                    <div>Precio: $${p.precio.toFixed(2)} | Stock: ${p.stock}</div>
+                    <div>Precio: ${p.precio.toFixed(2)} | Stock: ${p.stock} | Tipo: ${p.tipo === 'caja' ? 'Caja' : 'Simple'}</div>
+                    ${p.tipo === 'caja' && p.componentes ? `
+                        <div style="background: #e9ecef; padding: 10px; margin-top: 10px; border-radius: 5px;">
+                            <strong>Componentes:</strong><br>
+                            ${p.componentes.map(comp => `• ${comp.cantidad}x ${comp.id} - ${comp.nombre}`).join('<br>')}
+                        </div>
+                    ` : ''}
                 </div>
             `).join('');
         }
@@ -426,7 +560,13 @@
         function eliminarProducto(id) {
             if (confirm('¿Eliminar producto?')) {
                 productos = productos.filter(p => p.id !== id);
-                localStorage.setItem('pastramix_productos', JSON.stringify(productos));
+                localStorage.setItem('sistema_pastrami_productos', JSON.stringify(productos));
+                
+                // FORZAR SINCRONIZACIÓN
+                setTimeout(function() {
+                    window.location.reload();
+                }, 500);
+                
                 mostrarProductos();
                 actualizarSelects();
             }
@@ -522,7 +662,13 @@
             };
             
             pedidos.push(pedido);
-            localStorage.setItem('pastramix_pedidos', JSON.stringify(pedidos));
+            localStorage.setItem('sistema_pastrami_pedidos', JSON.stringify(pedidos));
+            
+            // FORZAR SINCRONIZACIÓN
+            setTimeout(function() {
+                window.location.reload();
+            }, 500);
+            
             mostrarPedidos();
             actualizarSelects();
             productosEnPedido = [];
@@ -560,7 +706,13 @@
         function eliminarPedido(id) {
             if (confirm('¿Eliminar pedido?')) {
                 pedidos = pedidos.filter(p => p.id !== id);
-                localStorage.setItem('pastramix_pedidos', JSON.stringify(pedidos));
+                localStorage.setItem('sistema_pastrami_pedidos', JSON.stringify(pedidos));
+                
+                // FORZAR SINCRONIZACIÓN
+                setTimeout(function() {
+                    window.location.reload();
+                }, 500);
+                
                 mostrarPedidos();
                 actualizarSelects();
             }
@@ -578,7 +730,13 @@
             };
             
             pagos.push(pago);
-            localStorage.setItem('pastramix_pagos', JSON.stringify(pagos));
+            localStorage.setItem('sistema_pastrami_pagos', JSON.stringify(pagos));
+            
+            // FORZAR SINCRONIZACIÓN
+            setTimeout(function() {
+                window.location.reload();
+            }, 500);
+            
             mostrarPagos();
             mostrarPedidos();
             actualizarSelects();
@@ -613,7 +771,13 @@
         function eliminarPago(id) {
             if (confirm('¿Eliminar pago?')) {
                 pagos = pagos.filter(p => p.id !== id);
-                localStorage.setItem('pastramix_pagos', JSON.stringify(pagos));
+                localStorage.setItem('sistema_pastrami_pagos', JSON.stringify(pagos));
+                
+                // FORZAR SINCRONIZACIÓN
+                setTimeout(function() {
+                    window.location.reload();
+                }, 500);
+                
                 mostrarPagos();
                 mostrarPedidos();
             }
