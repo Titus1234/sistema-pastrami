@@ -431,18 +431,34 @@
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="producto-categoria">Categoría:</label>
-                        <select id="producto-categoria">
-                            <option value="sandwich">Sandwich</option>
-                            <option value="bebida">Bebida</option>
-                            <option value="acompañamiento">Acompañamiento</option>
-                            <option value="postre">Postre</option>
-                            <option value="otro">Otro</option>
+                        <label for="producto-tipo">Tipo de Producto <span class="required">*</span>:</label>
+                        <select id="producto-tipo" onchange="toggleComponentes()" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="simple">Producto Simple</option>
+                            <option value="compuesto">Producto Compuesto (con componentes)</option>
                         </select>
                     </div>
                     <div class="form-col">
                         <label for="producto-descripcion">Descripción:</label>
                         <input type="text" id="producto-descripcion" placeholder="Descripción opcional">
+                    </div>
+                </div>
+
+                <div id="componentes-section" style="display: none;">
+                    <h3>Componentes del Producto</h3>
+                    <div id="componentes-list">
+                        <p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <input type="text" id="componente-nombre" placeholder="Nombre del componente">
+                        </div>
+                        <div class="form-col">
+                            <input type="number" id="componente-cantidad" placeholder="Cantidad" min="1">
+                        </div>
+                        <div class="form-col">
+                            <button type="button" class="btn btn-secondary" onclick="agregarComponente()">+ Agregar</button>
+                        </div>
                     </div>
                 </div>
 
@@ -489,12 +505,27 @@
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="cliente-direccion">Dirección:</label>
-                        <input type="text" id="cliente-direccion" placeholder="Calle y número">
+                        <label for="cliente-direccion">Calle:</label>
+                        <input type="text" id="cliente-direccion" placeholder="Nombre de la calle">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-numero">Número:</label>
+                        <input type="text" id="cliente-numero" placeholder="Número de la calle">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-piso">Piso:</label>
+                        <input type="text" id="cliente-piso" placeholder="Piso (opcional)">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-departamento">Departamento:</label>
+                        <input type="text" id="cliente-departamento" placeholder="Depto (opcional)">
                     </div>
                     <div class="form-col">
                         <label for="cliente-ciudad">Ciudad:</label>
-                        <input type="text" id="cliente-ciudad">
+                        <input type="text" id="cliente-ciudad" placeholder="Ciudad">
                     </div>
                 </div>
 
@@ -543,6 +574,7 @@
         let clientes = [];
         let editandoProductoId = null;
         let editandoClienteId = null;
+        let componentesTemp = [];
 
         // ========================================
         // 🚀 INICIALIZACIÓN
@@ -741,24 +773,80 @@
         // 🛠️ FUNCIONES DE PRODUCTOS
         // ========================================
         
+        function toggleComponentes() {
+            const tipo = document.getElementById('producto-tipo').value;
+            const section = document.getElementById('componentes-section');
+            
+            if (tipo === 'compuesto') {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+                componentesTemp = [];
+                mostrarComponentesTemp();
+            }
+        }
+
+        function agregarComponente() {
+            const nombre = document.getElementById('componente-nombre').value.trim();
+            const cantidad = parseInt(document.getElementById('componente-cantidad').value);
+            
+            if (!nombre || !cantidad || cantidad < 1) {
+                mostrarNotificacion('❌ Ingresa nombre y cantidad válidos para el componente', 'error');
+                return;
+            }
+            
+            componentesTemp.push({ nombre, cantidad });
+            mostrarComponentesTemp();
+            
+            // Limpiar campos
+            document.getElementById('componente-nombre').value = '';
+            document.getElementById('componente-cantidad').value = '';
+        }
+
+        function mostrarComponentesTemp() {
+            const lista = document.getElementById('componentes-list');
+            if (componentesTemp.length === 0) {
+                lista.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>';
+                return;
+            }
+            
+            lista.innerHTML = componentesTemp.map((comp, index) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #e9ecef; border-radius: 5px; margin-bottom: 5px;">
+                    <span>${comp.cantidad}x ${comp.nombre}</span>
+                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(${index})">❌</button>
+                </div>
+            `).join('');
+        }
+
+        function eliminarComponenteTemp(index) {
+            componentesTemp.splice(index, 1);
+            mostrarComponentesTemp();
+        }
+        
         function guardarProducto(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('producto-nombre').value.trim();
             const precio = parseFloat(document.getElementById('producto-precio').value);
-            const categoria = document.getElementById('producto-categoria').value;
+            const tipo = document.getElementById('producto-tipo').value;
             const descripcion = document.getElementById('producto-descripcion').value.trim();
             
-            if (!nombre || !precio) {
+            if (!nombre || !precio || !tipo) {
                 mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
+                return;
+            }
+            
+            if (tipo === 'compuesto' && componentesTemp.length === 0) {
+                mostrarNotificacion('❌ Los productos compuestos deben tener al menos un componente', 'error');
                 return;
             }
             
             const producto = {
                 nombre,
                 precio,
-                categoria,
+                tipo,
                 descripcion,
+                componentes: tipo === 'compuesto' ? [...componentesTemp] : [],
                 fechaCreacion: firebase.firestore.Timestamp.now(),
                 fechaModificacion: firebase.firestore.Timestamp.now()
             };
@@ -807,11 +895,15 @@
             if (!producto) return;
             
             editandoProductoId = id;
+            componentesTemp = [...(producto.componentes || [])];
             
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-precio').value = producto.precio;
-            document.getElementById('producto-categoria').value = producto.categoria || 'sandwich';
+            document.getElementById('producto-tipo').value = producto.tipo || 'simple';
             document.getElementById('producto-descripcion').value = producto.descripcion || '';
+            
+            toggleComponentes();
+            mostrarComponentesTemp();
             
             document.getElementById('productos-form').scrollIntoView({ behavior: 'smooth' });
         }
@@ -896,6 +988,9 @@
             const telefono = document.getElementById('cliente-telefono').value.trim();
             const email = document.getElementById('cliente-email').value.trim();
             const direccion = document.getElementById('cliente-direccion').value.trim();
+            const numero = document.getElementById('cliente-numero').value.trim();
+            const piso = document.getElementById('cliente-piso').value.trim();
+            const departamento = document.getElementById('cliente-departamento').value.trim();
             const ciudad = document.getElementById('cliente-ciudad').value.trim();
             
             if (!nombre || !apellido || !telefono) {
@@ -909,6 +1004,9 @@
                 telefono,
                 email,
                 direccion,
+                numero,
+                piso,
+                departamento,
                 ciudad,
                 fechaCreacion: firebase.firestore.Timestamp.now(),
                 fechaModificacion: firebase.firestore.Timestamp.now()
@@ -964,6 +1062,9 @@
             document.getElementById('cliente-telefono').value = cliente.telefono;
             document.getElementById('cliente-email').value = cliente.email || '';
             document.getElementById('cliente-direccion').value = cliente.direccion || '';
+            document.getElementById('cliente-numero').value = cliente.numero || '';
+            document.getElementById('cliente-piso').value = cliente.piso || '';
+            document.getElementById('cliente-departamento').value = cliente.departamento || '';
             document.getElementById('cliente-ciudad').value = cliente.ciudad || '';
             
             document.getElementById('clientes-form').scrollIntoView({ behavior: 'smooth' });
@@ -1016,7 +1117,17 @@
                 return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
             });
             
-            container.innerHTML = clientesOrdenados.map(cliente => `
+            container.innerHTML = clientesOrdenados.map(cliente => {
+                // Construir dirección completa
+                let direccionCompleta = '';
+                if (cliente.direccion || cliente.numero) {
+                    direccionCompleta = `${cliente.direccion || ''} ${cliente.numero || ''}`.trim();
+                    if (cliente.piso) direccionCompleta += `, Piso ${cliente.piso}`;
+                    if (cliente.departamento) direccionCompleta += `, Dto ${cliente.departamento}`;
+                    if (cliente.ciudad) direccionCompleta += `, ${cliente.ciudad}`;
+                }
+                
+                return `
                 <div class="item-card">
                     <div class="sync-badge ${cliente.synced ? 'synced' : 'pending'}">
                         ${cliente.synced ? 'SYNC' : 'LOCAL'}
@@ -1038,12 +1149,12 @@
                         <strong>Teléfono:</strong> ${cliente.telefono}
                         ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
                         <br>
-                        ${cliente.direccion ? `<strong>Dirección:</strong> ${cliente.direccion}` : ''}
-                        ${cliente.ciudad ? ` - ${cliente.ciudad}` : ''}
-                        <br><small><strong>Registrado:</strong> ${formatDate(cliente.fechaCreacion)}</small>
+                        ${direccionCompleta ? `<strong>Dirección:</strong> ${direccionCompleta}<br>` : ''}
+                        <small><strong>Registrado:</strong> ${formatDate(cliente.fechaCreacion)}</small>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // ========================================
