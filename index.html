@@ -472,32 +472,6 @@
             color: #ff6b6b;
         }
 
-        /* NUEVO: Sección de pago en pedidos */
-        .pago-section {
-            background: #e8f5e8;
-            border: 2px solid #28a745;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .pago-section h4 {
-            color: #28a745;
-            margin-bottom: 15px;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            width: auto;
-            margin-right: 10px;
-            transform: scale(1.2);
-        }
-
         /* Responsive */
         @media (max-width: 768px) {
             .tabs {
@@ -744,55 +718,6 @@
                     </div>
                 </div>
 
-                <!-- MODIFICACIÓN 1: Sección de pago -->
-                <div class="pago-section">
-                    <h4>💰 Pago del Pedido</h4>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="registrar-pago" onchange="togglePagoForm()">
-                        <label for="registrar-pago">Registrar pago ahora</label>
-                    </div>
-
-                    <div id="pago-form-section" style="display: none;">
-                        <div class="form-row">
-                            <div class="form-col">
-                                <label for="pago-tipo">Tipo de Pago:</label>
-                                <select id="pago-tipo" onchange="actualizarMontoPago()">
-                                    <option value="total">Pago Total</option>
-                                    <option value="parcial">Pago Parcial</option>
-                                </select>
-                            </div>
-                            <div class="form-col">
-                                <label for="pago-monto-pedido">Monto a Pagar:</label>
-                                <input type="number" id="pago-monto-pedido" step="0.01" min="0">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-col">
-                                <label for="pago-metodo-pedido">Método de Pago:</label>
-                                <select id="pago-metodo-pedido">
-                                    <option value="">Seleccionar...</option>
-                                    <option value="efectivo">Efectivo</option>
-                                    <option value="transferencia">Transferencia</option>
-                                    <option value="tarjeta">Tarjeta</option>
-                                    <option value="mercado_pago">Mercado Pago</option>
-                                    <option value="otro">Otro</option>
-                                </select>
-                            </div>
-                            <div class="form-col">
-                                <label for="pago-fecha-pedido">Fecha del Pago:</label>
-                                <input type="date" id="pago-fecha-pedido">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="pago-notas-pedido">Notas del Pago:</label>
-                            <textarea id="pago-notas-pedido" rows="2" placeholder="Observaciones del pago..."></textarea>
-                        </div>
-                    </div>
-                </div>
-
                 <div style="margin-top: 30px;">
                     <button type="submit" class="btn btn-primary">💾 Guardar Pedido</button>
                     <button type="button" class="btn btn-secondary" onclick="cancelarPedido()">❌ Cancelar</button>
@@ -805,7 +730,7 @@
             </div>
         </div>
 
-        <!-- TAB PAGOS -->
+        <!-- TAB PAGOS CON MERCADO PAGO -->
         <div id="pagos" class="tab-content">
             <h2>💰 Gestión de Pagos</h2>
 
@@ -872,3 +797,79 @@
                     <button type="submit" class="btn btn-primary">💰 Registrar Pago</button>
                     <button type="button" class="btn btn-secondary" onclick="cancelarPago()">❌ Cancelar</button>
                 </form>
+            </div>
+
+            <!-- Lista de todos los pagos -->
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 30px;">
+                <h3>📋 Historial de Pagos</h3>
+                <table class="payments-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Pedido</th>
+                            <th>Monto</th>
+                            <th>Método</th>
+                            <th>Estado Pedido</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pagos-lista">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabla de saldos pendientes -->
+            <div style="background: #fff3cd; border-radius: 10px; padding: 20px;">
+                <h3>⚠️ Saldos Pendientes</h3>
+                <table class="payments-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Pedido</th>
+                            <th>Total Pedido</th>
+                            <th>Pagado</th>
+                            <th>Saldo Pendiente</th>
+                            <th>Fecha Entrega</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="saldos-pendientes">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let productos = JSON.parse(localStorage.getItem('productos') || '[]');
+        let clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+        let pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+        let pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+        let editandoProducto = null;
+        let editandoCliente = null;
+        let editandoPedido = null;
+        let componentesTemp = [];
+        
+        // Variables para el nuevo sistema de pedidos
+        let clienteSeleccionado = null;
+        let productosEnPedido = []; // Array con {producto, cantidad}
+
+        // MODIFICACIÓN: Función para mostrar nombre correcto del método de pago
+        function obtenerNombreMetodo(metodo) {
+            switch(metodo) {
+                case 'mercado_pago': return 'Mercado Pago';
+                case 'efectivo': return 'Efectivo';
+                case 'transferencia': return 'Transferencia';
+                case 'tarjeta': return 'Tarjeta';
+                case 'otro': return 'Otro';
+                default: return metodo;
+            }
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            mostrarProductos
