@@ -730,7 +730,7 @@
             </div>
         </div>
 
-        <!-- TAB PAGOS CON MERCADO PAGO -->
+        <!-- TAB PAGOS (sin cambios) -->
         <div id="pagos" class="tab-content">
             <h2>💰 Gestión de Pagos</h2>
 
@@ -775,7 +775,6 @@
                                 <option value="efectivo">Efectivo</option>
                                 <option value="transferencia">Transferencia</option>
                                 <option value="tarjeta">Tarjeta</option>
-                                <option value="mercado_pago">Mercado Pago</option>
                                 <option value="otro">Otro</option>
                             </select>
                         </div>
@@ -858,18 +857,1016 @@
         let clienteSeleccionado = null;
         let productosEnPedido = []; // Array con {producto, cantidad}
 
-        // MODIFICACIÓN: Función para mostrar nombre correcto del método de pago
-        function obtenerNombreMetodo(metodo) {
-            switch(metodo) {
-                case 'mercado_pago': return 'Mercado Pago';
-                case 'efectivo': return 'Efectivo';
-                case 'transferencia': return 'Transferencia';
-                case 'tarjeta': return 'Tarjeta';
-                case 'otro': return 'Otro';
-                default: return metodo;
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            mostrarProductos();
+            mostrarClientes();
+            mostrarPedidos();
+            mostrarPagos();
+            actualizarSelectPedidos();
+            actualizarEstadisticasPagos();
+            
+            // Establecer fecha actual
+            document.getElementById('pago-fecha').value = new Date().toISOString().split('T')[0];
+            
+            // Configurar autocompletado
+            configurarAutocompletadoCliente();
+            configurarAutocompletadoProducto();
+        });
+
+        // FUNCIONES DE NAVEGACIÓN
+        function showTab(tabName) {
+            // Ocultar todos los tabs
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Mostrar tab seleccionado
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // FUNCIONES DE AUTOCOMPLETADO
+        function configurarAutocompletadoCliente() {
+            const input = document.getElementById('pedido-cliente-input');
+            const suggestions = document.getElementById('cliente-suggestions');
+            
+            input.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                
+                if (query.length < 1) {
+                    suggestions.style.display = 'none';
+                    clienteSeleccionado = null;
+                    return;
+                }
+                
+                const clientesFiltrados = clientes.filter(cliente => {
+                    const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`.toLowerCase();
+                    return nombreCompleto.includes(query) || 
+                           cliente.telefono.includes(query);
+                });
+                
+                if (clientesFiltrados.length === 0) {
+                    suggestions.style.display = 'none';
+                    return;
+                }
+                
+                suggestions.innerHTML = clientesFiltrados.map(cliente => {
+                    const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+                    return `
+                        <div class="autocomplete-suggestion" onclick="seleccionarCliente('${nombreCompleto}', ${cliente.id})">
+                            <div class="suggestion-main">${nombreCompleto}</div>
+                            <div class="suggestion-sub">Tel: ${cliente.telefono}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                suggestions.style.display = 'block';
+            });
+            
+            // Cerrar sugerencias al hacer clic fuera
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+                    suggestions.style.display = 'none';
+                }
+            });
+        }
+
+        function seleccionarCliente(nombreCompleto, clienteId) {
+            document.getElementById('pedido-cliente-input').value = nombreCompleto;
+            document.getElementById('cliente-suggestions').style.display = 'none';
+            clienteSeleccionado = clientes.find(c => c.id === clienteId);
+        }
+
+        function configurarAutocompletadoProducto() {
+            const input = document.getElementById('producto-search');
+            const suggestions = document.getElementById('producto-suggestions');
+            
+            input.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                
+                if (query.length < 1) {
+                    suggestions.style.display = 'none';
+                    return;
+                }
+                
+                const productosFiltrados = productos.filter(producto => {
+                    return producto.nombre.toLowerCase().includes(query);
+                });
+                
+                if (productosFiltrados.length === 0) {
+                    suggestions.style.display = 'none';
+                    return;
+                }
+                
+                suggestions.innerHTML = productosFiltrados.map(producto => `
+                    <div class="autocomplete-suggestion" onclick="agregarProductoAPedido(${producto.id})">
+                        <div class="suggestion-main">${producto.nombre}</div>
+                        <div class="suggestion-sub">Precio: ${producto.precio.toFixed(2)} | Tipo: ${producto.tipo === 'simple' ? 'Simple' : 'Caja'}</div>
+                    </div>
+                `).join('');
+                
+                suggestions.style.display = 'block';
+            });
+            
+            // Cerrar sugerencias al hacer clic fuera
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+                    suggestions.style.display = 'none';
+                }
+            });
+        }
+
+        function agregarProductoAPedido(productoId) {
+            const producto = productos.find(p => p.id === productoId);
+            if (!producto) return;
+            
+            // Verificar si ya existe en el pedido
+            const existe = productosEnPedido.find(item => item.producto.id === productoId);
+            
+            if (existe) {
+                existe.cantidad++;
+            } else {
+                productosEnPedido.push({
+                    producto: producto,
+                    cantidad: 1
+                });
+            }
+            
+            // Limpiar el campo de búsqueda
+            document.getElementById('producto-search').value = '';
+            document.getElementById('producto-suggestions').style.display = 'none';
+            
+            // Actualizar la vista
+            mostrarProductosEnPedido();
+            actualizarTotales();
+        }
+
+        function mostrarProductosEnPedido() {
+            const container = document.getElementById('productos-seleccionados');
+            
+            if (productosEnPedido.length === 0) {
+                container.innerHTML = `
+                    <p style="color: #6c757d; font-style: italic; text-align: center; padding: 20px;">
+                        No hay productos seleccionados. Use el buscador arriba para agregar productos.
+                    </p>
+                `;
+                return;
+            }
+            
+            container.innerHTML = productosEnPedido.map((item, index) => {
+                const subtotal = item.producto.precio * item.cantidad;
+                return `
+                    <div class="producto-pedido-item">
+                        <div class="producto-info">
+                            <div class="producto-nombre">${item.producto.nombre}</div>
+                            <div class="producto-precio">Precio unitario: ${item.producto.precio.toFixed(2)}</div>
+                        </div>
+                        <div class="cantidad-controls">
+                            <button type="button" class="cantidad-btn" onclick="cambiarCantidad(${index}, -1)">−</button>
+                            <div class="cantidad-display">${item.cantidad}</div>
+                            <button type="button" class="cantidad-btn" onclick="cambiarCantidad(${index}, 1)">+</button>
+                        </div>
+                        <div class="producto-subtotal">
+                            ${subtotal.toFixed(2)}
+                        </div>
+                        <button type="button" class="btn btn-danger btn-small" onclick="eliminarProductoDePedido(${index})">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function cambiarCantidad(index, cambio) {
+            const item = productosEnPedido[index];
+            item.cantidad += cambio;
+            
+            if (item.cantidad <= 0) {
+                productosEnPedido.splice(index, 1);
+            }
+            
+            mostrarProductosEnPedido();
+            actualizarTotales();
+        }
+
+        function eliminarProductoDePedido(index) {
+            productosEnPedido.splice(index, 1);
+            mostrarProductosEnPedido();
+            actualizarTotales();
+        }
+
+        function actualizarTotales() {
+            const subtotal = productosEnPedido.reduce((total, item) => {
+                return total + (item.producto.precio * item.cantidad);
+            }, 0);
+            
+            const costoEnvio = parseFloat(document.getElementById('costo-envio').value) || 0;
+            const total = subtotal + costoEnvio;
+            
+            document.getElementById('subtotal-productos').textContent = `${subtotal.toFixed(2)}`;
+            document.getElementById('costo-envio-display').textContent = `${costoEnvio.toFixed(2)}`;
+            document.getElementById('total-final').textContent = `${total.toFixed(2)}`;
+        }
+
+        // FORMULARIO DE PEDIDOS
+        document.getElementById('pedido-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const clienteNombre = document.getElementById('pedido-cliente-input').value.trim();
+            const fechaEntrega = document.getElementById('fecha-entrega').value;
+            const turnoEntrega = document.getElementById('turno-entrega').value;
+            const costoEnvio = parseFloat(document.getElementById('costo-envio').value) || 0;
+            const notas = document.getElementById('pedido-notas').value.trim();
+            
+            // Validaciones
+            if (!clienteNombre) {
+                alert('Debe seleccionar un cliente');
+                return;
+            }
+            
+            if (!clienteSeleccionado) {
+                alert('Debe seleccionar un cliente válido de la lista');
+                return;
+            }
+            
+            if (productosEnPedido.length === 0) {
+                alert('Debe agregar al menos un producto al pedido');
+                return;
+            }
+            
+            if (!fechaEntrega) {
+                alert('Debe seleccionar una fecha de entrega');
+                return;
+            }
+            
+            if (!turnoEntrega) {
+                alert('Debe seleccionar un turno de entrega');
+                return;
+            }
+            
+            // Calcular totales
+            const subtotal = productosEnPedido.reduce((total, item) => {
+                return total + (item.producto.precio * item.cantidad);
+            }, 0);
+            
+            const total = subtotal + costoEnvio;
+            
+            // Crear el pedido
+            const pedido = {
+                id: editandoPedido ? editandoPedido.id : Date.now(),
+                cliente: clienteNombre,
+                productos: productosEnPedido.map(item => ({
+                    id: item.producto.id,
+                    nombre: item.producto.nombre,
+                    precio: item.producto.precio,
+                    cantidad: item.cantidad
+                })),
+                fecha: fechaEntrega,
+                hora: turnoEntrega,
+                subtotalProductos: subtotal,
+                costoEnvio: costoEnvio,
+                total: total,
+                notas: notas,
+                estado: 'En curso',
+                fechaCreacion: editandoPedido ? editandoPedido.fechaCreacion : new Date().toISOString().split('T')[0]
+            };
+            
+            if (editandoPedido) {
+                const index = pedidos.findIndex(p => p.id === editandoPedido.id);
+                pedidos[index] = pedido;
+                editandoPedido = null;
+            } else {
+                pedidos.push(pedido);
+            }
+            
+            localStorage.setItem('pedidos', JSON.stringify(pedidos));
+            mostrarPedidos();
+            actualizarSelectPedidos();
+            actualizarEstadisticasPagos();
+            limpiarFormularioPedido();
+            
+            alert('Pedido guardado exitosamente');
+        });
+
+        function limpiarFormularioPedido() {
+            document.getElementById('pedido-form').reset();
+            clienteSeleccionado = null;
+            productosEnPedido = [];
+            editandoPedido = null;
+            mostrarProductosEnPedido();
+            actualizarTotales();
+            document.getElementById('cliente-suggestions').style.display = 'none';
+            document.getElementById('producto-suggestions').style.display = 'none';
+        }
+
+        function cancelarPedido() {
+            limpiarFormularioPedido();
+        }
+
+        function editarPedido(id) {
+            const pedido = pedidos.find(p => p.id === id);
+            if (!pedido) return;
+            
+            editandoPedido = pedido;
+            
+            // Cargar datos del cliente
+            document.getElementById('pedido-cliente-input').value = pedido.cliente;
+            clienteSeleccionado = clientes.find(c => `${c.nombre} ${c.apellido}` === pedido.cliente);
+            
+            // Cargar productos
+            productosEnPedido = pedido.productos.map(prodPedido => {
+                const producto = productos.find(p => p.id === prodPedido.id);
+                return {
+                    producto: producto || {
+                        id: prodPedido.id,
+                        nombre: prodPedido.nombre,
+                        precio: prodPedido.precio
+                    },
+                    cantidad: prodPedido.cantidad
+                };
+            });
+            
+            // Cargar otros datos
+            document.getElementById('fecha-entrega').value = pedido.fecha;
+            document.getElementById('turno-entrega').value = pedido.hora || '';
+            document.getElementById('costo-envio').value = pedido.costoEnvio || 0;
+            document.getElementById('pedido-notas').value = pedido.notas || '';
+            
+            // Actualizar vista
+            mostrarProductosEnPedido();
+            actualizarTotales();
+            
+            // Cambiar a la pestaña de pedidos
+            showTab('pedidos');
+            document.querySelector('.tab[onclick="showTab(\'pedidos\')"]').click();
+        }
+
+        // FUNCIONES DE PRODUCTOS (sin cambios)
+        function toggleComponentes() {
+            const tipo = document.getElementById('producto-tipo').value;
+            const section = document.getElementById('componentes-section');
+            
+            if (tipo === 'caja') {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+                componentesTemp = [];
             }
         }
 
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', function() {
-            mostrarProductos
+        function agregarComponente() {
+            const nombre = document.getElementById('componente-nombre').value.trim();
+            const cantidad = parseInt(document.getElementById('componente-cantidad').value);
+            
+            if (!nombre || !cantidad || cantidad < 1) {
+                alert('Por favor ingresa nombre y cantidad válidos para el componente');
+                return;
+            }
+            
+            componentesTemp.push({ nombre, cantidad });
+            mostrarComponentesTemp();
+            
+            // Limpiar campos
+            document.getElementById('componente-nombre').value = '';
+            document.getElementById('componente-cantidad').value = '';
+        }
+
+        function mostrarComponentesTemp() {
+            const lista = document.getElementById('componentes-list');
+            if (componentesTemp.length === 0) {
+                lista.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>';
+                return;
+            }
+            
+            lista.innerHTML = componentesTemp.map((comp, index) => `
+                <div class="component-item">
+                    <span>${comp.cantidad}x ${comp.nombre}</span>
+                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(${index})">❌</button>
+                </div>
+            `).join('');
+        }
+
+        function eliminarComponenteTemp(index) {
+            componentesTemp.splice(index, 1);
+            mostrarComponentesTemp();
+        }
+
+        document.getElementById('producto-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('producto-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('producto-precio').value);
+            const tipo = document.getElementById('producto-tipo').value;
+            
+            if (!nombre || !precio || !tipo) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+            
+            if (tipo === 'caja' && componentesTemp.length === 0) {
+                alert('Los productos tipo caja deben tener al menos un componente');
+                return;
+            }
+            
+            const producto = {
+                id: editandoProducto ? editandoProducto.id : Date.now(),
+                nombre,
+                precio,
+                tipo,
+                componentes: tipo === 'caja' ? [...componentesTemp] : []
+            };
+            
+            if (editandoProducto) {
+                const index = productos.findIndex(p => p.id === editandoProducto.id);
+                productos[index] = producto;
+                editandoProducto = null;
+            } else {
+                productos.push(producto);
+            }
+            
+            localStorage.setItem('productos', JSON.stringify(productos));
+            mostrarProductos();
+            limpiarFormularioProducto();
+        });
+
+        function mostrarProductos() {
+            const lista = document.getElementById('productos-lista');
+            
+            if (productos.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay productos registrados</div>';
+                return;
+            }
+            
+            // Ordenar productos alfabéticamente
+            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            lista.innerHTML = productosOrdenados.map(producto => `
+                <div class="item">
+                    <div class="item-header">
+                        <div class="item-title">${producto.nombre}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="editarProducto(${producto.id})">✏️ Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="eliminarProducto(${producto.id})">🗑️ Eliminar</button>
+                        </div>
+                    </div>
+                    <div class="item-details">
+                        <strong>Precio:</strong> ${producto.precio.toFixed(2)} | 
+                        <strong>Tipo:</strong> ${producto.tipo === 'simple' ? 'Producto Simple' : 'Producto Caja'}
+                    </div>
+                    ${producto.tipo === 'caja' && producto.componentes.length > 0 ? `
+                        <div class="item-components">
+                            <strong>Componentes:</strong>
+                            ${producto.componentes.map(comp => `
+                                <div class="component-item">
+                                    <span>${comp.cantidad}x ${comp.nombre}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+            
+            editandoProducto = producto;
+            componentesTemp = [...(producto.componentes || [])];
+            
+            document.getElementById('producto-nombre').value = producto.nombre;
+            document.getElementById('producto-precio').value = producto.precio;
+            document.getElementById('producto-tipo').value = producto.tipo;
+            
+            toggleComponentes();
+            mostrarComponentesTemp();
+        }
+
+        function eliminarProducto(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                productos = productos.filter(p => p.id !== id);
+                localStorage.setItem('productos', JSON.stringify(productos));
+                mostrarProductos();
+            }
+        }
+
+        function cancelarEdicion() {
+            limpiarFormularioProducto();
+        }
+
+        function limpiarFormularioProducto() {
+            document.getElementById('producto-form').reset();
+            editandoProducto = null;
+            componentesTemp = [];
+            document.getElementById('componentes-section').style.display = 'none';
+            mostrarComponentesTemp();
+        }
+
+        // FUNCIONES DE CLIENTES (sin cambios)
+        document.getElementById('cliente-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const apellido = document.getElementById('cliente-apellido').value.trim();
+            const telefono = document.getElementById('cliente-telefono').value.trim();
+            const calle = document.getElementById('cliente-calle').value.trim();
+            const numero = document.getElementById('cliente-numero').value.trim();
+            const piso = document.getElementById('cliente-piso').value.trim();
+            const departamento = document.getElementById('cliente-departamento').value.trim();
+            const email = document.getElementById('cliente-email').value.trim();
+            const localidad = document.getElementById('cliente-localidad').value.trim();
+            const codigoPostal = document.getElementById('cliente-codigo-postal').value.trim();
+            
+            if (!nombre || !apellido || !telefono) {
+                alert('Nombre, Apellido y Teléfono son obligatorios');
+                return;
+            }
+            
+            const cliente = {
+                id: editandoCliente ? editandoCliente.id : Date.now(),
+                nombre,
+                apellido,
+                telefono,
+                calle,
+                numero,
+                piso,
+                departamento,
+                email,
+                localidad,
+                codigoPostal,
+                fechaCreacion: editandoCliente ? editandoCliente.fechaCreacion : new Date().toISOString().split('T')[0]
+            };
+            
+            if (editandoCliente) {
+                const index = clientes.findIndex(c => c.id === editandoCliente.id);
+                clientes[index] = cliente;
+                editandoCliente = null;
+            } else {
+                clientes.push(cliente);
+            }
+            
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+            mostrarClientes();
+            limpiarFormularioCliente();
+        });
+
+        function mostrarClientes() {
+            const lista = document.getElementById('clientes-lista');
+            
+            if (clientes.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
+                return;
+            }
+            
+            // Ordenar clientes alfabéticamente por apellido, luego nombre
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            lista.innerHTML = clientesOrdenados.map(cliente => {
+                // Calcular estadísticas del cliente
+                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+                const pedidosCliente = pedidos.filter(p => p.cliente === nombreCompleto);
+                const totalPedidos = pedidosCliente.length;
+                const totalComprado = pedidosCliente.reduce((sum, p) => sum + p.total, 0);
+                
+                // Construir dirección
+                let direccion = '';
+                if (cliente.calle || cliente.numero) {
+                    direccion = `${cliente.calle || ''} ${cliente.numero || ''}`.trim();
+                    if (cliente.piso) direccion += `, Piso ${cliente.piso}`;
+                    if (cliente.departamento) direccion += `, Dto ${cliente.departamento}`;
+                    if (cliente.localidad) direccion += `, ${cliente.localidad}`;
+                    if (cliente.codigoPostal) direccion += ` (${cliente.codigoPostal})`;
+                }
+                
+                return `
+                    <div class="item">
+                        <div class="item-header">
+                            <div class="item-title">${nombreCompleto}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-warning btn-small" onclick="editarCliente(${cliente.id})">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarCliente(${cliente.id})">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Teléfono:</strong> ${cliente.telefono}
+                            ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
+                            | <strong>Pedidos realizados:</strong> ${totalPedidos}
+                            ${totalPedidos > 0 ? ` | <strong>Total comprado:</strong> ${totalComprado.toFixed(2)}` : ''}
+                        </div>
+                        ${direccion ? `
+                            <div class="item-details">
+                                <strong>Dirección:</strong> ${direccion}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            editandoCliente = cliente;
+            
+            document.getElementById('cliente-nombre').value = cliente.nombre;
+            document.getElementById('cliente-apellido').value = cliente.apellido;
+            document.getElementById('cliente-telefono').value = cliente.telefono;
+            document.getElementById('cliente-calle').value = cliente.calle || '';
+            document.getElementById('cliente-numero').value = cliente.numero || '';
+            document.getElementById('cliente-piso').value = cliente.piso || '';
+            document.getElementById('cliente-departamento').value = cliente.departamento || '';
+            document.getElementById('cliente-email').value = cliente.email || '';
+            document.getElementById('cliente-localidad').value = cliente.localidad || '';
+            document.getElementById('cliente-codigo-postal').value = cliente.codigoPostal || '';
+        }
+
+        function eliminarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            // Verificar si tiene pedidos
+            const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+            const tienePedidos = pedidos.some(p => p.cliente === nombreCompleto);
+            
+            if (tienePedidos) {
+                alert('No se puede eliminar este cliente porque tiene pedidos asociados.');
+                return;
+            }
+            
+            if (confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+                clientes = clientes.filter(c => c.id !== id);
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+            }
+        }
+
+        function cancelarCliente() {
+            limpiarFormularioCliente();
+        }
+
+        function limpiarFormularioCliente() {
+            document.getElementById('cliente-form').reset();
+            editandoCliente = null;
+        }
+
+        // MOSTRAR PEDIDOS (actualizado)
+        function mostrarPedidos() {
+            const lista = document.getElementById('pedidos-lista');
+            
+            if (pedidos.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
+                return;
+            }
+            
+            // Ordenar pedidos por fecha de entrega
+            const pedidosOrdenados = [...pedidos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+            
+            lista.innerHTML = pedidosOrdenados.map(pedido => {
+                const estadoPago = calcularEstadoPago(pedido.id);
+                const totalPagado = calcularTotalPagado(pedido.id);
+                const saldoPendiente = pedido.total - totalPagado;
+                
+                return `
+                    <div class="item">
+                        <div class="item-header">
+                            <div class="item-title">
+                                ${pedido.cliente} - ${new Date(pedido.fecha).toLocaleDateString()}
+                                <span class="badge ${pedido.estado === 'Entregado' ? 'badge-success' : 'badge-warning'}">
+                                    ${pedido.estado}
+                                </span>
+                            </div>
+                            <div class="item-actions">
+                                ${pedido.estado === 'En curso' ? `
+                                    <button class="btn btn-success btn-small" onclick="marcarEntregado(${pedido.id})">✓ Entregar</button>
+                                ` : ''}
+                                <button class="btn btn-primary btn-small" onclick="registrarPagoRapido(${pedido.id})">💰 Pago</button>
+                                <button class="btn btn-warning btn-small" onclick="editarPedido(${pedido.id})">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarPedido(${pedido.id})">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Fecha entrega:</strong> ${new Date(pedido.fecha).toLocaleDateString()} - ${pedido.hora} |
+                            <strong>Total:</strong> ${pedido.total.toFixed(2)} | 
+                            <strong>Productos:</strong> ${pedido.productos.length}
+                            ${pedido.notas ? ` | <strong>Notas:</strong> ${pedido.notas}` : ''}
+                        </div>
+                        <div class="payment-info">
+                            <div class="payment-status">
+                                <span class="badge ${estadoPago === 'Pagado' ? 'badge-success' : estadoPago === 'Parcial' ? 'badge-warning' : 'badge-danger'}">
+                                    ${estadoPago}
+                                </span>
+                            </div>
+                            <div class="payment-amount">
+                                Pagado: <span class="paid-amount">${totalPagado.toFixed(2)}</span>
+                                ${saldoPendiente > 0 ? ` | Pendiente: <span class="debt-amount">${saldoPendiente.toFixed(2)}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="item-components">
+                            <strong>Productos:</strong>
+                            ${pedido.productos.map(prod => `
+                                <div class="component-item">
+                                    <span>${prod.cantidad}x ${prod.nombre}</span>
+                                    <span>${(prod.precio * prod.cantidad).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                            ${pedido.costoEnvio > 0 ? `
+                                <div class="component-item">
+                                    <span>Costo de envío</span>
+                                    <span>${pedido.costoEnvio.toFixed(2)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function marcarEntregado(id) {
+            if (confirm('¿Marcar este pedido como entregado?')) {
+                const index = pedidos.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    pedidos[index].estado = 'Entregado';
+                    localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                    mostrarPedidos();
+                }
+            }
+        }
+
+        function eliminarPedido(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este pedido? También se eliminarán todos los pagos asociados.')) {
+                pedidos = pedidos.filter(p => p.id !== id);
+                pagos = pagos.filter(p => p.pedidoId !== id);
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                localStorage.setItem('pagos', JSON.stringify(pagos));
+                mostrarPedidos();
+                mostrarPagos();
+                actualizarSelectPedidos();
+                actualizarEstadisticasPagos();
+            }
+        }
+
+        function registrarPagoRapido(pedidoId) {
+            // Cambiar a tab de pagos y preseleccionar el pedido
+            showTab('pagos');
+            document.querySelector('.tab[onclick="showTab(\'pagos\')"]').click();
+            
+            setTimeout(() => {
+                document.getElementById('pago-pedido').value = pedidoId;
+                actualizarInfoPago();
+            }, 100);
+        }
+
+        // FUNCIONES DE PAGOS
+        function actualizarSelectPedidos() {
+            const select = document.getElementById('pago-pedido');
+            select.innerHTML = '<option value="">Seleccionar pedido...</option>';
+            
+            // Solo mostrar pedidos que no estén completamente pagados
+            const pedidosConSaldo = pedidos.filter(pedido => {
+                const totalPagado = calcularTotalPagado(pedido.id);
+                return totalPagado < pedido.total;
+            });
+            
+            pedidosConSaldo.forEach(pedido => {
+                const totalPagado = calcularTotalPagado(pedido.id);
+                const saldo = pedido.total - totalPagado;
+                select.innerHTML += `
+                    <option value="${pedido.id}">
+                        ${pedido.cliente} - ${new Date(pedido.fecha).toLocaleDateString()} 
+                        (Saldo: ${saldo.toFixed(2)})
+                    </option>
+                `;
+            });
+        }
+
+        function actualizarInfoPago() {
+            const pedidoId = parseInt(document.getElementById('pago-pedido').value);
+            const infoDiv = document.getElementById('info-pago');
+            
+            if (!pedidoId) {
+                infoDiv.style.display = 'none';
+                return;
+            }
+            
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido) return;
+            
+            const totalPagado = calcularTotalPagado(pedidoId);
+            const saldoPendiente = pedido.total - totalPagado;
+            const pagosPrevios = pagos.filter(p => p.pedidoId === pedidoId);
+            
+            // Sugerir el saldo completo como monto
+            document.getElementById('pago-monto').value = saldoPendiente.toFixed(2);
+            
+            infoDiv.innerHTML = `
+                <h4>Información del Pedido</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <strong>Cliente:</strong> ${pedido.cliente}<br>
+                        <strong>Fecha entrega:</strong> ${new Date(pedido.fecha).toLocaleDateString()}<br>
+                        <strong>Total pedido:</strong> ${pedido.total.toFixed(2)}
+                    </div>
+                    <div>
+                        <strong>Ya pagado:</strong> <span class="paid-amount">${totalPagado.toFixed(2)}</span><br>
+                        <strong>Saldo pendiente:</strong> <span class="debt-amount">${saldoPendiente.toFixed(2)}</span><br>
+                        <strong>Pagos realizados:</strong> ${pagosPrevios.length}
+                    </div>
+                </div>
+                ${pagosPrevios.length > 0 ? `
+                    <div style="margin-top: 15px;">
+                        <strong>Historial de pagos:</strong>
+                        ${pagosPrevios.map(pago => `
+                            <div style="background: #e9ecef; padding: 8px; border-radius: 4px; margin: 5px 0;">
+                                ${new Date(pago.fecha).toLocaleDateString()} - ${pago.monto.toFixed(2)} (${pago.metodo})
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
+            
+            infoDiv.style.display = 'block';
+        }
+
+        document.getElementById('pago-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const pedidoId = parseInt(document.getElementById('pago-pedido').value);
+            const monto = parseFloat(document.getElementById('pago-monto').value);
+            const metodo = document.getElementById('pago-metodo').value;
+            const fecha = document.getElementById('pago-fecha').value;
+            const notas = document.getElementById('pago-notas').value.trim();
+            
+            if (!pedidoId || !monto || !metodo || !fecha) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+            
+            if (monto <= 0) {
+                alert('El monto debe ser mayor a 0');
+                return;
+            }
+            
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            const totalPagado = calcularTotalPagado(pedidoId);
+            const saldoPendiente = pedido.total - totalPagado;
+            
+            if (monto > saldoPendiente) {
+                if (!confirm(`El monto (${monto.toFixed(2)}) es mayor al saldo pendiente (${saldoPendiente.toFixed(2)}). ¿Continuar?`)) {
+                    return;
+                }
+            }
+            
+            const pago = {
+                id: Date.now(),
+                pedidoId,
+                monto,
+                metodo,
+                fecha,
+                notas,
+                fechaRegistro: new Date().toISOString()
+            };
+            
+            pagos.push(pago);
+            localStorage.setItem('pagos', JSON.stringify(pagos));
+            
+            mostrarPagos();
+            mostrarPedidos();
+            actualizarSelectPedidos();
+            actualizarEstadisticasPagos();
+            limpiarFormularioPago();
+            
+            alert('Pago registrado exitosamente');
+        });
+
+        function mostrarPagos() {
+            const lista = document.getElementById('pagos-lista');
+            const saldosTabla = document.getElementById('saldos-pendientes');
+            
+            // Mostrar historial de pagos
+            if (pagos.length === 0) {
+                lista.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #6c757d; font-style: italic;">No hay pagos registrados</td></tr>';
+            } else {
+                const pagosOrdenados = [...pagos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                
+                lista.innerHTML = pagosOrdenados.map(pago => {
+                    const pedido = pedidos.find(p => p.id === pago.pedidoId);
+                    const estadoPago = calcularEstadoPago(pago.pedidoId);
+                    
+                    return `
+                        <tr>
+                            <td>${new Date(pago.fecha).toLocaleDateString()}</td>
+                            <td>${pedido ? pedido.cliente : 'Cliente eliminado'}</td>
+                            <td>${pedido ? new Date(pedido.fecha).toLocaleDateString() : '-'}</td>
+                            <td class="paid-amount">${pago.monto.toFixed(2)}</td>
+                            <td>${pago.metodo}</td>
+                            <td>
+                                <span class="badge ${estadoPago === 'Pagado' ? 'badge-success' : estadoPago === 'Parcial' ? 'badge-warning' : 'badge-danger'}">
+                                    ${estadoPago}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-small" onclick="eliminarPago(${pago.id})">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            // Mostrar saldos pendientes
+            const pedidosConSaldo = pedidos.filter(pedido => {
+                const totalPagado = calcularTotalPagado(pedido.id);
+                return totalPagado < pedido.total;
+            });
+            
+            if (pedidosConSaldo.length === 0) {
+                saldosTabla.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #28a745; font-weight: 600;">¡Todos los pedidos están pagados!</td></tr>';
+            } else {
+                saldosTabla.innerHTML = pedidosConSaldo.map(pedido => {
+                    const totalPagado = calcularTotalPagado(pedido.id);
+                    const saldo = pedido.total - totalPagado;
+                    
+                    return `
+                        <tr>
+                            <td>${pedido.cliente}</td>
+                            <td>${new Date(pedido.fecha).toLocaleDateString()}</td>
+                            <td>${pedido.total.toFixed(2)}</td>
+                            <td class="paid-amount">${totalPagado.toFixed(2)}</td>
+                            <td class="debt-amount">${saldo.toFixed(2)}</td>
+                            <td>${new Date(pedido.fecha).toLocaleDateString()}</td>
+                            <td>
+                                <button class="btn btn-primary btn-small" onclick="registrarPagoRapido(${pedido.id})">💰 Pagar</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        function eliminarPago(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este pago?')) {
+                pagos = pagos.filter(p => p.id !== id);
+                localStorage.setItem('pagos', JSON.stringify(pagos));
+                mostrarPagos();
+                mostrarPedidos();
+                actualizarSelectPedidos();
+                actualizarEstadisticasPagos();
+            }
+        }
+
+        function cancelarPago() {
+            limpiarFormularioPago();
+        }
+
+        function limpiarFormularioPago() {
+            document.getElementById('pago-form').reset();
+            document.getElementById('info-pago').style.display = 'none';
+            document.getElementById('pago-fecha').value = new Date().toISOString().split('T')[0];
+        }
+
+        // FUNCIONES DE CÁLCULO
+        function calcularTotalPagado(pedidoId) {
+            return pagos
+                .filter(pago => pago.pedidoId === pedidoId)
+                .reduce((total, pago) => total + pago.monto, 0);
+        }
+
+        function calcularEstadoPago(pedidoId) {
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido) return 'Desconocido';
+            
+            const totalPagado = calcularTotalPagado(pedidoId);
+            
+            if (totalPagado === 0) return 'Pendiente';
+            if (totalPagado >= pedido.total) return 'Pagado';
+            return 'Parcial';
+        }
+
+        function actualizarEstadisticasPagos() {
+            const totalPendiente = pedidos.reduce((total, pedido) => {
+                const pagado = calcularTotalPagado(pedido.id);
+                return total + Math.max(0, pedido.total - pagado);
+            }, 0);
+            
+            const totalCobrado = pagos.reduce((total, pago) => total + pago.monto, 0);
+            
+            const pedidosImpagos = pedidos.filter(pedido => {
+                const pagado = calcularTotalPagado(pedido.id);
+                return pagado < pedido.total;
+            }).length;
+            
+            document.getElementById('total-pendiente').textContent = `${totalPendiente.toFixed(0)}`;
+            document.getElementById('total-cobrado').textContent = `${totalCobrado.toFixed(0)}`;
+            document.getElementById('pedidos-impagos').textContent = pedidosImpagos;
+        }
+    </script>
+</body>
+</html>
