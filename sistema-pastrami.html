@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Pastrami - Sincronización Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* INDICADOR DE SINCRONIZACIÓN */
+        .sync-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .sync-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .sync-online { background: #28a745; }
+        .sync-offline { background: #dc3545; animation: none; }
+        .sync-syncing { background: #ffc107; animation: spin 1s linear infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .sync-button {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .sync-button:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 3px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .tab:hover {
+            background: #dee2e6;
+            transform: translateY(-2px);
+        }
+
+        .tab.active {
+            background: white;
+            color: #ff6b6b;
+            border-bottom: 3px solid #ff6b6b;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Formularios */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        /* Listas y tablas */
+        .item-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .item:hover {
+            transform: translateY(-2px);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .item-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .item-details {
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+
+        .item-components {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .component-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .component-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Indicadores de sincronización en items */
+        .sync-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sync-badge.pending {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .sync-badge.error {
+            background: #dc3545;
+        }
+
+        /* Estados y badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .no-items {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        /* Notificaciones */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        /* Configuración Firebase */
+        .firebase-config {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .firebase-config h3 {
+            color: #155724;
+            margin-bottom: 15px;
+        }
+
+        .firebase-config.error {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+
+        .firebase-config.error h3 {
+            color: #d32f2f;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .sync-status {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-top: 10px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🥪 Sistema Pastrami</h1>
+            <p>Con sincronización REAL entre dispositivos</p>
+            
+            <!-- Indicador de estado de sincronización -->
+            <div class="sync-status">
+                <div id="sync-indicator" class="sync-indicator sync-offline"></div>
+                <span id="sync-text">Inicializando...</span>
+                <button class="sync-button" onclick="sincronizarManual()">🔄 Sincronizar</button>
+            </div>
+        </div>
+
+        <!-- Estado Firebase -->
+        <div id="firebase-status" class="firebase-config">
+            <h3>🔄 Conectando a Firebase...</h3>
+            <p>Verificando conexión con la base de datos...</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('productos')">📦 Productos</div>
+            <div class="tab" onclick="showTab('clientes')">👥 Clientes</div>
+        </div>
+
+        <!-- TAB PRODUCTOS -->
+        <div id="productos" class="tab-content active">
+            <h2>📦 Gestión de Productos</h2>
+            
+            <form id="producto-form">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-nombre">Nombre del Producto:</label>
+                        <input type="text" id="producto-nombre" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-precio">Precio:</label>
+                        <input type="number" id="producto-precio" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-tipo">Tipo de Producto:</label>
+                        <select id="producto-tipo" onchange="toggleComponentes()" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="simple">Producto Simple</option>
+                            <option value="caja">Producto Caja (con componentes)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="componentes-section" style="display: none;">
+                    <h3>Componentes de la Caja</h3>
+                    <div id="componentes-list"></div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <input type="text" id="componente-nombre" placeholder="Nombre del componente">
+                        </div>
+                        <div class="form-col">
+                            <input type="number" id="componente-cantidad" placeholder="Cantidad" min="1">
+                        </div>
+                        <div class="form-col">
+                            <button type="button" class="btn btn-secondary" onclick="agregarComponente()">Agregar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarEdicion()">❌ Cancelar</button>
+            </form>
+
+            <div class="item-list">
+                <h3>Lista de Productos</h3>
+                <div id="productos-lista"></div>
+            </div>
+        </div>
+
+        <!-- TAB CLIENTES -->
+        <div id="clientes" class="tab-content">
+            <h2>👥 Gestión de Clientes</h2>
+            
+            <form id="cliente-form">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-nombre">Nombre <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-nombre" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-apellido">Apellido <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-apellido" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
+                        <input type="tel" id="cliente-telefono" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-calle">Calle:</label>
+                        <input type="text" id="cliente-calle">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-numero">Número:</label>
+                        <input type="text" id="cliente-numero">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-piso">Piso:</label>
+                        <input type="text" id="cliente-piso">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-departamento">Departamento:</label>
+                        <input type="text" id="cliente-departamento">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-email">Email:</label>
+                        <input type="email" id="cliente-email">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-localidad">Localidad:</label>
+                        <input type="text" id="cliente-localidad">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-codigo-postal">Código Postal:</label>
+                        <input type="text" id="cliente-codigo-postal">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarCliente()">❌ Cancelar</button>
+            </form>
+
+            <div class="item-list">
+                <h3>Lista de Clientes</h3>
+                <div id="clientes-lista"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+
+    <script>
+        // ========================================
+        // 🔥 CONFIGURACIÓN FIREBASE REAL 
+        // ========================================
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPeak34o6AYI3cuNxiElmRm3fgKlxPz6I",
+            authDomain: "pastrami853--claude.firebaseapp.com",
+            projectId: "pastrami853--claude",
+            storageBucket: "pastrami853--claude.firebasestorage.app",
+            messagingSenderId: "18659541845",
+            appId: "1:18659541845:web:6be80d097ea0445fb14ecb"
+        };
+
+        // Variables Firebase
+        let db = null;
+        let firebaseConnected = false;
+        
+        // ========================================
+        // INICIALIZACIÓN FIREBASE
+        // ========================================
+        
+        async function inicializarFirebase() {
+            try {
+                console.log("🚀 Inicializando Firebase...");
+                
+                // Inicializar Firebase
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                // Verificar conexión
+                await db.enableNetwork();
+                
+                console.log("✅ Firebase conectado exitosamente");
+                firebaseConnected = true;
+                setConexionEstado('online');
+                actualizarEstadoFirebase(true);
+                return true;
+                
+            } catch (error) {
+                console.error("❌ Error inicializando Firebase:", error);
+                firebaseConnected = false;
+                setConexionEstado('offline');
+                actualizarEstadoFirebase(false);
+                return false;
+            }
+        }
+
+        function actualizarEstadoFirebase(conectado) {
+            const statusDiv = document.getElementById('firebase-status');
+            
+            if (conectado) {
+                statusDiv.className = 'firebase-config';
+                statusDiv.innerHTML = `
+                    <h3>✅ Firebase Conectado - Sincronización Activa</h3>
+                    <p><strong>¡Perfecto!</strong> Los datos se sincronizan automáticamente entre PC y celular. 
+                    Cualquier cambio se reflejará inmediatamente en ambos dispositivos.</p>
+                `;
+            } else {
+                statusDiv.className = 'firebase-config error';
+                statusDiv.innerHTML = `
+                    <h3>❌ Error de Conexión Firebase</h3>
+                    <p><strong>Problema:</strong> No se pudo conectar a la base de datos. Los datos se guardan solo localmente.</p>
+                    <p><em>Revisa tu conexión a internet y recarga la página.</em></p>
+                `;
+            }
+        }
+
+        // ========================================
+        // SISTEMA DE SINCRONIZACIÓN
+        // ========================================
+        
+        // Estado de la aplicación
+        let isOnline = false;
+        let isSyncing = false;
+        
+        // Variables globales
+        let productos = [];
+        let clientes = [];
+        let editandoProducto = null;
+        let editandoCliente = null;
+        let componentesTemp = [];
+
+        // ========================================
+        // INICIALIZACIÓN
+        // ========================================
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            await inicializarApp();
+        });
+
+        async function inicializarApp() {
+            console.log("🚀 Inicializando Sistema Pastrami...");
+            
+            // Inicializar Firebase
+            const firebaseOk = await inicializarFirebase();
+            
+            // Cargar datos
+            await cargarDatos();
+            
+            // Mostrar datos
+            mostrarProductos();
+            mostrarClientes();
+            
+            // Configurar sincronización en tiempo real si Firebase está conectado
+            if (firebaseOk) {
+                inicializarSincronizacionTiempoReal();
+            }
+            
+            // Configurar eventos
+            configurarEventos();
+            
+            mostrarNotificacion('✅ Sistema Pastrami iniciado correctamente', 'success');
+        }
+
+        async function cargarDatos() {
+            if (firebaseConnected) {
+                // Cargar desde Firebase
+                await cargarDesdeFirebase();
+            } else {
+                // Cargar desde localStorage como respaldo
+                cargarDesdeLocal();
+            }
+        }
+
+        async function cargarDesdeFirebase() {
+            try {
+                setConexionEstado('syncing');
+                console.log("📥 Cargando datos desde Firebase...");
+                
+                // Cargar productos
+                const productosSnapshot = await db.collection('productos').get();
+                productos = productosSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    sincronizado: true
+                }));
+                
+                // Cargar clientes
+                const clientesSnapshot = await db.collection('clientes').get();
+                clientes = clientesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    sincronizado: true
+                }));
+                
+                // Guardar backup local
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                
+                console.log(`✅ Cargados ${productos.length} productos y ${clientes.length} clientes`);
+                setConexionEstado('online');
+                mostrarNotificacion(`📥 Cargados ${productos.length} productos y ${clientes.length} clientes`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Error cargando desde Firebase:', error);
+                cargarDesdeLocal();
+                mostrarNotificacion('⚠️ Error cargando desde Firebase, usando datos locales', 'warning');
+            }
+        }
+
+        function cargarDesdeLocal() {
+            try {
+                console.log("📂 Cargando datos locales...");
+                productos = JSON.parse(localStorage.getItem('productos_backup') || '[]');
+                clientes = JSON.parse(localStorage.getItem('clientes_backup') || '[]');
+                setConexionEstado('offline');
+                console.log(`📂 Cargados ${productos.length} productos y ${clientes.length} clientes locales`);
+            } catch (error) {
+                console.error('❌ Error cargando datos locales:', error);
+                productos = [];
+                clientes = [];
+            }
+        }
+
+        function inicializarSincronizacionTiempoReal() {
+            console.log("🔄 Configurando sincronización en tiempo real...");
+            
+            // Escuchar cambios en productos
+            db.collection('productos').onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const producto = { 
+                        id: change.doc.id, 
+                        ...change.doc.data(),
+                        sincronizado: true
+                    };
+                    
+                    if (change.type === 'added' || change.type === 'modified') {
+                        const index = productos.findIndex(p => p.id === producto.id);
+                        if (index >= 0) {
+                            productos[index] = producto;
+                        } else {
+                            productos.push(producto);
+                            mostrarNotificacion(`➕ Nuevo producto: ${producto.nombre}`, 'success');
+                        }
+                    } else if (change.type === 'removed') {
+                        productos = productos.filter(p => p.id !== producto.id);
+                        mostrarNotificacion(`🗑️ Producto eliminado: ${producto.nombre}`, 'warning');
+                    }
+                });
+                
+                mostrarProductos();
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+            });
+            
+            // Escuchar cambios en clientes
+            db.collection('clientes').onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const cliente = { 
+                        id: change.doc.id, 
+                        ...change.doc.data(),
+                        sincronizado: true
+                    };
+                    
+                    if (change.type === 'added' || change.type === 'modified') {
+                        const index = clientes.findIndex(c => c.id === cliente.id);
+                        if (index >= 0) {
+                            clientes[index] = cliente;
+                        } else {
+                            clientes.push(cliente);
+                            mostrarNotificacion(`➕ Nuevo cliente: ${cliente.nombre} ${cliente.apellido}`, 'success');
+                        }
+                    } else if (change.type === 'removed') {
+                        clientes = clientes.filter(c => c.id !== cliente.id);
+                        mostrarNotificacion(`🗑️ Cliente eliminado: ${cliente.nombre} ${cliente.apellido}`, 'warning');
+                    }
+                });
+                
+                mostrarClientes();
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+            });
+        }
+
+        // ========================================
+        // FUNCIONES DE SINCRONIZACIÓN
+        // ========================================
+        
+        function setConexionEstado(estado) {
+            const indicator = document.getElementById('sync-indicator');
+            const text = document.getElementById('sync-text');
+            
+            switch (estado) {
+                case 'online':
+                    indicator.className = 'sync-indicator sync-online';
+                    text.textContent = 'Conectado';
+                    isOnline = true;
+                    break;
+                case 'offline':
+                    indicator.className = 'sync-indicator sync-offline';
+                    text.textContent = 'Sin conexión';
+                    isOnline = false;
+                    break;
+                case 'syncing':
+                    indicator.className = 'sync-indicator sync-syncing';
+                    text.textContent = 'Sincronizando...';
+                    break;
+            }
+        }
+
+        async function sincronizarManual() {
+            if (!firebaseConnected) {
+                mostrarNotificacion('Firebase no conectado', 'warning');
+                return;
+            }
+            
+            if (isSyncing) return;
+            
+            isSyncing = true;
+            setConexionEstado('syncing');
+            
+            try {
+                await cargarDesdeFirebase();
+                mostrarProductos();
+                mostrarClientes();
+                mostrarNotificacion('🔄 Sincronización manual completada', 'success');
+            } catch (error) {
+                console.error('Error en sincronización manual:', error);
+                mostrarNotificacion('❌ Error en sincronización manual', 'error');
+            } finally {
+                isSyncing = false;
+                setConexionEstado(firebaseConnected ? 'online' : 'offline');
+            }
+        }
+
+        // ========================================
+        // FUNCIONES DE PRODUCTOS
+        // ========================================
+        
+        async function guardarProducto() {
+            const nombre = document.getElementById('producto-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('producto-precio').value);
+            const tipo = document.getElementById('producto-tipo').value;
+            
+            if (!nombre || !precio || !tipo) {
+                mostrarNotificacion('❌ Completa todos los campos obligatorios', 'warning');
+                return;
+            }
+            
+            if (tipo === 'caja' && componentesTemp.length === 0) {
+                mostrarNotificacion('❌ Los productos tipo caja deben tener componentes', 'warning');
+                return;
+            }
+            
+            const ahora = new Date().toISOString();
+            const producto = {
+                nombre,
+                precio,
+                tipo,
+                componentes: tipo === 'caja' ? [...componentesTemp] : [],
+                fechaCreacion: editandoProducto ? editandoProducto.fechaCreacion : ahora,
+                fechaModificacion: ahora
+            };
+            
+            try {
+                if (firebaseConnected) {
+                    if (editandoProducto) {
+                        // Actualizar en Firebase
+                        await db.collection('productos').doc(editandoProducto.id).update(producto);
+                        mostrarNotificacion(`✅ Producto "${nombre}" actualizado`, 'success');
+                    } else {
+                        // Crear en Firebase
+                        await db.collection('productos').add(producto);
+                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
+                    }
+                } else {
+                    // Guardar solo localmente
+                    if (editandoProducto) {
+                        const index = productos.findIndex(p => p.id === editandoProducto.id);
+                        productos[index] = { ...producto, id: editandoProducto.id };
+                    } else {
+                        productos.push({ ...producto, id: Date.now() });
+                    }
+                    localStorage.setItem('productos_backup', JSON.stringify(productos));
+                    mostrarProductos();
+                    mostrarNotificacion(`💾 Producto "${nombre}" guardado localmente`, 'warning');
+                }
+                
+                limpiarFormularioProducto();
+                
+            } catch (error) {
+                console.error('Error guardando producto:', error);
+                mostrarNotificacion('❌ Error guardando producto', 'error');
+            }
+        }
+
+        async function guardarCliente() {
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const apellido = document.getElementById('cliente-apellido').value.trim();
+            const telefono = document.getElementById('cliente-telefono').value.trim();
+            const calle = document.getElementById('cliente-calle').value.trim();
+            const numero = document.getElementById('cliente-numero').value.trim();
+            const piso = document.getElementById('cliente-piso').value.trim();
+            const departamento = document.getElementById('cliente-departamento').value.trim();
+            const email = document.getElementById('cliente-email').value.trim();
+            const localidad = document.getElementById('cliente-localidad').value.trim();
+            const codigoPostal = document.getElementById('cliente-codigo-postal').value.trim();
+            
+            if (!nombre || !apellido || !telefono) {
+                mostrarNotificacion('❌ Nombre, Apellido y Teléfono son obligatorios', 'warning');
+                return;
+            }
+            
+            const ahora = new Date().toISOString();
+            const cliente = {
+                nombre,
+                apellido,
+                telefono,
+                calle,
+                numero,
+                piso,
+                departamento,
+                email,
+                localidad,
+                codigoPostal,
+                fechaCreacion: editandoCliente ? editandoCliente.fechaCreacion : ahora,
+                fechaModificacion: ahora
+            };
+            
+            try {
+                if (firebaseConnected) {
+                    if (editandoCliente) {
+                        // Actualizar en Firebase
+                        await db.collection('clientes').doc(editandoCliente.id).update(cliente);
+                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" actualizado`, 'success');
+                    } else {
+                        // Crear en Firebase
+                        await db.collection('clientes').add(cliente);
+                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" creado`, 'success');
+                    }
+                } else {
+                    // Guardar solo localmente
+                    if (editandoCliente) {
+                        const index = clientes.findIndex(c => c.id === editandoCliente.id);
+                        clientes[index] = { ...cliente, id: editandoCliente.id };
+                    } else {
+                        clientes.push({ ...cliente, id: Date.now() });
+                    }
+                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                    mostrarClientes();
+                    mostrarNotificacion(`💾 Cliente "${nombre} ${apellido}" guardado localmente`, 'warning');
+                }
+                
+                limpiarFormularioCliente();
+                
+            } catch (error) {
+                console.error('Error guardando cliente:', error);
+                mostrarNotificacion('❌ Error guardando cliente', 'error');
+            }
+        }
+
+        function toggleComponentes() {
+            const tipo = document.getElementById('producto-tipo').value;
+            const section = document.getElementById('componentes-section');
+            
+            if (tipo === 'caja') {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+                componentesTemp = [];
+            }
+        }
+
+        function agregarComponente() {
+            const nombre = document.getElementById('componente-nombre').value.trim();
+            const cantidad = parseInt(document.getElementById('componente-cantidad').value);
+            
+            if (!nombre || !cantidad || cantidad < 1) {
+                mostrarNotificacion('❌ Ingresa nombre y cantidad válidos', 'warning');
+                return;
+            }
+            
+            componentesTemp.push({ nombre, cantidad });
+            mostrarComponentesTemp();
+            
+            document.getElementById('componente-nombre').value = '';
+            document.getElementById('componente-cantidad').value = '';
+        }
+
+        function mostrarComponentesTemp() {
+            const lista = document.getElementById('componentes-list');
+            if (componentesTemp.length === 0) {
+                lista.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>';
+                return;
+            }
+            
+            lista.innerHTML = componentesTemp.map((comp, index) => `
+                <div class="component-item">
+                    <span>${comp.cantidad}x ${comp.nombre}</span>
+                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(${index})">❌</button>
+                </div>
+            `).join('');
+        }
+
+        function eliminarComponenteTemp(index) {
+            componentesTemp.splice(index, 1);
+            mostrarComponentesTemp();
+        }
+
+        function mostrarProductos() {
+            const lista = document.getElementById('productos-lista');
+            
+            if (productos.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay productos registrados. ¡Agrega tu primer producto!</div>';
+                return;
+            }
+            
+            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            lista.innerHTML = productosOrdenados.map(producto => {
+                // Determinar estado de sincronización
+                let syncBadge = '';
+                if (producto.sincronizado) {
+                    syncBadge = '<div class="sync-badge">SYNC ✅</div>';
+                } else {
+                    syncBadge = '<div class="sync-badge pending">LOCAL 💾</div>';
+                }
+                
+                return `
+                    <div class="item">
+                        ${syncBadge}
+                        <div class="item-header">
+                            <div class="item-title">${producto.nombre}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-warning btn-small" onclick="editarProducto('${producto.id}')">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarProducto('${producto.id}')">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Precio:</strong> ${producto.precio.toFixed(2)} | 
+                            <strong>Tipo:</strong> ${producto.tipo === 'simple' ? 'Producto Simple' : 'Producto Caja'}
+                            ${producto.fechaModificacion ? ` | <strong>Última modificación:</strong> ${new Date(producto.fechaModificacion).toLocaleString()}` : ''}
+                        </div>
+                        ${producto.tipo === 'caja' && producto.componentes && producto.componentes.length > 0 ? `
+                            <div class="item-components">
+                                <strong>Componentes:</strong>
+                                ${producto.componentes.map(comp => `
+                                    <div class="component-item">
+                                        <span>${comp.cantidad}x ${comp.nombre}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function mostrarClientes() {
+            const lista = document.getElementById('clientes-lista');
+            
+            if (clientes.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay clientes registrados. ¡Agrega tu primer cliente!</div>';
+                return;
+            }
+            
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            lista.innerHTML = clientesOrdenados.map(cliente => {
+                // Determinar estado de sincronización
+                let syncBadge = '';
+                if (cliente.sincronizado) {
+                    syncBadge = '<div class="sync-badge">SYNC ✅</div>';
+                } else {
+                    syncBadge = '<div class="sync-badge pending">LOCAL 💾</div>';
+                }
+                
+                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+                
+                // Construir dirección
+                let direccion = '';
+                if (cliente.calle || cliente.numero) {
+                    direccion = `${cliente.calle || ''} ${cliente.numero || ''}`.trim();
+                    if (cliente.piso) direccion += `, Piso ${cliente.piso}`;
+                    if (cliente.departamento) direccion += `, Dto ${cliente.departamento}`;
+                    if (cliente.localidad) direccion += `, ${cliente.localidad}`;
+                    if (cliente.codigoPostal) direccion += ` (${cliente.codigoPostal})`;
+                }
+                
+                return `
+                    <div class="item">
+                        ${syncBadge}
+                        <div class="item-header">
+                            <div class="item-title">${nombreCompleto}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-warning btn-small" onclick="editarCliente('${cliente.id}')">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarCliente('${cliente.id}')">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Teléfono:</strong> ${cliente.telefono}
+                            ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
+                            ${cliente.fechaModificacion ? ` | <strong>Última modificación:</strong> ${new Date(cliente.fechaModificacion).toLocaleString()}` : ''}
+                        </div>
+                        ${direccion ? `
+                            <div class="item-details">
+                                <strong>Dirección:</strong> ${direccion}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+            
+            editandoProducto = producto;
+            componentesTemp = [...(producto.componentes || [])];
+            
+            document.getElementById('producto-nombre').value = producto.nombre;
+            document.getElementById('producto-precio').value = producto.precio;
+            document.getElementById('producto-tipo').value = producto.tipo;
+            
+            toggleComponentes();
+            mostrarComponentesTemp();
+        }
+
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            editandoCliente = cliente;
+            
+            document.getElementById('cliente-nombre').value = cliente.nombre;
+            document.getElementById('cliente-apellido').value = cliente.apellido;
+            document.getElementById('cliente-telefono').value = cliente.telefono;
+            document.getElementById('cliente-calle').value = cliente.calle || '';
+            document.getElementById('cliente-numero').value = cliente.numero || '';
+            document.getElementById('cliente-piso').value = cliente.piso || '';
+            document.getElementById('cliente-departamento').value = cliente.departamento || '';
+            document.getElementById('cliente-email').value = cliente.email || '';
+            document.getElementById('cliente-localidad').value = cliente.localidad || '';
+            document.getElementById('cliente-codigo-postal').value = cliente.codigoPostal || '';
+        }
+
+        async function eliminarProducto(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                return;
+            }
+            
+            try {
+                if (firebaseConnected) {
+                    await db.collection('productos').doc(id).delete();
+                    mostrarNotificacion('🗑️ Producto eliminado correctamente', 'success');
+                } else {
+                    productos = productos.filter(p => p.id !== id);
+                    localStorage.setItem('productos_backup', JSON.stringify(productos));
+                    mostrarProductos();
+                    mostrarNotificacion('🗑️ Producto eliminado localmente', 'warning');
+                }
+            } catch (error) {
+                console.error('Error eliminando producto:', error);
+                mostrarNotificacion('❌ Error eliminando producto', 'error');
+            }
+        }
+
+        async function eliminarCliente(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+                return;
+            }
+            
+            try {
+                if (firebaseConnected) {
+                    await db.collection('clientes').doc(id).delete();
+                    mostrarNotificacion('🗑️ Cliente eliminado correctamente', 'success');
+                } else {
+                    clientes = clientes.filter(c => c.id !== id);
+                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                    mostrarClientes();
+                    mostrarNotificacion('🗑️ Cliente eliminado localmente', 'warning');
+                }
+            } catch (error) {
+                console.error('Error eliminando cliente:', error);
+                mostrarNotificacion('❌ Error eliminando cliente', 'error');
+            }
+        }
+
+        function cancelarEdicion() {
+            limpiarFormularioProducto();
+        }
+
+        function cancelarCliente() {
+            limpiarFormularioCliente();
+        }
+
+        function limpiarFormularioProducto() {
+            document.getElementById('producto-form').reset();
+            editandoProducto = null;
+            componentesTemp = [];
+            document.getElementById('componentes-section').style.display = 'none';
+            mostrarComponentesTemp();
+        }
+
+        function limpiarFormularioCliente() {
+            document.getElementById('cliente-form').reset();
+            editandoCliente = null;
+        }
+
+        // ========================================
+        // FUNCIONES DE UI
+        // ========================================
+        
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = `notification ${tipo}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function configurarEventos() {
+            // Eventos de productos
+            document.getElementById('producto-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await guardarProducto();
+            });
+            
+            // Eventos de clientes
+            document.getElementById('cliente-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await guardarCliente();
+            });
+        }
+
+        // ========================================
+        // FUNCIONES DE NAVEGACIÓN
+        // ========================================
+        
+        function showTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+    </script>
+</body>
+</html>
+ "Agregado sistema con Firebase"
