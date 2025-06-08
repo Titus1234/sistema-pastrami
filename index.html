@@ -3,1256 +3,1548 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Pastrami - Administración Completa</title>
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
-    <!-- React y Babel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        function App() {
-            const [tab, setTab] = useState('pedidos');
-            const [clientes, setClientes] = useState([]);
-            const [productos, setProductos] = useState([]);
-            const [pedidos, setPedidos] = useState([]);
-            const [pagos, setPagos] = useState([]);
-            const [modal, setModal] = useState(false);
-            const [modalType, setModalType] = useState('');
-            const [editing, setEditing] = useState(null);
-            const [status, setStatus] = useState('Conectando...');
-            const [searchTerm, setSearchTerm] = useState('');
-
-            useEffect(() => {
-                initFirebase();
-            }, []);
-
-            const initFirebase = () => {
-                try {
-                    const config = {
-                        apiKey: "AIzaSyAPeak34o6AYI3cuNxiElmRm3fgK1xPz6I",
-                        authDomain: "pastrami853--claude.firebaseapp.com",
-                        projectId: "pastrami853--claude",
-                        storageBucket: "pastrami853--claude.firebasestorage.app",
-                        messagingSenderId: "186595410450",
-                        appId: "1:186595410450:web:d90cee08d50cf3e5b14ecb"
-                    };
-
-                    firebase.initializeApp(config);
-                    window.db = firebase.firestore();
-                    
-                    loadData();
-                    setStatus('✅ Conectado a Firebase');
-                } catch (error) {
-                    setStatus('❌ Error: ' + error.message);
-                    console.error('Error Firebase:', error);
-                }
-            };
-
-            const loadData = () => {
-                try {
-                    window.db.collection('clientes').orderBy('apellido').onSnapshot((snap) => {
-                        setClientes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    });
-                    
-                    window.db.collection('productos').orderBy('nombre').onSnapshot((snap) => {
-                        setProductos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    });
-                    
-                    window.db.collection('pedidos').orderBy('fechaCreacion', 'desc').onSnapshot((snap) => {
-                        setPedidos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    });
-
-                    window.db.collection('pagos').orderBy('fecha', 'desc').onSnapshot((snap) => {
-                        setPagos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    });
-                } catch (error) {
-                    console.error('Error cargando datos:', error);
-                    setStatus('❌ Error cargando datos');
-                }
-            };
-
-            const saveData = async (collectionName, data) => {
-                try {
-                    if (editing) {
-                        await window.db.collection(collectionName).doc(editing.id).update(data);
-                        alert('✅ Actualizado correctamente');
-                    } else {
-                        await window.db.collection(collectionName).add(data);
-                        alert('✅ Guardado correctamente');
-                    }
-                    setModal(false);
-                    setEditing(null);
-                } catch (error) {
-                    alert('❌ Error: ' + error.message);
-                    console.error('Error guardando:', error);
-                }
-            };
-
-            const deleteData = async (collectionName, id) => {
-                if (confirm('¿Seguro que quieres eliminar este elemento?')) {
-                    try {
-                        await window.db.collection(collectionName).doc(id).delete();
-                        alert('✅ Eliminado correctamente');
-                    } catch (error) {
-                        alert('❌ Error: ' + error.message);
-                        console.error('Error eliminando:', error);
-                    }
-                }
-            };
-
-            // FUNCIÓN PARA MARCAR COMO ENTREGADO
-            const marcarComoEntregado = async (pedidoId) => {
-                if (confirm('¿Confirmas que este pedido fue ENTREGADO? Se quitará de la vista principal.')) {
-                    try {
-                        await window.db.collection('pedidos').doc(pedidoId).update({
-                            estado: 'entregado',
-                            fechaEntrega: new Date().toISOString().split('T')[0]
-                        });
-                        alert('✅ Pedido marcado como entregado');
-                    } catch (error) {
-                        alert('❌ Error: ' + error.message);
-                        console.error('Error marcando como entregado:', error);
-                    }
-                }
-            };
-
-            const filteredClientes = clientes.filter(c => 
-                `${c.nombre} ${c.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-
-            const filteredProductos = productos
-                .filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
-                .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-            // SOLO PEDIDOS EN CURSO (NO ENTREGADOS)
-            const pedidosEnCurso = pedidos.filter(p => p.estado !== 'entregado');
-
-            const getClienteName = (clienteId) => {
-                const cliente = clientes.find(c => c.id === clienteId);
-                return cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente no encontrado';
-            };
-
-            const getProductName = (productoId) => {
-                const producto = productos.find(p => p.id === productoId);
-                return producto ? producto.nombre : 'Producto no encontrado';
-            };
-
-            const getEstadoBadge = (estado) => {
-                return (
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        En Curso
-                    </span>
-                );
-            };
-
-            // FORMULARIO CLIENTES
-            const ClienteForm = () => {
-                const [data, setData] = useState(editing || { 
-                    nombre: '', 
-                    apellido: '', 
-                    telefono: '', 
-                    calle: '',
-                    numero: '',
-                    piso: '',
-                    codigoPostal: '',
-                    localidad: '',
-                    email: ''
-                });
-                
-                const handleSubmit = (e) => {
-                    e.preventDefault();
-                    if (!data.nombre || !data.apellido || !data.telefono) {
-                        alert('Por favor completa nombre, apellido y teléfono');
-                        return;
-                    }
-                    saveData('clientes', data);
-                };
-                
-                return (
-                    <form onSubmit={handleSubmit}>
-                        <h3 className="text-xl font-bold mb-4">Cliente</h3>
-                        <div className="space-y-3">
-                            <input placeholder="Nombre *" value={data.nombre} onChange={(e) => setData({...data, nombre: e.target.value})} className="w-full p-2 border rounded" required />
-                            <input placeholder="Apellido *" value={data.apellido} onChange={(e) => setData({...data, apellido: e.target.value})} className="w-full p-2 border rounded" required />
-                            <input placeholder="Teléfono *" value={data.telefono} onChange={(e) => setData({...data, telefono: e.target.value})} className="w-full p-2 border rounded" required />
-                            <input placeholder="Calle" value={data.calle} onChange={(e) => setData({...data, calle: e.target.value})} className="w-full p-2 border rounded" />
-                            <div className="grid grid-cols-2 gap-2">
-                                <input placeholder="Número" value={data.numero} onChange={(e) => setData({...data, numero: e.target.value})} className="w-full p-2 border rounded" />
-                                <input placeholder="Piso/Depto" value={data.piso} onChange={(e) => setData({...data, piso: e.target.value})} className="w-full p-2 border rounded" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <input placeholder="Código Postal" value={data.codigoPostal} onChange={(e) => setData({...data, codigoPostal: e.target.value})} className="w-full p-2 border rounded" />
-                                <input placeholder="Localidad" value={data.localidad} onChange={(e) => setData({...data, localidad: e.target.value})} className="w-full p-2 border rounded" />
-                            </div>
-                            <input placeholder="Email" type="email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} className="w-full p-2 border rounded" />
-                        </div>
-                        <div className="flex gap-2 mt-4">
-                            <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">Guardar</button>
-                            <button type="button" onClick={() => setModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
-                        </div>
-                    </form>
-                );
-            };
-
-            // FORMULARIO PRODUCTOS MEJORADO
-            const ProductoForm = () => {
-                const [data, setData] = useState(editing || { 
-                    nombre: '', 
-                    tipo: 'simple',
-                    precio: '',
-                    stock: '',
-                    stockMinimo: '',
-                    tipoMedida: 'unidad',
-                    descripcion: '',
-                    componentes: []
-                });
-
-                const addComponente = () => {
-                    setData({
-                        ...data,
-                        componentes: [...data.componentes, { nombre: '', cantidad: '', precio: '' }]
-                    });
-                };
-
-                const removeComponente = (index) => {
-                    if (data.componentes.length > 1) {
-                        const newComponentes = data.componentes.filter((_, i) => i !== index);
-                        setData({...data, componentes: newComponentes});
-                    }
-                };
-
-                const updateComponente = (index, field, value) => {
-                    const newComponentes = [...data.componentes];
-                    newComponentes[index][field] = value;
-                    setData({...data, componentes: newComponentes});
-                };
-
-                const handleTipoChange = (nuevoTipo) => {
-                    setData({
-                        ...data, 
-                        tipo: nuevoTipo,
-                        componentes: nuevoTipo === 'simple' 
-                            ? []
-                            : data.componentes.length < 2 
-                                ? [{ nombre: '', cantidad: '', precio: '' }, { nombre: '', cantidad: '', precio: '' }]
-                                : data.componentes
-                    });
-                };
-
-                const calcularPrecioTotal = () => {
-                    if (data.tipo === 'simple') {
-                        alert('Los productos simples no calculan precio por componentes');
-                        return;
-                    }
-                    const total = data.componentes.reduce((sum, comp) => {
-                        return sum + (parseFloat(comp.precio) || 0) * (parseFloat(comp.cantidad) || 0);
-                    }, 0);
-                    setData({...data, precio: total.toFixed(2)});
-                };
-
-                const handleSubmit = (e) => {
-                    e.preventDefault();
-                    if (!data.nombre || !data.precio || !data.stock) {
-                        alert('Por favor completa nombre, precio y stock');
-                        return;
-                    }
-                    
-                    if (data.tipo === 'simple') {
-                        saveData('productos', data);
-                    } else {
-                        const componentesValidos = data.componentes.every(comp => comp.nombre && comp.cantidad);
-                        if (!componentesValidos || data.componentes.length < 2) {
-                            alert('Las cajas/combos deben tener al menos 2 componentes completos');
-                            return;
-                        }
-                        saveData('productos', data);
-                    }
-                };
-
-                return (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <h3 className="text-xl font-bold mb-4">
-                            {editing ? 'Editar Producto' : 'Nuevo Producto'}
-                        </h3>
-
-                        <div className="bg-gray-50 p-4 rounded">
-                            <h4 className="font-semibold mb-3">Información Básica</h4>
-                            <div className="space-y-3">
-                                <input 
-                                    placeholder="Nombre del Producto *" 
-                                    value={data.nombre} 
-                                    onChange={(e) => setData({...data, nombre: e.target.value})} 
-                                    className="w-full p-2 border rounded" 
-                                    required 
-                                />
-                                
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Tipo de Producto *</label>
-                                        <select 
-                                            value={data.tipo} 
-                                            onChange={(e) => handleTipoChange(e.target.value)} 
-                                            className="w-full p-2 border rounded"
-                                        >
-                                            <option value="simple">Producto Simple</option>
-                                            <option value="caja">Caja/Combo (con componentes)</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Tipo de Medida</label>
-                                        <select 
-                                            value={data.tipoMedida} 
-                                            onChange={(e) => setData({...data, tipoMedida: e.target.value})} 
-                                            className="w-full p-2 border rounded"
-                                        >
-                                            <option value="unidad">Unidad</option>
-                                            <option value="kg">Kilogramos</option>
-                                            <option value="g">Gramos</option>
-                                            <option value="litro">Litro</option>
-                                            <option value="ml">Mililitros</option>
-                                            <option value="caja">Caja</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <textarea 
-                                    placeholder="Descripción (opcional)" 
-                                    value={data.descripcion} 
-                                    onChange={(e) => setData({...data, descripcion: e.target.value})} 
-                                    className="w-full p-2 border rounded h-20"
-                                />
-                            </div>
-                        </div>
-
-                        {data.tipo === 'caja' && (
-                            <div className="bg-blue-50 p-4 rounded">
-                                <div className="flex justify-between items-center mb-3">
-                                    <h4 className="font-semibold">
-                                        Componentes de la Caja/Combo *
-                                        <span className="text-sm text-gray-600"> (Mínimo 2)</span>
-                                    </h4>
-                                    <button 
-                                        type="button" 
-                                        onClick={addComponente} 
-                                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                                    >
-                                        + Agregar Componente
-                                    </button>
-                                </div>
-
-                                {data.componentes.length === 0 && (
-                                    <div className="text-center p-4 text-gray-500">
-                                        <p>No hay componentes agregados</p>
-                                        <button 
-                                            type="button" 
-                                            onClick={addComponente} 
-                                            className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
-                                        >
-                                            Agregar Primer Componente
-                                        </button>
-                                    </div>
-                                )}
-
-                                {data.componentes.map((comp, index) => (
-                                    <div key={index} className="bg-white p-3 rounded mb-2 border">
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                                            <input 
-                                                placeholder="Nombre del componente *" 
-                                                value={comp.nombre} 
-                                                onChange={(e) => updateComponente(index, 'nombre', e.target.value)} 
-                                                className="w-full p-2 border rounded" 
-                                                required
-                                            />
-                                            <input 
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="Cantidad *" 
-                                                value={comp.cantidad} 
-                                                onChange={(e) => updateComponente(index, 'cantidad', e.target.value)} 
-                                                className="w-full p-2 border rounded" 
-                                                required
-                                            />
-                                            <input 
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="Precio unitario" 
-                                                value={comp.precio} 
-                                                onChange={(e) => updateComponente(index, 'precio', e.target.value)} 
-                                                className="w-full p-2 border rounded" 
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-bold">
-                                                    ${((comp.cantidad || 0) * (comp.precio || 0)).toFixed(2)}
-                                                </span>
-                                                {data.componentes.length > 1 && (
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => removeComponente(index)} 
-                                                        className="bg-red-500 text-white px-2 py-1 rounded text-sm"
-                                                    >
-                                                        ×
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {data.componentes.length > 0 && (
-                                    <div className="flex justify-end mt-2">
-                                        <button 
-                                            type="button" 
-                                            onClick={calcularPrecioTotal} 
-                                            className="bg-green-500 text-white px-4 py-2 rounded text-sm"
-                                        >
-                                            Calcular Precio Total de Componentes
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {data.tipo === 'simple' && (
-                            <div className="bg-green-50 p-4 rounded border border-green-200">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-green-600 text-xl">✓</span>
-                                    <div>
-                                        <h4 className="font-semibold text-green-800">Producto Simple</h4>
-                                        <p className="text-sm text-green-600">Este producto no requiere componentes. Solo completa precio y stock abajo.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="bg-green-50 p-4 rounded">
-                            <h4 className="font-semibold mb-3">Precios y Stock</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Precio de Venta *</label>
-                                    <input 
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="0.00" 
-                                        value={data.precio} 
-                                        onChange={(e) => setData({...data, precio: e.target.value})} 
-                                        className="w-full p-2 border rounded" 
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Stock Actual *</label>
-                                    <input 
-                                        type="number"
-                                        placeholder="0" 
-                                        value={data.stock} 
-                                        onChange={(e) => setData({...data, stock: e.target.value})} 
-                                        className="w-full p-2 border rounded" 
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Stock Mínimo</label>
-                                    <input 
-                                        type="number"
-                                        placeholder="5" 
-                                        value={data.stockMinimo} 
-                                        onChange={(e) => setData({...data, stockMinimo: e.target.value})} 
-                                        className="w-full p-2 border rounded" 
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2 pt-4">
-                            <button 
-                                type="submit" 
-                                className="bg-purple-500 text-white px-6 py-2 rounded font-semibold"
-                            >
-                                {editing ? 'Actualizar Producto' : 'Guardar Producto'}
-                            </button>
-                            <button 
-                                type="button" 
-                                onClick={() => setModal(false)} 
-                                className="bg-gray-500 text-white px-6 py-2 rounded"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-                );
-            };
-
-            // FORMULARIO PEDIDOS CON AUTOCOMPLETADO MEJORADO
-            const PedidoForm = () => {
-                const [data, setData] = useState(editing || { 
-                    clienteId: '',
-                    productos: [{ productoId: '', cantidad: 1, precioUnitario: 0 }],
-                    direccionEntrega: '',
-                    fechaEntrega: '',
-                    turno: 'mañana',
-                    estado: 'en_curso',
-                    costoEnvio: 0,
-                    subtotal: 0,
-                    total: 0,
-                    metodoPago: 'efectivo',
-                    notasEspeciales: '',
-                    fechaCreacion: new Date().toISOString().split('T')[0]
-                });
-
-                // Estados para autocompletado
-                const [clienteSearch, setClienteSearch] = useState('');
-                const [showClienteSuggestions, setShowClienteSuggestions] = useState(false);
-                const [productoSearches, setProductoSearches] = useState(['']);
-                const [showProductoSuggestions, setShowProductoSuggestions] = useState([false]);
-
-                useEffect(() => {
-                    if (editing && editing.clienteId) {
-                        const cliente = clientes.find(c => c.id === editing.clienteId);
-                        if (cliente) {
-                            setClienteSearch(`${cliente.nombre} ${cliente.apellido}`);
-                        }
-                        
-                        // Configurar búsquedas de productos para edición
-                        const searches = editing.productos?.map(p => {
-                            const producto = productos.find(prod => prod.id === p.productoId);
-                            return producto ? producto.nombre : '';
-                        }) || [''];
-                        
-                        setProductoSearches(searches);
-                        setShowProductoSuggestions(new Array(searches.length).fill(false));
-                    }
-                }, [editing, clientes, productos]);
-
-                useEffect(() => {
-                    if (data.clienteId && clientes.length > 0) {
-                        const cliente = clientes.find(c => c.id === data.clienteId);
-                        if (cliente && !editing) {
-                            const direccion = `${cliente.calle || ''} ${cliente.numero || ''} ${cliente.piso ? ', ' + cliente.piso : ''}, ${cliente.localidad || ''} (${cliente.codigoPostal || ''})`.trim();
-                            setData(prev => ({...prev, direccionEntrega: direccion}));
-                        }
-                    }
-                }, [data.clienteId, clientes]);
-
-                // Filtrar clientes para autocompletado
-                const filteredClientes = clientes.filter(cliente => 
-                    `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(clienteSearch.toLowerCase())
-                ).slice(0, 5);
-
-                // Filtrar productos para autocompletado
-                const getFilteredProductos = (searchTerm) => {
-                    return productos.filter(producto => 
-                        producto.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-                    ).slice(0, 5);
-                };
-
-                // Seleccionar cliente
-                const selectCliente = (cliente) => {
-                    setData({...data, clienteId: cliente.id});
-                    setClienteSearch(`${cliente.nombre} ${cliente.apellido}`);
-                    setShowClienteSuggestions(false);
-                    
-                    // Auto-rellenar dirección
-                    const direccion = `${cliente.calle || ''} ${cliente.numero || ''} ${cliente.piso ? ', ' + cliente.piso : ''}, ${cliente.localidad || ''} (${cliente.codigoPostal || ''})`.trim();
-                    setData(prev => ({...prev, direccionEntrega: direccion}));
-                };
-
-                // Seleccionar producto
-                const selectProducto = (index, producto) => {
-                    const newProductos = [...data.productos];
-                    newProductos[index] = {
-                        ...newProductos[index],
-                        productoId: producto.id,
-                        precioUnitario: parseFloat(producto.precio)
-                    };
-                    setData({...data, productos: newProductos});
-                    
-                    // Actualizar búsqueda de producto
-                    const newSearches = [...productoSearches];
-                    newSearches[index] = producto.nombre;
-                    setProductoSearches(newSearches);
-                    
-                    // Ocultar sugerencias
-                    const newShowSuggestions = [...showProductoSuggestions];
-                    newShowSuggestions[index] = false;
-                    setShowProductoSuggestions(newShowSuggestions);
-                    
-                    calcularTotales(newProductos, data.costoEnvio);
-                };
-
-                const addProducto = () => {
-                    setData({
-                        ...data,
-                        productos: [...data.productos, { productoId: '', cantidad: 1, precioUnitario: 0 }]
-                    });
-                    setProductoSearches([...productoSearches, '']);
-                    setShowProductoSuggestions([...showProductoSuggestions, false]);
-                };
-
-                const removeProducto = (index) => {
-                    if (data.productos.length > 1) {
-                        const newProductos = data.productos.filter((_, i) => i !== index);
-                        const newSearches = productoSearches.filter((_, i) => i !== index);
-                        const newShowSuggestions = showProductoSuggestions.filter((_, i) => i !== index);
-                        
-                        setData({...data, productos: newProductos});
-                        setProductoSearches(newSearches);
-                        setShowProductoSuggestions(newShowSuggestions);
-                        calcularTotales(newProductos, data.costoEnvio);
-                    }
-                };
-
-                const updateProducto = (index, field, value) => {
-                    const newProductos = [...data.productos];
-                    newProductos[index][field] = field === 'cantidad' || field === 'precioUnitario' ? parseFloat(value) || 0 : value;
-                    setData({...data, productos: newProductos});
-                    calcularTotales(newProductos, data.costoEnvio);
-                };
-
-                const calcularTotales = (productos = data.productos, envio = data.costoEnvio) => {
-                    const subtotal = productos.reduce((sum, p) => sum + (p.cantidad * p.precioUnitario), 0);
-                    const total = subtotal + parseFloat(envio || 0);
-                    setData(prev => ({
-                        ...prev, 
-                        subtotal: subtotal,
-                        total: total
-                    }));
-                };
-
-                const handleCostoEnvioChange = (valor) => {
-                    const envio = parseFloat(valor) || 0;
-                    setData(prev => ({...prev, costoEnvio: envio}));
-                    calcularTotales(data.productos, envio);
-                };
-
-                const handleSubmit = (e) => {
-                    e.preventDefault();
-                    
-                    if (!data.clienteId) {
-                        alert('Por favor selecciona un cliente del autocompletado');
-                        return;
-                    }
-                    if (!data.productos[0].productoId) {
-                        alert('Por favor selecciona al menos un producto del autocompletado');
-                        return;
-                    }
-                    if (!data.fechaEntrega) {
-                        alert('Por favor selecciona fecha de entrega');
-                        return;
-                    }
-                    if (!data.direccionEntrega.trim()) {
-                        alert('Por favor completa la dirección de entrega');
-                        return;
-                    }
-
-                    const productosValidos = data.productos.every(p => p.productoId && p.cantidad > 0);
-                    if (!productosValidos) {
-                        alert('Todos los productos deben estar seleccionados y tener cantidad mayor a 0');
-                        return;
-                    }
-
-                    saveData('pedidos', data);
-                };
-
-                return (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <h3 className="text-xl font-bold mb-4">
-                            {editing ? 'Editar Pedido' : 'Nuevo Pedido'}
-                        </h3>
-
-                        {/* CLIENTE CON AUTOCOMPLETADO */}
-                        <div className="bg-blue-50 p-4 rounded">
-                            <h4 className="font-semibold mb-3">Información del Cliente</h4>
-                            <div className="relative">
-                                <label className="block text-sm font-medium mb-1">Cliente *</label>
-                                <input
-                                    type="text"
-                                    placeholder="Escribe el nombre del cliente..."
-                                    value={clienteSearch}
-                                    onChange={(e) => {
-                                        setClienteSearch(e.target.value);
-                                        setShowClienteSuggestions(true);
-                                        if (!e.target.value) {
-                                            setData({...data, clienteId: ''});
-                                        }
-                                    }}
-                                    onFocus={() => setShowClienteSuggestions(true)}
-                                    onBlur={() => setTimeout(() => setShowClienteSuggestions(false), 200)}
-                                    className="w-full p-2 border rounded"
-                                    required
-                                />
-                                
-                                {showClienteSuggestions && clienteSearch && filteredClientes.length > 0 && (
-                                    <div className="absolute z-10 w-full bg-white border rounded-b shadow-lg max-h-48 overflow-y-auto">
-                                        {filteredClientes.map(cliente => (
-                                            <div
-                                                key={cliente.id}
-                                                onClick={() => selectCliente(cliente)}
-                                                className="p-3 hover:bg-blue-50 cursor-pointer border-b"
-                                            >
-                                                <div className="font-semibold">{cliente.nombre} {cliente.apellido}</div>
-                                                <div className="text-sm text-gray-600">{cliente.telefono}</div>
-                                                <div className="text-xs text-gray-500">
-                                                    {cliente.calle} {cliente.numero}, {cliente.localidad}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                
-                                {showClienteSuggestions && clienteSearch && filteredClientes.length === 0 && (
-                                    <div className="absolute z-10 w-full bg-white border rounded-b shadow-lg p-3 text-gray-500">
-                                        No se encontraron clientes. 
-                                        <button 
-                                            type="button"
-                                            onClick={() => { setModalType('cliente'); setEditing(null); setModal(true); }}
-                                            className="text-blue-500 underline ml-1"
-                                        >
-                                            ¿Crear nuevo cliente?
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* PRODUCTOS CON AUTOCOMPLETADO */}
-                        <div className="bg-green-50 p-4 rounded">
-                            <div className="flex justify-between items-center mb-3">
-                                <h4 className="font-semibold">Productos *</h4>
-                                <button 
-                                    type="button" 
-                                    onClick={addProducto} 
-                                    className="bg-green-500 text-white px-3 py-1 rounded text-sm"
-                                >
-                                    + Agregar Producto
-                                </button>
-                            </div>
-
-                            {data.productos.map((producto, index) => (
-                                <div key={index} className="bg-white p-3 rounded mb-2 border">
-                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                                        <div className="md:col-span-2 relative">
-                                            <input
-                                                type="text"
-                                                placeholder="Escribe el nombre del producto..."
-                                                value={productoSearches[index] || ''}
-                                                onChange={(e) => {
-                                                    const newSearches = [...productoSearches];
-                                                    newSearches[index] = e.target.value;
-                                                    setProductoSearches(newSearches);
-                                                    
-                                                    const newShowSuggestions = [...showProductoSuggestions];
-                                                    newShowSuggestions[index] = true;
-                                                    setShowProductoSuggestions(newShowSuggestions);
-                                                    
-                                                    if (!e.target.value) {
-                                                        const newProductos = [...data.productos];
-                                                        newProductos[index] = { ...newProductos[index], productoId: '', precioUnitario: 0 };
-                                                        setData({...data, productos: newProductos});
-                                                    }
-                                                }}
-                                                onFocus={() => {
-                                                    const newShowSuggestions = [...showProductoSuggestions];
-                                                    newShowSuggestions[index] = true;
-                                                    setShowProductoSuggestions(newShowSuggestions);
-                                                }}
-                                                onBlur={() => {
-                                                    setTimeout(() => {
-                                                        const newShowSuggestions = [...showProductoSuggestions];
-                                                        newShowSuggestions[index] = false;
-                                                        setShowProductoSuggestions(newShowSuggestions);
-                                                    }, 200);
-                                                }}
-                                                className="w-full p-2 border rounded"
-                                                required
-                                            />
-                                            
-                                            {showProductoSuggestions[index] && productoSearches[index] && (
-                                                <div className="absolute z-10 w-full bg-white border rounded-b shadow-lg max-h-32 overflow-y-auto">
-                                                    {getFilteredProductos(productoSearches[index]).map(prod => (
-                                                        <div
-                                                            key={prod.id}
-                                                            onClick={() => selectProducto(index, prod)}
-                                                            className="p-2 hover:bg-green-50 cursor-pointer border-b text-sm"
-                                                        >
-                                                            <div className="font-semibold">{prod.nombre}</div>
-                                                            <div className="text-xs text-gray-600">
-                                                                ${prod.precio} - Stock: {prod.stock} {prod.tipoMedida}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    {getFilteredProductos(productoSearches[index]).length === 0 && (
-                                                        <div className="p-2 text-gray-500 text-sm">
-                                                            No se encontraron productos
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <input 
-                                            type="number" 
-                                            placeholder="Cantidad" 
-                                            value={producto.cantidad} 
-                                            onChange={(e) => updateProducto(index, 'cantidad', e.target.value)} 
-                                            className="w-full p-2 border rounded" 
-                                            min="1"
-                                            required
-                                        />
-                                        <input 
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="Precio Unit." 
-                                            value={producto.precioUnitario} 
-                                            onChange={(e) => updateProducto(index, 'precioUnitario', e.target.value)} 
-                                            className="w-full p-2 border rounded" 
-                                            required
-                                        />
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-bold text-green-600">
-                                                ${(producto.cantidad * producto.precioUnitario).toFixed(2)}
-                                            </span>
-                                            {data.productos.length > 1 && (
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => removeProducto(index)} 
-                                                    className="bg-red-500 text-white px-2 py-1 rounded text-sm ml-2"
-                                                >
-                                                    ×
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* ENTREGA */}
-                        <div className="bg-yellow-50 p-4 rounded">
-                            <h4 className="font-semibold mb-3">Información de Entrega</h4>
-                            <div className="space-y-3">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Dirección de Entrega *</label>
-                                    <textarea 
-                                        placeholder="Dirección completa de entrega" 
-                                        value={data.direccionEntrega} 
-                                        onChange={(e) => setData({...data, direccionEntrega: e.target.value})} 
-                                        className="w-full p-2 border rounded h-20"
-                                        required
-                                    />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Fecha de Entrega *</label>
-                                        <input 
-                                            type="date" 
-                                            value={data.fechaEntrega} 
-                                            onChange={(e) => setData({...data, fechaEntrega: e.target.value})} 
-                                            className="w-full p-2 border rounded" 
-                                            min={new Date().toISOString().split('T')[0]}
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Turno</label>
-                                        <select 
-                                            value={data.turno} 
-                                            onChange={(e) => setData({...data, turno: e.target.value})} 
-                                            className="w-full p-2 border rounded"
-                                        >
-                                            <option value="mañana">Mañana (8:00 - 12:00)</option>
-                                            <option value="tarde">Tarde (14:00 - 18:00)</option>
-                                            <option value="noche">Noche (18:00 - 22:00)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Notas Especiales</label>
-                                    <textarea 
-                                        placeholder="Instrucciones especiales (ej: sin cebolla, tocar timbre, etc.)" 
-                                        value={data.notasEspeciales} 
-                                        onChange={(e) => setData({...data, notasEspeciales: e.target.value})} 
-                                        className="w-full p-2 border rounded h-16"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* TOTALES Y PAGO */}
-                        <div className="bg-purple-50 p-4 rounded">
-                            <h4 className="font-semibold mb-3">Totales y Pago</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Costo de Envío</label>
-                                        <input 
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="0.00" 
-                                            value={data.costoEnvio} 
-                                            onChange={(e) => handleCostoEnvioChange(e.target.value)} 
-                                            className="w-full p-2 border rounded" 
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Método de Pago</label>
-                                        <select 
-                                            value={data.metodoPago} 
-                                            onChange={(e) => setData({...data, metodoPago: e.target.value})} 
-                                            className="w-full p-2 border rounded"
-                                        >
-                                            <option value="efectivo">Efectivo</option>
-                                            <option value="transferencia">Transferencia</option>
-                                            <option value="mercadopago">Mercado Pago</option>
-                                            <option value="tarjeta">Tarjeta</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="bg-white p-3 rounded border">
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <span>Subtotal:</span>
-                                            <span className="font-semibold">${data.subtotal.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Envío:</span>
-                                            <span className="font-semibold">${data.costoEnvio.toFixed(2)}</span>
-                                        </div>
-                                        <hr />
-                                        <div className="flex justify-between text-lg font-bold text-green-600">
-                                            <span>TOTAL:</span>
-                                            <span>${data.total.toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* BOTONES */}
-                        <div className="flex gap-2 pt-4">
-                            <button 
-                                type="submit" 
-                                className="bg-orange-500 text-white px-6 py-2 rounded font-semibold"
-                            >
-                                {editing ? 'Actualizar Pedido' : 'Crear Pedido'}
-                            </button>
-                            <button 
-                                type="button" 
-                                onClick={() => setModal(false)} 
-                                className="bg-gray-500 text-white px-6 py-2 rounded"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-                );
-            };
-
-            return (
-                <div className="min-h-screen bg-gray-100">
-                    {/* HEADER */}
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4">
-                        <h1 className="text-2xl font-bold">🥪 Sistema Pastrami - Administración Completa</h1>
-                        <div className="flex items-center gap-2 mt-2">
-                            <div className={`w-2 h-2 rounded-full ${status.includes('✅') ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                            <span className="text-sm">{status}</span>
-                        </div>
-                    </div>
-
-                    {/* NAVEGACIÓN */}
-                    <div className="bg-white border-b flex overflow-x-auto">
-                        <button onClick={() => setTab('pedidos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'pedidos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
-                            📦 Pedidos en Curso ({pedidosEnCurso.length})
-                        </button>
-                        <button onClick={() => setTab('clientes')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'clientes' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
-                            👥 Clientes ({clientes.length})
-                        </button>
-                        <button onClick={() => setTab('productos')} className={`px-6 py-4 font-semibold whitespace-nowrap ${tab === 'productos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600'}`}>
-                            🛍️ Productos ({productos.length})
-                        </button>
-                    </div>
-
-                    <div className="p-6">
-                        {/* TAB PEDIDOS - SOLO EN CURSO */}
-                        {tab === 'pedidos' && (
-                            <div>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-2xl font-bold">Pedidos en Curso</h2>
-                                    <button onClick={() => { setModalType('pedido'); setEditing(null); setModal(true); }} className="bg-orange-500 text-white px-4 py-2 rounded">
-                                        + Nuevo Pedido
-                                    </button>
-                                </div>
-                                
-                                <div className="space-y-4">
-                                    {pedidosEnCurso.map(p => (
-                                        <div key={p.id} className="bg-white p-4 rounded shadow">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <h3 className="font-bold text-lg">Pedido #{p.id.slice(-6)}</h3>
-                                                    {getEstadoBadge(p.estado)}
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button 
-                                                        onClick={() => marcarComoEntregado(p.id)} 
-                                                        className="bg-green-500 text-white px-3 py-1 rounded text-sm font-medium"
-                                                    >
-                                                        ✓ Marcar Entregado
-                                                    </button>
-                                                    <button onClick={() => { setEditing(p); setModalType('pedido'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-sm">Editar</button>
-                                                    <button onClick={() => deleteData('pedidos', p.id)} className="bg-red-500 text-white px-2 py-1 rounded text-sm">Eliminar</button>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <p><strong>Cliente:</strong> {getClienteName(p.clienteId)}</p>
-                                                    <p><strong>Entrega:</strong> {p.fechaEntrega} ({p.turno})</p>
-                                                    <p><strong>Dirección:</strong> {p.direccionEntrega}</p>
-                                                    {p.notasEspeciales && <p><strong>Notas:</strong> {p.notasEspeciales}</p>}
-                                                </div>
-                                                <div>
-                                                    <p><strong>Productos:</strong></p>
-                                                    <ul className="ml-4 text-sm">
-                                                        {p.productos?.map((prod, idx) => (
-                                                            <li key={idx}>• {getProductName(prod.productoId)} x{prod.cantidad} = ${(prod.cantidad * prod.precioUnitario).toFixed(2)}</li>
-                                                        ))}
-                                                    </ul>
-                                                    <div className="mt-2 space-y-1">
-                                                        <p><strong>Subtotal:</strong> ${p.subtotal?.toFixed(2) || '0.00'}</p>
-                                                        <p><strong>Envío:</strong> ${p.costoEnvio?.toFixed(2) || '0.00'}</p>
-                                                        <p><strong>Total:</strong> <span className="text-lg font-bold text-green-600">${p.total?.toFixed(2) || '0.00'}</span></p>
-                                                        <p><strong>Pago:</strong> {p.metodoPago || 'No especificado'}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {pedidosEnCurso.length === 0 && (
-                                        <div className="bg-white p-8 rounded shadow text-center text-gray-500">
-                                            <div className="text-4xl mb-4">🎉</div>
-                                            <h3 className="text-xl font-semibold mb-2">¡No hay pedidos en curso!</h3>
-                                            <p>Todos los pedidos han sido entregados o aún no hay pedidos registrados.</p>
-                                            <button 
-                                                onClick={() => { setModalType('pedido'); setEditing(null); setModal(true); }} 
-                                                className="bg-orange-500 text-white px-6 py-2 rounded mt-4"
-                                            >
-                                                Crear Primer Pedido
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* TAB CLIENTES */}
-                        {tab === 'clientes' && (
-                            <div>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-2xl font-bold">Gestión de Clientes</h2>
-                                    <button onClick={() => { setModalType('cliente'); setEditing(null); setModal(true); }} className="bg-green-500 text-white px-4 py-2 rounded">
-                                        + Nuevo Cliente
-                                    </button>
-                                </div>
-                                
-                                <div className="mb-4">
-                                    <input 
-                                        type="text" 
-                                        placeholder="🔍 Buscar cliente por nombre..." 
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full p-3 border rounded"
-                                    />
-                                </div>
-
-                                <div className="bg-white rounded shadow overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-4 py-2 text-left">Nombre</th>
-                                                <th className="px-4 py-2 text-left">Teléfono</th>
-                                                <th className="px-4 py-2 text-left">Dirección</th>
-                                                <th className="px-4 py-2 text-left">Email</th>
-                                                <th className="px-4 py-2 text-left">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredClientes.map(c => (
-                                                <tr key={c.id} className="border-t">
-                                                    <td className="px-4 py-2 font-semibold">{c.nombre} {c.apellido}</td>
-                                                    <td className="px-4 py-2">{c.telefono}</td>
-                                                    <td className="px-4 py-2">
-                                                        {c.calle} {c.numero}
-                                                        {c.piso && `, ${c.piso}`}
-                                                        <br />
-                                                        {c.localidad} ({c.codigoPostal})
-                                                    </td>
-                                                    <td className="px-4 py-2">{c.email}</td>
-                                                    <td className="px-4 py-2">
-                                                        <button onClick={() => { setEditing(c); setModalType('cliente'); setModal(true); }} className="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1">Editar</button>
-                                                        <button onClick={() => deleteData('clientes', c.id)} className="bg-red-500 text-white px-2 py-1 rounded text-xs">Eliminar</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    {filteredClientes.length === 0 && (
-                                        <div className="p-4 text-center text-gray-500">
-                                            No hay clientes registrados
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* TAB PRODUCTOS - LISTA ALFABÉTICA */}
-                        {tab === 'productos' && (
-                            <div>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-2xl font-bold">Gestión de Productos</h2>
-                                    <button onClick={() => { setModalType('producto'); setEditing(null); setModal(true); }} className="bg-purple-500 text-white px-4 py-2 rounded">
-                                        + Nuevo Producto
-                                    </button>
-                                </div>
-
-                                <div className="mb-4">
-                                    <input 
-                                        type="text" 
-                                        placeholder="🔍 Buscar producto por nombre..." 
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full p-3 border rounded"
-                                    />
-                                </div>
-
-                                <div className="bg-white rounded shadow overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left">Producto</th>
-                                                <th className="px-4 py-3 text-left">Tipo</th>
-                                                <th className="px-4 py-3 text-left">Precio</th>
-                                                <th className="px-4 py-3 text-left">Stock</th>
-                                                <th className="px-4 py-3 text-left">Descripción</th>
-                                                <th className="px-4 py-3 text-left">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredProductos.map(p => (
-                                                <tr key={p.id} className="border-t hover:bg-gray-50">
-                                                    <td className="px-4 py-3">
-                                                        <div>
-                                                            <h3 className="font-semibold">{p.nombre}</h3>
-                                                            {p.componentes && p.componentes.length > 0 && (
-                                                                <div className="text-xs text-gray-500 mt-1">
-                                                                    <strong>Componentes:</strong> {p.componentes.map(c => c.nombre).join(', ')}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={`px-2 py-1 rounded text-xs ${p.tipo === 'simple' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
-                                                            {p.tipo === 'simple' ? 'Simple' : 'Caja'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3 font-semibold text-green-600">
-                                                        ${p.precio}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div>
-                                                            <span className={`font-semibold ${parseInt(p.stock) <= parseInt(p.stockMinimo || 0) ? 'text-red-600' : ''}`}>
-                                                                {p.stock} {p.tipoMedida}
-                                                            </span>
-                                                            {p.stockMinimo && (
-                                                                <div className="text-xs text-gray-500">
-                                                                    Mín: {p.stockMinimo}
-                                                                </div>
-                                                            )}
-                                                            {parseInt(p.stock) <= parseInt(p.stockMinimo || 0) && (
-                                                                <div className="text-xs text-red-600 font-bold">
-                                                                    ⚠️ Stock bajo
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">
-                                                        {p.descripcion ? p.descripcion.substring(0, 100) + (p.descripcion.length > 100 ? '...' : '') : '-'}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex gap-1">
-                                                            <button 
-                                                                onClick={() => { setEditing(p); setModalType('producto'); setModal(true); }} 
-                                                                className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
-                                                            >
-                                                                Editar
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => deleteData('productos', p.id)} 
-                                                                className="bg-red-500 text-white px-2 py-1 rounded text-xs"
-                                                            >
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    {filteredProductos.length === 0 && (
-                                        <div className="p-8 text-center text-gray-500">
-                                            <div className="text-xl mb-2">📦</div>
-                                            <div className="font-medium">No hay productos registrados</div>
-                                            <div className="text-sm">Agrega tu primer producto haciendo clic en "+ Nuevo Producto"</div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="bg-white p-4 rounded shadow">
-                                        <h3 className="font-semibold text-gray-600">Total Productos</h3>
-                                        <p className="text-2xl font-bold text-blue-600">{productos.length}</p>
-                                    </div>
-                                    <div className="bg-white p-4 rounded shadow">
-                                        <h3 className="font-semibold text-gray-600">Stock Bajo</h3>
-                                        <p className="text-2xl font-bold text-red-600">
-                                            {productos.filter(p => parseInt(p.stock) <= parseInt(p.stockMinimo || 0)).length}
-                                        </p>
-                                    </div>
-                                    <div className="bg-white p-4 rounded shadow">
-                                        <h3 className="font-semibold text-gray-600">Productos Simples</h3>
-                                        <p className="text-2xl font-bold text-green-600">
-                                            {productos.filter(p => p.tipo === 'simple').length}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* MODAL */}
-                    {modal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                            <div className="bg-white rounded p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-                                <button onClick={() => { setModal(false); setEditing(null); }} className="float-right text-gray-500 text-2xl font-bold hover:text-gray-700">×</button>
-                                <div className="clear-both">
-                                    {modalType === 'cliente' && <ClienteForm />}
-                                    {modalType === 'producto' && <ProductoForm />}
-                                    {modalType === 'pedido' && <PedidoForm />}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
+    <title>Sistema Pastrami - Completo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 3px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .tab:hover {
+            background: #dee2e6;
+            transform: translateY(-2px);
+        }
+
+        .tab.active {
+            background: white;
+            color: #ff6b6b;
+            border-bottom: 3px solid #ff6b6b;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Formularios */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        /* Listas y tablas */
+        .item-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .item:hover {
+            transform: translateY(-2px);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .item-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .item-details {
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+
+        .item-components {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .component-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .component-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Estados y badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* Componentes específicos */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .no-items {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        /* Componentes de pagos */
+        .payment-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .payment-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .payment-amount {
+            font-weight: 600;
+        }
+
+        .debt-amount {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .paid-amount {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        /* Tabla de pagos */
+        .payments-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .payments-table th,
+        .payments-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .payments-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .payments-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🥪 Sistema Pastrami</h1>
+            <p>Gestión completa de pastrami</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('productos')">📦 Productos</div>
+            <div class="tab" onclick="showTab('clientes')">👥 Clientes</div>
+            <div class="tab" onclick="showTab('pedidos')">📋 Pedidos</div>
+            <div class="tab" onclick="showTab('pagos')">💰 Pagos</div>
+        </div>
+
+        <!-- TAB PRODUCTOS -->
+        <div id="productos" class="tab-content active">
+            <h2>📦 Gestión de Productos</h2>
+            
+            <form id="producto-form">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-nombre">Nombre del Producto:</label>
+                        <input type="text" id="producto-nombre" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-precio">Precio:</label>
+                        <input type="number" id="producto-precio" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-tipo">Tipo de Producto:</label>
+                        <select id="producto-tipo" onchange="toggleComponentes()" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="simple">Producto Simple</option>
+                            <option value="caja">Producto Caja (con componentes)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="componentes-section" style="display: none;">
+                    <h3>Componentes de la Caja</h3>
+                    <div id="componentes-list"></div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <input type="text" id="componente-nombre" placeholder="Nombre del componente">
+                        </div>
+                        <div class="form-col">
+                            <input type="number" id="componente-cantidad" placeholder="Cantidad" min="1">
+                        </div>
+                        <div class="form-col">
+                            <button type="button" class="btn btn-secondary" onclick="agregarComponente()">Agregar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarEdicion()">❌ Cancelar</button>
+            </form>
+
+            <div class="item-list">
+                <h3>Lista de Productos</h3>
+                <div id="productos-lista"></div>
+            </div>
+        </div>
+
+        <!-- TAB CLIENTES -->
+        <div id="clientes" class="tab-content">
+            <h2>👥 Gestión de Clientes</h2>
+            
+            <form id="cliente-form">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-nombre">Nombre <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-nombre" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-apellido">Apellido <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-apellido" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
+                        <input type="tel" id="cliente-telefono" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-calle">Calle:</label>
+                        <input type="text" id="cliente-calle">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-numero">Número:</label>
+                        <input type="text" id="cliente-numero">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-piso">Piso:</label>
+                        <input type="text" id="cliente-piso">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-departamento">Departamento:</label>
+                        <input type="text" id="cliente-departamento">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-email">Email:</label>
+                        <input type="email" id="cliente-email">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-localidad">Localidad:</label>
+                        <input type="text" id="cliente-localidad">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-codigo-postal">Código Postal:</label>
+                        <input type="text" id="cliente-codigo-postal">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarCliente()">❌ Cancelar</button>
+            </form>
+
+            <div class="item-list">
+                <h3>Lista de Clientes</h3>
+                <div id="clientes-lista"></div>
+            </div>
+        </div>
+
+        <!-- TAB PEDIDOS -->
+        <div id="pedidos" class="tab-content">
+            <h2>📋 Gestión de Pedidos</h2>
+            
+            <form id="pedido-form">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="pedido-cliente">Cliente:</label>
+                        <select id="pedido-cliente" required>
+                            <option value="">Seleccionar cliente...</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label for="pedido-fecha">Fecha de Entrega:</label>
+                        <input type="date" id="pedido-fecha" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="pedido-hora">Franja Horaria:</label>
+                        <select id="pedido-hora" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="Mañana (9-12hs)">Mañana (9-12hs)</option>
+                            <option value="Mediodía (12-15hs)">Mediodía (12-15hs)</option>
+                            <option value="Tarde (15-18hs)">Tarde (15-18hs)</option>
+                            <option value="Noche (18-21hs)">Noche (18-21hs)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="pedido-productos">Productos:</label>
+                    <select id="pedido-productos" onchange="agregarProductoPedido()">
+                        <option value="">Seleccionar producto...</option>
+                    </select>
+                </div>
+
+                <div id="productos-pedido"></div>
+
+                <div class="form-group">
+                    <label for="pedido-envio">Costo de Envío:</label>
+                    <input type="number" id="pedido-envio" step="0.01" value="0" onchange="mostrarProductosPedido()">
+                </div>
+
+                <div class="form-group">
+                    <label for="pedido-notas">Notas:</label>
+                    <textarea id="pedido-notas" rows="3" placeholder="Instrucciones especiales..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <strong>Subtotal Productos: $<span id="subtotal-productos">0.00</span></strong><br>
+                    <strong>Costo Envío: $<span id="costo-envio-display">0.00</span></strong><br>
+                    <strong>TOTAL PEDIDO: $<span id="total-pedido">0.00</span></strong>
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Guardar Pedido</button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarPedido()">❌ Cancelar</button>
+            </form>
+
+            <div class="item-list">
+                <h3>Lista de Pedidos</h3>
+                <div id="pedidos-lista"></div>
+            </div>
+        </div>
+
+        <!-- TAB PAGOS -->
+        <div id="pagos" class="tab-content">
+            <h2>💰 Gestión de Pagos</h2>
+
+            <!-- Estadísticas de pagos -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-pendiente">$0</div>
+                    <div class="stat-label">Total Pendiente</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-cobrado">$0</div>
+                    <div class="stat-label">Total Cobrado</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pedidos-impagos">0</div>
+                    <div class="stat-label">Pedidos Impagos</div>
+                </div>
+            </div>
+
+            <!-- Formulario de registro de pago -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                <h3>💳 Registrar Nuevo Pago</h3>
+                <form id="pago-form">
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="pago-pedido">Pedido:</label>
+                            <select id="pago-pedido" required onchange="actualizarInfoPago()">
+                                <option value="">Seleccionar pedido...</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label for="pago-monto">Monto del Pago:</label>
+                            <input type="number" id="pago-monto" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label for="pago-metodo">Método de Pago:</label>
+                            <select id="pago-metodo" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia</option>
+                                <option value="tarjeta">Tarjeta</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label for="pago-fecha">Fecha del Pago:</label>
+                            <input type="date" id="pago-fecha" required>
+                        </div>
+                    </div>
+
+                    <div id="info-pago" style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; display: none;">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pago-notas">Notas del Pago:</label>
+                        <textarea id="pago-notas" rows="2" placeholder="Observaciones del pago..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">💰 Registrar Pago</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelarPago()">❌ Cancelar</button>
+                </form>
+            </div>
+
+            <!-- Lista de todos los pagos -->
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 30px;">
+                <h3>📋 Historial de Pagos</h3>
+                <table class="payments-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Pedido</th>
+                            <th>Monto</th>
+                            <th>Método</th>
+                            <th>Estado Pedido</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pagos-lista">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabla de saldos pendientes -->
+            <div style="background: #fff3cd; border-radius: 10px; padding: 20px;">
+                <h3>⚠️ Saldos Pendientes</h3>
+                <table class="payments-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Pedido</th>
+                            <th>Total Pedido</th>
+                            <th>Pagado</th>
+                            <th>Saldo Pendiente</th>
+                            <th>Fecha Entrega</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="saldos-pendientes">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let productos = JSON.parse(localStorage.getItem('productos') || '[]');
+        let clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+        let pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+        let pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+        let editandoProducto = null;
+        let editandoCliente = null;
+        let editandoPedido = null;
+        let componentesTemp = [];
+        let productosPedidoTemp = [];
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            mostrarProductos();
+            mostrarClientes();
+            mostrarPedidos();
+            mostrarPagos();
+            actualizarSelectProductos();
+            actualizarSelectClientes();
+            actualizarSelectPedidos();
+            actualizarEstadisticasPagos();
+            
+            // Establecer fecha actual
+            document.getElementById('pago-fecha').value = new Date().toISOString().split('T')[0];
+        });
+
+        // FUNCIONES DE NAVEGACIÓN
+        function showTab(tabName) {
+            // Ocultar todos los tabs
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Mostrar tab seleccionado
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // FUNCIONES DE PRODUCTOS
+        function toggleComponentes() {
+            const tipo = document.getElementById('producto-tipo').value;
+            const section = document.getElementById('componentes-section');
+            
+            if (tipo === 'caja') {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+                componentesTemp = [];
+            }
+        }
+
+        function agregarComponente() {
+            const nombre = document.getElementById('componente-nombre').value.trim();
+            const cantidad = parseInt(document.getElementById('componente-cantidad').value);
+            
+            if (!nombre || !cantidad || cantidad < 1) {
+                alert('Por favor ingresa nombre y cantidad válidos para el componente');
+                return;
+            }
+            
+            componentesTemp.push({ nombre, cantidad });
+            mostrarComponentesTemp();
+            
+            // Limpiar campos
+            document.getElementById('componente-nombre').value = '';
+            document.getElementById('componente-cantidad').value = '';
+        }
+
+        function mostrarComponentesTemp() {
+            const lista = document.getElementById('componentes-list');
+            if (componentesTemp.length === 0) {
+                lista.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>';
+                return;
+            }
+            
+            lista.innerHTML = componentesTemp.map((comp, index) => `
+                <div class="component-item">
+                    <span>${comp.cantidad}x ${comp.nombre}</span>
+                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(${index})">❌</button>
+                </div>
+            `).join('');
+        }
+
+        function eliminarComponenteTemp(index) {
+            componentesTemp.splice(index, 1);
+            mostrarComponentesTemp();
+        }
+
+        document.getElementById('producto-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('producto-nombre').value.trim();
+            const precio = parseFloat(document.getElementById('producto-precio').value);
+            const tipo = document.getElementById('producto-tipo').value;
+            
+            if (!nombre || !precio || !tipo) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+            
+            if (tipo === 'caja' && componentesTemp.length === 0) {
+                alert('Los productos tipo caja deben tener al menos un componente');
+                return;
+            }
+            
+            const producto = {
+                id: editandoProducto ? editandoProducto.id : Date.now(),
+                nombre,
+                precio,
+                tipo,
+                componentes: tipo === 'caja' ? [...componentesTemp] : []
+            };
+            
+            if (editandoProducto) {
+                const index = productos.findIndex(p => p.id === editandoProducto.id);
+                productos[index] = producto;
+                editandoProducto = null;
+            } else {
+                productos.push(producto);
+            }
+            
+            localStorage.setItem('productos', JSON.stringify(productos));
+            mostrarProductos();
+            actualizarSelectProductos();
+            limpiarFormularioProducto();
+        });
+
+        function mostrarProductos() {
+            const lista = document.getElementById('productos-lista');
+            
+            if (productos.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay productos registrados</div>';
+                return;
+            }
+            
+            // Ordenar productos alfabéticamente
+            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            lista.innerHTML = productosOrdenados.map(producto => `
+                <div class="item">
+                    <div class="item-header">
+                        <div class="item-title">${producto.nombre}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="editarProducto(${producto.id})">✏️ Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="eliminarProducto(${producto.id})">🗑️ Eliminar</button>
+                        </div>
+                    </div>
+                    <div class="item-details">
+                        <strong>Precio:</strong> $${producto.precio.toFixed(2)} | 
+                        <strong>Tipo:</strong> ${producto.tipo === 'simple' ? 'Producto Simple' : 'Producto Caja'}
+                    </div>
+                    ${producto.tipo === 'caja' && producto.componentes.length > 0 ? `
+                        <div class="item-components">
+                            <strong>Componentes:</strong>
+                            ${producto.componentes.map(comp => `
+                                <div class="component-item">
+                                    <span>${comp.cantidad}x ${comp.nombre}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+            
+            editandoProducto = producto;
+            componentesTemp = [...(producto.componentes || [])];
+            
+            document.getElementById('producto-nombre').value = producto.nombre;
+            document.getElementById('producto-precio').value = producto.precio;
+            document.getElementById('producto-tipo').value = producto.tipo;
+            
+            toggleComponentes();
+            mostrarComponentesTemp();
+        }
+
+        function eliminarProducto(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                productos = productos.filter(p => p.id !== id);
+                localStorage.setItem('productos', JSON.stringify(productos));
+                mostrarProductos();
+                actualizarSelectProductos();
+            }
+        }
+
+        function cancelarEdicion() {
+            limpiarFormularioProducto();
+        }
+
+        function limpiarFormularioProducto() {
+            document.getElementById('producto-form').reset();
+            editandoProducto = null;
+            componentesTemp = [];
+            document.getElementById('componentes-section').style.display = 'none';
+            mostrarComponentesTemp();
+        }
+
+        // FUNCIONES DE CLIENTES
+        document.getElementById('cliente-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const apellido = document.getElementById('cliente-apellido').value.trim();
+            const telefono = document.getElementById('cliente-telefono').value.trim();
+            const calle = document.getElementById('cliente-calle').value.trim();
+            const numero = document.getElementById('cliente-numero').value.trim();
+            const piso = document.getElementById('cliente-piso').value.trim();
+            const departamento = document.getElementById('cliente-departamento').value.trim();
+            const email = document.getElementById('cliente-email').value.trim();
+            const localidad = document.getElementById('cliente-localidad').value.trim();
+            const codigoPostal = document.getElementById('cliente-codigo-postal').value.trim();
+            
+            if (!nombre || !apellido || !telefono) {
+                alert('Nombre, Apellido y Teléfono son obligatorios');
+                return;
+            }
+            
+            const cliente = {
+                id: editandoCliente ? editandoCliente.id : Date.now(),
+                nombre,
+                apellido,
+                telefono,
+                calle,
+                numero,
+                piso,
+                departamento,
+                email,
+                localidad,
+                codigoPostal,
+                fechaCreacion: editandoCliente ? editandoCliente.fechaCreacion : new Date().toISOString().split('T')[0]
+            };
+            
+            if (editandoCliente) {
+                const index = clientes.findIndex(c => c.id === editandoCliente.id);
+                clientes[index] = cliente;
+                editandoCliente = null;
+            } else {
+                clientes.push(cliente);
+            }
+            
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+            mostrarClientes();
+            actualizarSelectClientes();
+            limpiarFormularioCliente();
+        });
+
+        function mostrarClientes() {
+            const lista = document.getElementById('clientes-lista');
+            
+            if (clientes.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
+                return;
+            }
+            
+            // Ordenar clientes alfabéticamente por apellido, luego nombre
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            lista.innerHTML = clientesOrdenados.map(cliente => {
+                // Calcular estadísticas del cliente
+                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+                const pedidosCliente = pedidos.filter(p => p.cliente === nombreCompleto);
+                const totalPedidos = pedidosCliente.length;
+                const totalComprado = pedidosCliente.reduce((sum, p) => sum + p.total, 0);
+                
+                // Construir dirección
+                let direccion = '';
+                if (cliente.calle || cliente.numero) {
+                    direccion = `${cliente.calle || ''} ${cliente.numero || ''}`.trim();
+                    if (cliente.piso) direccion += `, Piso ${cliente.piso}`;
+                    if (cliente.departamento) direccion += `, Dto ${cliente.departamento}`;
+                    if (cliente.localidad) direccion += `, ${cliente.localidad}`;
+                    if (cliente.codigoPostal) direccion += ` (${cliente.codigoPostal})`;
+                }
+                
+                return `
+                    <div class="item">
+                        <div class="item-header">
+                            <div class="item-title">${nombreCompleto}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-warning btn-small" onclick="editarCliente(${cliente.id})">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarCliente(${cliente.id})">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Teléfono:</strong> ${cliente.telefono}
+                            ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
+                            | <strong>Pedidos realizados:</strong> ${totalPedidos}
+                            ${totalPedidos > 0 ? ` | <strong>Total comprado:</strong> ${totalComprado.toFixed(2)}` : ''}
+                        </div>
+                        ${direccion ? `
+                            <div class="item-details">
+                                <strong>Dirección:</strong> ${direccion}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            editandoCliente = cliente;
+            
+            document.getElementById('cliente-nombre').value = cliente.nombre;
+            document.getElementById('cliente-apellido').value = cliente.apellido;
+            document.getElementById('cliente-telefono').value = cliente.telefono;
+            document.getElementById('cliente-calle').value = cliente.calle || '';
+            document.getElementById('cliente-numero').value = cliente.numero || '';
+            document.getElementById('cliente-piso').value = cliente.piso || '';
+            document.getElementById('cliente-departamento').value = cliente.departamento || '';
+            document.getElementById('cliente-email').value = cliente.email || '';
+            document.getElementById('cliente-localidad').value = cliente.localidad || '';
+            document.getElementById('cliente-codigo-postal').value = cliente.codigoPostal || '';
+        }
+
+        function eliminarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            // Verificar si tiene pedidos
+            const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+            const tienePedidos = pedidos.some(p => p.cliente === nombreCompleto);
+            
+            if (tienePedidos) {
+                alert('No se puede eliminar este cliente porque tiene pedidos asociados.');
+                return;
+            }
+            
+            if (confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+                clientes = clientes.filter(c => c.id !== id);
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+                actualizarSelectClientes();
+            }
+        }
+
+        function cancelarCliente() {
+            limpiarFormularioCliente();
+        }
+
+        function limpiarFormularioCliente() {
+            document.getElementById('cliente-form').reset();
+            editandoCliente = null;
+        }
+
+        function actualizarSelectClientes() {
+            const select = document.getElementById('pedido-cliente');
+            select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+            
+            // Ordenar clientes alfabéticamente por apellido
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            clientesOrdenados.forEach(cliente => {
+                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+                select.innerHTML += `<option value="${nombreCompleto}">${nombreCompleto}</option>`;
+            });
+        }
+
+        // FUNCIONES DE PEDIDOS
+        function actualizarSelectProductos() {
+            const select = document.getElementById('pedido-productos');
+            select.innerHTML = '<option value="">Seleccionar producto...</option>';
+            
+            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            productosOrdenados.forEach(producto => {
+                select.innerHTML += `<option value="${producto.id}">${producto.nombre} - ${producto.precio.toFixed(2)}</option>`;
+            });
+        }
+
+        function agregarProductoPedido() {
+            const select = document.getElementById('pedido-productos');
+            const productoId = parseInt(select.value);
+            
+            if (!productoId) return;
+            
+            const producto = productos.find(p => p.id === productoId);
+            if (!producto) return;
+            
+            // Verificar si ya está agregado
+            const existe = productosPedidoTemp.find(p => p.id === productoId);
+            if (existe) {
+                existe.cantidad++;
+            } else {
+                productosPedidoTemp.push({
+                    id: productoId,
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    cantidad: 1
+                });
+            }
+            
+            mostrarProductosPedido();
+            select.value = '';
+        }
+
+        function mostrarProductosPedido() {
+            const container = document.getElementById('productos-pedido');
+            
+            if (productosPedidoTemp.length === 0) {
+                container.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay productos en el pedido</p>';
+                document.getElementById('total-pedido').textContent = '0.00';
+                return;
+            }
+            
+            let total = 0;
+            container.innerHTML = `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h4>Productos del Pedido:</h4>
+                    ${productosPedidoTemp.map((item, index) => {
+                        const subtotal = item.precio * item.cantidad;
+                        total += subtotal;
+                        return `
+                            <div class="component-item">
+                                <span>${item.cantidad}x ${item.nombre} - ${item.precio.toFixed(2)} c/u</span>
+                                <div>
+                                    <span style="font-weight: 600;">${subtotal.toFixed(2)}</span>
+                                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarProductoPedido(${index})" style="margin-left: 10px;">❌</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            document.getElementById('total-pedido').textContent = total.toFixed(2);
+        }
+
+        function eliminarProductoPedido(index) {
+            productosPedidoTemp.splice(index, 1);
+            mostrarProductosPedido();
+        }
+
+        document.getElementById('pedido-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const cliente = document.getElementById('pedido-cliente').value;
+            const fecha = document.getElementById('pedido-fecha').value;
+            const hora = document.getElementById('pedido-hora').value;
+            const costoEnvio = parseFloat(document.getElementById('pedido-envio').value) || 0;
+            const notas = document.getElementById('pedido-notas').value.trim();
+            
+            if (!cliente || !fecha || !hora) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+            
+            if (productosPedidoTemp.length === 0) {
+                alert('Debes agregar al menos un producto al pedido');
+                return;
+            }
+            
+            const subtotalProductos = productosPedidoTemp.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            const total = subtotalProductos + costoEnvio;
+            
+            const pedido = {
+                id: editandoPedido ? editandoPedido.id : Date.now(),
+                cliente,
+                fecha,
+                hora,
+                productos: [...productosPedidoTemp],
+                subtotalProductos,
+                costoEnvio,
+                total,
+                notas,
+                estado: 'En curso',
+                fechaCreacion: new Date().toISOString().split('T')[0]
+            };
+            
+            if (editandoPedido) {
+                const index = pedidos.findIndex(p => p.id === editandoPedido.id);
+                pedidos[index] = pedido;
+                editandoPedido = null;
+            } else {
+                pedidos.push(pedido);
+            }
+            
+            localStorage.setItem('pedidos', JSON.stringify(pedidos));
+            mostrarPedidos();
+            actualizarSelectPedidos();
+            actualizarEstadisticasPagos();
+            limpiarFormularioPedido();
+        });
+
+        function mostrarPedidos() {
+            const lista = document.getElementById('pedidos-lista');
+            
+            if (pedidos.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
+                return;
+            }
+            
+            // Ordenar pedidos por fecha de entrega
+            const pedidosOrdenados = [...pedidos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+            
+            lista.innerHTML = pedidosOrdenados.map(pedido => {
+                const estadoPago = calcularEstadoPago(pedido.id);
+                const totalPagado = calcularTotalPagado(pedido.id);
+                const saldoPendiente = pedido.total - totalPagado;
+                
+                return `
+                    <div class="item">
+                        <div class="item-header">
+                            <div class="item-title">
+                                ${pedido.cliente} - ${new Date(pedido.fecha).toLocaleDateString()}
+                                <span class="badge ${pedido.estado === 'Entregado' ? 'badge-success' : 'badge-warning'}">
+                                    ${pedido.estado}
+                                </span>
+                            </div>
+                            <div class="item-actions">
+                                ${pedido.estado === 'En curso' ? `
+                                    <button class="btn btn-success btn-small" onclick="marcarEntregado(${pedido.id})">✓ Entregar</button>
+                                ` : ''}
+                                <button class="btn btn-primary btn-small" onclick="registrarPagoRapido(${pedido.id})">💰 Pago</button>
+                                <button class="btn btn-warning btn-small" onclick="editarPedido(${pedido.id})">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarPedido(${pedido.id})">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Total:</strong> ${pedido.total.toFixed(2)} | 
+                            <strong>Productos:</strong> ${pedido.productos.length}
+                            ${pedido.notas ? ` | <strong>Notas:</strong> ${pedido.notas}` : ''}
+                        </div>
+                        <div class="payment-info">
+                            <div class="payment-status">
+                                <span class="badge ${estadoPago === 'Pagado' ? 'badge-success' : estadoPago === 'Parcial' ? 'badge-warning' : 'badge-danger'}">
+                                    ${estadoPago}
+                                </span>
+                            </div>
+                            <div class="payment-amount">
+                                Pagado: <span class="paid-amount">${totalPagado.toFixed(2)}</span>
+                                ${saldoPendiente > 0 ? ` | Pendiente: <span class="debt-amount">${saldoPendiente.toFixed(2)}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="item-components">
+                            <strong>Productos:</strong>
+                            ${pedido.productos.map(prod => `
+                                <div class="component-item">
+                                    <span>${prod.cantidad}x ${prod.nombre}</span>
+                                    <span>${(prod.precio * prod.cantidad).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function marcarEntregado(id) {
+            if (confirm('¿Marcar este pedido como entregado?')) {
+                const index = pedidos.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    pedidos[index].estado = 'Entregado';
+                    localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                    mostrarPedidos();
+                }
+            }
+        }
+
+        function registrarPagoRapido(pedidoId) {
+            // Cambiar a tab de pagos y preseleccionar el pedido
+            showTab('pagos');
+            document.querySelector('.tab[onclick="showTab(\'pagos\')"]').click();
+            
+            setTimeout(() => {
+                document.getElementById('pago-pedido').value = pedidoId;
+                actualizarInfoPago();
+            }, 100);
+        }
+
+        function editarPedido(id) {
+            const pedido = pedidos.find(p => p.id === id);
+            if (!pedido) return;
+            
+            editandoPedido = pedido;
+            productosPedidoTemp = [...pedido.productos];
+            
+            document.getElementById('pedido-cliente').value = pedido.cliente;
+            document.getElementById('pedido-fecha').value = pedido.fecha;
+            document.getElementById('pedido-hora').value = pedido.hora || '';
+            document.getElementById('pedido-envio').value = pedido.costoEnvio || 0;
+            document.getElementById('pedido-notas').value = pedido.notas || '';
+            
+            mostrarProductosPedido();
+        }
+
+        function eliminarPedido(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este pedido? También se eliminarán todos los pagos asociados.')) {
+                pedidos = pedidos.filter(p => p.id !== id);
+                pagos = pagos.filter(p => p.pedidoId !== id);
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                localStorage.setItem('pagos', JSON.stringify(pagos));
+                mostrarPedidos();
+                mostrarPagos();
+                actualizarSelectPedidos();
+                actualizarEstadisticasPagos();
+            }
+        }
+
+        function cancelarPedido() {
+            limpiarFormularioPedido();
+        }
+
+        function limpiarFormularioPedido() {
+            document.getElementById('pedido-form').reset();
+            editandoPedido = null;
+            productosPedidoTemp = [];
+            mostrarProductosPedido();
+        }
+
+        // FUNCIONES DE PAGOS
+        function actualizarSelectPedidos() {
+            const select = document.getElementById('pago-pedido');
+            select.innerHTML = '<option value="">Seleccionar pedido...</option>';
+            
+            // Solo mostrar pedidos que no estén completamente pagados
+            const pedidosConSaldo = pedidos.filter(pedido => {
+                const totalPagado = calcularTotalPagado(pedido.id);
+                return totalPagado < pedido.total;
+            });
+            
+            pedidosConSaldo.forEach(pedido => {
+                const totalPagado = calcularTotalPagado(pedido.id);
+                const saldo = pedido.total - totalPagado;
+                select.innerHTML += `
+                    <option value="${pedido.id}">
+                        ${pedido.cliente} - ${new Date(pedido.fecha).toLocaleDateString()} 
+                        (Saldo: ${saldo.toFixed(2)})
+                    </option>
+                `;
+            });
+        }
+
+        function actualizarInfoPago() {
+            const pedidoId = parseInt(document.getElementById('pago-pedido').value);
+            const infoDiv = document.getElementById('info-pago');
+            
+            if (!pedidoId) {
+                infoDiv.style.display = 'none';
+                return;
+            }
+            
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido) return;
+            
+            const totalPagado = calcularTotalPagado(pedidoId);
+            const saldoPendiente = pedido.total - totalPagado;
+            const pagosPrevios = pagos.filter(p => p.pedidoId === pedidoId);
+            
+            // Sugerir el saldo completo como monto
+            document.getElementById('pago-monto').value = saldoPendiente.toFixed(2);
+            
+            infoDiv.innerHTML = `
+                <h4>Información del Pedido</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <strong>Cliente:</strong> ${pedido.cliente}<br>
+                        <strong>Fecha entrega:</strong> ${new Date(pedido.fecha).toLocaleDateString()}<br>
+                        <strong>Total pedido:</strong> ${pedido.total.toFixed(2)}
+                    </div>
+                    <div>
+                        <strong>Ya pagado:</strong> <span class="paid-amount">${totalPagado.toFixed(2)}</span><br>
+                        <strong>Saldo pendiente:</strong> <span class="debt-amount">${saldoPendiente.toFixed(2)}</span><br>
+                        <strong>Pagos realizados:</strong> ${pagosPrevios.length}
+                    </div>
+                </div>
+                ${pagosPrevios.length > 0 ? `
+                    <div style="margin-top: 15px;">
+                        <strong>Historial de pagos:</strong>
+                        ${pagosPrevios.map(pago => `
+                            <div style="background: #e9ecef; padding: 8px; border-radius: 4px; margin: 5px 0;">
+                                ${new Date(pago.fecha).toLocaleDateString()} - ${pago.monto.toFixed(2)} (${pago.metodo})
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
+            
+            infoDiv.style.display = 'block';
+        }
+
+        document.getElementById('pago-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const pedidoId = parseInt(document.getElementById('pago-pedido').value);
+            const monto = parseFloat(document.getElementById('pago-monto').value);
+            const metodo = document.getElementById('pago-metodo').value;
+            const fecha = document.getElementById('pago-fecha').value;
+            const notas = document.getElementById('pago-notas').value.trim();
+            
+            if (!pedidoId || !monto || !metodo || !fecha) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+            
+            if (monto <= 0) {
+                alert('El monto debe ser mayor a 0');
+                return;
+            }
+            
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            const totalPagado = calcularTotalPagado(pedidoId);
+            const saldoPendiente = pedido.total - totalPagado;
+            
+            if (monto > saldoPendiente) {
+                if (!confirm(`El monto (${monto.toFixed(2)}) es mayor al saldo pendiente (${saldoPendiente.toFixed(2)}). ¿Continuar?`)) {
+                    return;
+                }
+            }
+            
+            const pago = {
+                id: Date.now(),
+                pedidoId,
+                monto,
+                metodo,
+                fecha,
+                notas,
+                fechaRegistro: new Date().toISOString()
+            };
+            
+            pagos.push(pago);
+            localStorage.setItem('pagos', JSON.stringify(pagos));
+            
+            mostrarPagos();
+            mostrarPedidos();
+            actualizarSelectPedidos();
+            actualizarEstadisticasPagos();
+            limpiarFormularioPago();
+            
+            alert('Pago registrado exitosamente');
+        });
+
+        function mostrarPagos() {
+            const lista = document.getElementById('pagos-lista');
+            const saldosTabla = document.getElementById('saldos-pendientes');
+            
+            // Mostrar historial de pagos
+            if (pagos.length === 0) {
+                lista.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #6c757d; font-style: italic;">No hay pagos registrados</td></tr>';
+            } else {
+                const pagosOrdenados = [...pagos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                
+                lista.innerHTML = pagosOrdenados.map(pago => {
+                    const pedido = pedidos.find(p => p.id === pago.pedidoId);
+                    const estadoPago = calcularEstadoPago(pago.pedidoId);
+                    
+                    return `
+                        <tr>
+                            <td>${new Date(pago.fecha).toLocaleDateString()}</td>
+                            <td>${pedido ? pedido.cliente : 'Cliente eliminado'}</td>
+                            <td>${pedido ? new Date(pedido.fecha).toLocaleDateString() : '-'}</td>
+                            <td class="paid-amount">${pago.monto.toFixed(2)}</td>
+                            <td>${pago.metodo}</td>
+                            <td>
+                                <span class="badge ${estadoPago === 'Pagado' ? 'badge-success' : estadoPago === 'Parcial' ? 'badge-warning' : 'badge-danger'}">
+                                    ${estadoPago}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-small" onclick="eliminarPago(${pago.id})">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            // Mostrar saldos pendientes
+            const pedidosConSaldo = pedidos.filter(pedido => {
+                const totalPagado = calcularTotalPagado(pedido.id);
+                return totalPagado < pedido.total;
+            });
+            
+            if (pedidosConSaldo.length === 0) {
+                saldosTabla.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #28a745; font-weight: 600;">¡Todos los pedidos están pagados!</td></tr>';
+            } else {
+                saldosTabla.innerHTML = pedidosConSaldo.map(pedido => {
+                    const totalPagado = calcularTotalPagado(pedido.id);
+                    const saldo = pedido.total - totalPagado;
+                    
+                    return `
+                        <tr>
+                            <td>${pedido.cliente}</td>
+                            <td>${new Date(pedido.fecha).toLocaleDateString()}</td>
+                            <td>${pedido.total.toFixed(2)}</td>
+                            <td class="paid-amount">${totalPagado.toFixed(2)}</td>
+                            <td class="debt-amount">${saldo.toFixed(2)}</td>
+                            <td>${new Date(pedido.fecha).toLocaleDateString()}</td>
+                            <td>
+                                <button class="btn btn-primary btn-small" onclick="registrarPagoRapido(${pedido.id})">💰 Pagar</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        function eliminarPago(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este pago?')) {
+                pagos = pagos.filter(p => p.id !== id);
+                localStorage.setItem('pagos', JSON.stringify(pagos));
+                mostrarPagos();
+                mostrarPedidos();
+                actualizarSelectPedidos();
+                actualizarEstadisticasPagos();
+            }
+        }
+
+        function cancelarPago() {
+            limpiarFormularioPago();
+        }
+
+        function limpiarFormularioPago() {
+            document.getElementById('pago-form').reset();
+            document.getElementById('info-pago').style.display = 'none';
+            document.getElementById('pago-fecha').value = new Date().toISOString().split('T')[0];
+        }
+
+        // FUNCIONES DE CÁLCULO
+        function calcularTotalPagado(pedidoId) {
+            return pagos
+                .filter(pago => pago.pedidoId === pedidoId)
+                .reduce((total, pago) => total + pago.monto, 0);
+        }
+
+        function calcularEstadoPago(pedidoId) {
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido) return 'Desconocido';
+            
+            const totalPagado = calcularTotalPagado(pedidoId);
+            
+            if (totalPagado === 0) return 'Pendiente';
+            if (totalPagado >= pedido.total) return 'Pagado';
+            return 'Parcial';
+        }
+
+        function actualizarEstadisticasPagos() {
+            const totalPendiente = pedidos.reduce((total, pedido) => {
+                const pagado = calcularTotalPagado(pedido.id);
+                return total + Math.max(0, pedido.total - pagado);
+            }, 0);
+            
+            const totalCobrado = pagos.reduce((total, pago) => total + pago.monto, 0);
+            
+            const pedidosImpagos = pedidos.filter(pedido => {
+                const pagado = calcularTotalPagado(pedido.id);
+                return pagado < pedido.total;
+            }).length;
+            
+            document.getElementById('total-pendiente').textContent = `${totalPendiente.toFixed(0)}`;
+            document.getElementById('total-cobrado').textContent = `${totalCobrado.toFixed(0)}`;
+            document.getElementById('pedidos-impagos').textContent = pedidosImpagos;
+        }
     </script>
 </body>
 </html>
