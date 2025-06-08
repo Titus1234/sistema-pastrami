@@ -3,101 +3,393 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Pastrami</title>
+    <title>Sistema Pastrami - Con Sincronización</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        * {
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
+
         .header {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             color: white;
-            padding: 20px;
+            padding: 30px;
             text-align: center;
-            border-radius: 10px 10px 0 0;
+            position: relative;
         }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* INDICADOR DE SINCRONIZACIÓN */
+        .sync-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .sync-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .sync-online { background: #28a745; }
+        .sync-offline { background: #dc3545; animation: none; }
+        .sync-syncing { background: #ffc107; animation: spin 1s linear infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .sync-button {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .sync-button:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
         .tabs {
             display: flex;
             background: #f8f9fa;
+            border-bottom: 3px solid #e9ecef;
         }
+
         .tab {
             flex: 1;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
-            cursor: pointer;
             background: #e9ecef;
-            border: none;
-            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 1.1em;
         }
+
+        .tab:hover {
+            background: #dee2e6;
+            transform: translateY(-2px);
+        }
+
         .tab.active {
             background: white;
             color: #ff6b6b;
+            border-bottom: 3px solid #ff6b6b;
         }
-        .content {
+
+        .tab-content {
             display: none;
-            padding: 20px;
+            padding: 30px;
+            min-height: 600px;
         }
-        .content.active {
+
+        .tab-content.active {
             display: block;
         }
+
+        /* Formularios */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
         .form-row {
             display: flex;
             gap: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
+
         .form-col {
             flex: 1;
         }
+
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
         }
-        input, select {
+
+        .required {
+            color: #dc3545;
+        }
+
+        input, select, textarea {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
         }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
         .btn {
-            padding: 10px 20px;
-            margin: 5px;
+            padding: 12px 30px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-right: 10px;
         }
-        .btn-primary { background: #ff6b6b; color: white; }
-        .btn-danger { background: #dc3545; color: white; }
-        .item {
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        /* Listas y tablas */
+        .item-list {
             background: #f8f9fa;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 5px;
-            border-left: 4px solid #ff6b6b;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
         }
+
+        .item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .item:hover {
+            transform: translateY(-2px);
+        }
+
         .item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
         }
-        .required { color: red; }
+
+        .item-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .item-details {
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+
+        .item-components {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .component-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .component-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Indicadores de sincronización en items */
+        .sync-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sync-badge.pending {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .sync-badge.error {
+            background: #dc3545;
+        }
+
+        /* Estados y badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
         .no-items {
             text-align: center;
-            color: #666;
-            padding: 40px;
+            color: #6c757d;
             font-style: italic;
+            padding: 40px;
+        }
+
+        /* Notificaciones */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .sync-status {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-top: 10px;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -105,326 +397,525 @@
     <div class="container">
         <div class="header">
             <h1>🥪 Sistema Pastrami</h1>
-            <p>Gestión simple y efectiva</p>
+            <p>Gestión completa con sincronización en tiempo real</p>
+            
+            <!-- Indicador de estado de sincronización -->
+            <div class="sync-status">
+                <div id="sync-indicator" class="sync-indicator sync-offline"></div>
+                <span id="sync-text">Desconectado</span>
+                <button class="sync-button" onclick="sincronizarManual()">🔄 Sincronizar</button>
+            </div>
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="mostrarTab('clientes')">👥 Clientes</button>
-            <button class="tab" onclick="mostrarTab('productos')">📦 Productos</button>
-            <button class="tab" onclick="mostrarTab('pedidos')">📋 Pedidos</button>
-            <button class="tab" onclick="mostrarTab('pagos')">💰 Pagos</button>
+            <div class="tab active" onclick="showTab('productos')">📦 Productos</div>
+            <div class="tab" onclick="showTab('clientes')">👥 Clientes</div>
         </div>
 
-        <!-- CLIENTES -->
-        <div id="clientes" class="content active">
-            <h2>👥 Gestión de Clientes</h2>
-            
-            <form onsubmit="guardarCliente(event)">
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Nombre <span class="required">*</span>:</label>
-                        <input type="text" id="nombre" required>
-                    </div>
-                    <div class="form-col">
-                        <label>Apellido <span class="required">*</span>:</label>
-                        <input type="text" id="apellido" required>
-                    </div>
-                    <div class="form-col">
-                        <label>Teléfono <span class="required">*</span>:</label>
-                        <input type="tel" id="telefono" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Calle:</label>
-                        <input type="text" id="calle">
-                    </div>
-                    <div class="form-col">
-                        <label>Número:</label>
-                        <input type="text" id="numero">
-                    </div>
-                    <div class="form-col">
-                        <label>Piso/Depto:</label>
-                        <input type="text" id="piso">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Código Postal:</label>
-                        <input type="text" id="codigoPostal">
-                    </div>
-                    <div class="form-col">
-                        <label>Localidad:</label>
-                        <input type="text" id="localidad">
-                    </div>
-                    <div class="form-col">
-                        <label>Email:</label>
-                        <input type="email" id="email">
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
-            </form>
-
-            <div id="lista-clientes"></div>
-        </div>
-
-        <!-- PRODUCTOS -->
-        <div id="productos" class="content">
+        <!-- TAB PRODUCTOS -->
+        <div id="productos" class="tab-content active">
             <h2>📦 Gestión de Productos</h2>
             
-            <form onsubmit="guardarProducto(event)">
+            <form id="producto-form">
                 <div class="form-row">
                     <div class="form-col">
-                        <label>ID Producto:</label>
-                        <input type="text" id="productoId" required>
+                        <label for="producto-nombre">Nombre del Producto:</label>
+                        <input type="text" id="producto-nombre" required>
                     </div>
                     <div class="form-col">
-                        <label>Nombre:</label>
-                        <input type="text" id="productoNombre" required>
-                    </div>
-                    <div class="form-col">
-                        <label>Precio:</label>
-                        <input type="number" id="productoPrecio" step="0.01" required>
+                        <label for="producto-precio">Precio:</label>
+                        <input type="number" id="producto-precio" step="0.01" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Tipo:</label>
-                        <select id="productoTipo" onchange="toggleComponentes()" required>
+                        <label for="producto-tipo">Tipo de Producto:</label>
+                        <select id="producto-tipo" onchange="toggleComponentes()" required>
                             <option value="">Seleccionar...</option>
                             <option value="simple">Producto Simple</option>
-                            <option value="caja">Caja con Componentes</option>
+                            <option value="caja">Producto Caja (con componentes)</option>
                         </select>
-                    </div>
-                    <div class="form-col">
-                        <label>Stock:</label>
-                        <input type="number" id="productoStock" value="0">
                     </div>
                 </div>
 
                 <div id="componentes-section" style="display: none;">
                     <h3>Componentes de la Caja</h3>
+                    <div id="componentes-list"></div>
                     <div class="form-row">
                         <div class="form-col">
-                            <label>ID Componente:</label>
-                            <input type="text" id="componenteId" placeholder="ID del producto componente">
+                            <input type="text" id="componente-nombre" placeholder="Nombre del componente">
                         </div>
                         <div class="form-col">
-                            <label>Cantidad:</label>
-                            <input type="number" id="componenteCantidad" min="1" placeholder="Cantidad">
+                            <input type="number" id="componente-cantidad" placeholder="Cantidad" min="1">
                         </div>
                         <div class="form-col">
-                            <button type="button" class="btn btn-primary" onclick="agregarComponente()">➕ Agregar</button>
+                            <button type="button" class="btn btn-secondary" onclick="agregarComponente()">Agregar</button>
                         </div>
                     </div>
-                    <div id="lista-componentes"></div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarEdicion()">❌ Cancelar</button>
             </form>
 
-            <div id="lista-productos"></div>
+            <div class="item-list">
+                <h3>Lista de Productos</h3>
+                <div id="productos-lista"></div>
+            </div>
         </div>
 
-        <!-- PEDIDOS -->
-        <div id="pedidos" class="content">
-            <h2>📋 Gestión de Pedidos</h2>
+        <!-- TAB CLIENTES -->
+        <div id="clientes" class="tab-content">
+            <h2>👥 Gestión de Clientes</h2>
             
-            <form onsubmit="guardarPedido(event)">
+            <form id="cliente-form">
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Cliente <span class="required">*</span>:</label>
-                        <select id="pedidoCliente" required>
-                            <option value="">Seleccionar cliente...</option>
-                        </select>
+                        <label for="cliente-nombre">Nombre <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-nombre" required>
                     </div>
                     <div class="form-col">
-                        <label>Fecha <span class="required">*</span>:</label>
-                        <input type="date" id="pedidoFecha" required>
+                        <label for="cliente-apellido">Apellido <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-apellido" required>
                     </div>
                     <div class="form-col">
-                        <label>Horario <span class="required">*</span>:</label>
-                        <select id="pedidoHorario" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="Mañana">Mañana</option>
-                            <option value="Tarde">Tarde</option>
-                        </select>
+                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
+                        <input type="tel" id="cliente-telefono" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Producto:</label>
-                        <select id="pedidoProducto">
-                            <option value="">Seleccionar producto...</option>
-                        </select>
+                        <label for="cliente-calle">Calle:</label>
+                        <input type="text" id="cliente-calle">
                     </div>
                     <div class="form-col">
-                        <label>Cantidad:</label>
-                        <input type="number" id="pedidoCantidad" min="1" value="1">
+                        <label for="cliente-numero">Número:</label>
+                        <input type="text" id="cliente-numero">
                     </div>
                     <div class="form-col">
-                        <button type="button" class="btn btn-primary" onclick="agregarProductoAPedido()">➕ Agregar</button>
+                        <label for="cliente-piso">Piso:</label>
+                        <input type="text" id="cliente-piso">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-departamento">Departamento:</label>
+                        <input type="text" id="cliente-departamento">
                     </div>
                 </div>
-
-                <div id="productos-en-pedido"></div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Costo Envío:</label>
-                        <input type="number" id="pedidoEnvio" step="0.01" value="0" onchange="calcularTotalPedido()">
+                        <label for="cliente-email">Email:</label>
+                        <input type="email" id="cliente-email">
                     </div>
                     <div class="form-col">
-                        <strong>TOTAL: $<span id="totalPedido">0.00</span></strong>
+                        <label for="cliente-localidad">Localidad:</label>
+                        <input type="text" id="cliente-localidad">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-codigo-postal">Código Postal:</label>
+                        <input type="text" id="cliente-codigo-postal">
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary">💾 Guardar Pedido</button>
+                <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
+                <button type="button" class="btn btn-secondary" onclick="cancelarCliente()">❌ Cancelar</button>
             </form>
 
-            <div id="lista-pedidos"></div>
-        </div>
-
-        <!-- PAGOS -->
-        <div id="pagos" class="content">
-            <h2>💰 Gestión de Pagos</h2>
-            
-            <form onsubmit="guardarPago(event)">
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Pedido:</label>
-                        <select id="pagoPedido" required>
-                            <option value="">Seleccionar pedido...</option>
-                        </select>
-                    </div>
-                    <div class="form-col">
-                        <label>Monto:</label>
-                        <input type="number" id="pagoMonto" step="0.01" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Método:</label>
-                        <select id="pagoMetodo" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="Mercado Pago">Mercado Pago</option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Transferencia">Transferencia</option>
-                        </select>
-                    </div>
-                    <div class="form-col">
-                        <label>Fecha:</label>
-                        <input type="date" id="pagoFecha" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary">💰 Registrar Pago</button>
-            </form>
-
-            <div id="lista-pagos"></div>
+            <div class="item-list">
+                <h3>Lista de Clientes</h3>
+                <div id="clientes-lista"></div>
+            </div>
         </div>
     </div>
 
-    <script>
-        let clientes = JSON.parse(localStorage.getItem('sistema_pastrami_clientes') || '[]');
-        let productos = JSON.parse(localStorage.getItem('sistema_pastrami_productos') || '[]');
-        let pedidos = JSON.parse(localStorage.getItem('sistema_pastrami_pedidos') || '[]');
-        let pagos = JSON.parse(localStorage.getItem('sistema_pastrami_pagos') || '[]');
-        let productosEnPedido = [];
-        let componentesTemp = [];
-        let contadorId = Math.max(0, ...clientes.map(c => c.id || 0)) + 1;
+    <!-- Notificaciones -->
+    <div id="notification" class="notification"></div>
 
-        function mostrarTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+    <script>
+        // ========================================
+        // SISTEMA DE SINCRONIZACIÓN
+        // ========================================
+        
+        // Configuración del servidor (cambiar por tu URL real)
+        const SERVER_URL = 'https://your-server.com/api'; // 🔧 CAMBIAR POR TU URL
+        const SYNC_INTERVAL = 30000; // Sincronizar cada 30 segundos
+        
+        // Estado de la aplicación
+        let isOnline = false;
+        let isSyncing = false;
+        let syncInterval;
+        let lastSyncTime = 0;
+        
+        // Variables globales
+        let productos = [];
+        let clientes = [];
+        let editandoProducto = null;
+        let editandoCliente = null;
+        let componentesTemp = [];
+
+        // ========================================
+        // INICIALIZACIÓN
+        // ========================================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarApp();
+        });
+
+        async function inicializarApp() {
+            // Cargar datos locales
+            await cargarDatosLocales();
+            
+            // Mostrar datos
+            mostrarProductos();
+            mostrarClientes();
+            
+            // Inicializar sincronización
+            await inicializarSincronizacion();
+            
+            // Configurar eventos
+            configurarEventos();
+            
+            mostrarNotificacion('Aplicación inicializada', 'success');
+        }
+
+        async function cargarDatosLocales() {
+            try {
+                productos = JSON.parse(localStorage.getItem('productos_sync') || '[]');
+                clientes = JSON.parse(localStorage.getItem('clientes_sync') || '[]');
+                lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || '0');
+            } catch (error) {
+                console.error('Error cargando datos locales:', error);
+                productos = [];
+                clientes = [];
+            }
+        }
+
+        async function inicializarSincronizacion() {
+            // Verificar conexión al servidor
+            await verificarConexion();
+            
+            // Si estamos online, sincronizar inmediatamente
+            if (isOnline) {
+                await sincronizarDatos();
+            }
+            
+            // Configurar sincronización automática
+            if (syncInterval) clearInterval(syncInterval);
+            syncInterval = setInterval(async () => {
+                if (isOnline && !isSyncing) {
+                    await sincronizarDatos();
+                }
+            }, SYNC_INTERVAL);
+        }
+
+        // ========================================
+        // FUNCIONES DE SINCRONIZACIÓN
+        // ========================================
+        
+        async function verificarConexion() {
+            try {
+                // Simular verificación de servidor
+                // En la vida real, harías: const response = await fetch(`${SERVER_URL}/health`);
+                
+                // SIMULACIÓN - Cambiar esto por una llamada real
+                const simulatedOnline = Math.random() > 0.3; // 70% chance de estar online
+                
+                if (simulatedOnline) {
+                    setConexionEstado('online');
+                } else {
+                    setConexionEstado('offline');
+                }
+            } catch (error) {
+                console.error('Error verificando conexión:', error);
+                setConexionEstado('offline');
+            }
+        }
+
+        function setConexionEstado(estado) {
+            const indicator = document.getElementById('sync-indicator');
+            const text = document.getElementById('sync-text');
+            
+            isOnline = estado === 'online';
+            
+            switch (estado) {
+                case 'online':
+                    indicator.className = 'sync-indicator sync-online';
+                    text.textContent = 'Conectado';
+                    break;
+                case 'offline':
+                    indicator.className = 'sync-indicator sync-offline';
+                    text.textContent = 'Sin conexión';
+                    break;
+                case 'syncing':
+                    indicator.className = 'sync-indicator sync-syncing';
+                    text.textContent = 'Sincronizando...';
+                    break;
+            }
+        }
+
+        async function sincronizarDatos() {
+            if (isSyncing) return;
+            
+            isSyncing = true;
+            setConexionEstado('syncing');
+            
+            try {
+                // Sincronizar productos
+                await sincronizarProductos();
+                
+                // Sincronizar clientes
+                await sincronizarClientes();
+                
+                // Actualizar timestamp
+                lastSyncTime = Date.now();
+                localStorage.setItem('lastSyncTime', lastSyncTime.toString());
+                
+                mostrarNotificacion('Datos sincronizados correctamente', 'success');
+                
+            } catch (error) {
+                console.error('Error en sincronización:', error);
+                mostrarNotificacion('Error al sincronizar datos', 'error');
+            } finally {
+                isSyncing = false;
+                setConexionEstado(isOnline ? 'online' : 'offline');
+            }
+        }
+
+        async function sincronizarProductos() {
+            try {
+                // 1. Obtener datos del servidor
+                const datosServidor = await obtenerProductosServidor();
+                
+                // 2. Comparar con datos locales
+                const resultado = compararDatos(productos, datosServidor, 'productos');
+                
+                // 3. Aplicar cambios
+                if (resultado.hayActualizaciones) {
+                    productos = resultado.datosFinales;
+                    localStorage.setItem('productos_sync', JSON.stringify(productos));
+                    mostrarProductos();
+                }
+                
+                // 4. Enviar cambios locales al servidor
+                await enviarCambiosProductos();
+                
+            } catch (error) {
+                console.error('Error sincronizando productos:', error);
+                throw error;
+            }
+        }
+
+        async function sincronizarClientes() {
+            try {
+                // Similar a sincronizarProductos pero para clientes
+                const datosServidor = await obtenerClientesServidor();
+                const resultado = compararDatos(clientes, datosServidor, 'clientes');
+                
+                if (resultado.hayActualizaciones) {
+                    clientes = resultado.datosFinales;
+                    localStorage.setItem('clientes_sync', JSON.stringify(clientes));
+                    mostrarClientes();
+                }
+                
+                await enviarCambiosClientes();
+                
+            } catch (error) {
+                console.error('Error sincronizando clientes:', error);
+                throw error;
+            }
+        }
+
+        // ========================================
+        // FUNCIONES DE API (SIMULADAS)
+        // ========================================
+        
+        async function obtenerProductosServidor() {
+            // SIMULACIÓN - En la vida real sería:
+            // const response = await fetch(`${SERVER_URL}/productos`);
+            // return await response.json();
+            
+            // Por ahora simular con datos aleatorios
+            await simularDelay(500);
+            
+            // Simular que a veces el servidor tiene productos nuevos
+            const productosSimulados = Math.random() > 0.7 ? [
+                {
+                    id: Date.now() + Math.random(),
+                    nombre: 'Producto desde servidor',
+                    precio: 100,
+                    tipo: 'simple',
+                    componentes: [],
+                    fechaModificacion: Date.now(),
+                    origen: 'servidor'
+                }
+            ] : [];
+            
+            return productosSimulados;
+        }
+
+        async function obtenerClientesServidor() {
+            // SIMULACIÓN similar
+            await simularDelay(500);
+            return []; // Por ahora servidor vacío
+        }
+
+        async function enviarCambiosProductos() {
+            // Obtener productos que necesitan sincronización
+            const productosPendientes = productos.filter(p => 
+                p.pendienteSincronizacion || 
+                (p.fechaModificacion && p.fechaModificacion > lastSyncTime)
+            );
+            
+            if (productosPendientes.length === 0) return;
+            
+            try {
+                // SIMULACIÓN - En la vida real:
+                // const response = await fetch(`${SERVER_URL}/productos`, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(productosPendientes)
+                // });
+                
+                await simularDelay(300);
+                
+                // Marcar como sincronizados
+                productos.forEach(p => {
+                    if (p.pendienteSincronizacion) {
+                        p.pendienteSincronizacion = false;
+                        p.sincronizado = true;
+                    }
+                });
+                
+                localStorage.setItem('productos_sync', JSON.stringify(productos));
+                mostrarProductos();
+                
+            } catch (error) {
+                console.error('Error enviando productos:', error);
+                throw error;
+            }
+        }
+
+        async function enviarCambiosClientes() {
+            // Similar a enviarCambiosProductos
+            const clientesPendientes = clientes.filter(c => 
+                c.pendienteSincronizacion || 
+                (c.fechaModificacion && c.fechaModificacion > lastSyncTime)
+            );
+            
+            if (clientesPendientes.length === 0) return;
+            
+            await simularDelay(300);
+            
+            clientes.forEach(c => {
+                if (c.pendienteSincronizacion) {
+                    c.pendienteSincronizacion = false;
+                    c.sincronizado = true;
+                }
+            });
+            
+            localStorage.setItem('clientes_sync', JSON.stringify(clientes));
+            mostrarClientes();
+        }
+
+        // ========================================
+        // UTILIDADES DE SINCRONIZACIÓN
+        // ========================================
+        
+        function compararDatos(datosLocales, datosServidor, tipo) {
+            const datosFinales = [...datosLocales];
+            let hayActualizaciones = false;
+            
+            // Agregar elementos nuevos del servidor
+            datosServidor.forEach(itemServidor => {
+                const existeLocal = datosLocales.find(item => item.id === itemServidor.id);
+                if (!existeLocal) {
+                    datosFinales.push({
+                        ...itemServidor,
+                        origen: 'servidor',
+                        sincronizado: true
+                    });
+                    hayActualizaciones = true;
+                }
+            });
+            
+            return { datosFinales, hayActualizaciones };
+        }
+
+        async function simularDelay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function marcarParaSincronizar(item) {
+            item.pendienteSincronizacion = true;
+            item.fechaModificacion = Date.now();
+            item.sincronizado = false;
+        }
+
+        // ========================================
+        // FUNCIONES DE UI
+        // ========================================
+        
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = `notification ${tipo}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        async function sincronizarManual() {
+            if (isSyncing) return;
+            
+            await verificarConexion();
+            if (isOnline) {
+                await sincronizarDatos();
+            } else {
+                mostrarNotificacion('Sin conexión al servidor', 'warning');
+            }
+        }
+
+        function configurarEventos() {
+            // Detectar cambios de conectividad
+            window.addEventListener('online', async () => {
+                await verificarConexion();
+                if (isOnline) {
+                    mostrarNotificacion('Conexión restaurada', 'success');
+                    await sincronizarDatos();
+                }
+            });
+            
+            window.addEventListener('offline', () => {
+                setConexionEstado('offline');
+                mostrarNotificacion('Trabajando sin conexión', 'warning');
+            });
+        }
+
+        // ========================================
+        // FUNCIONES DE NAVEGACIÓN
+        // ========================================
+        
+        function showTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
             
             event.target.classList.add('active');
             document.getElementById(tabName).classList.add('active');
         }
 
-        function guardarCliente(event) {
-            event.preventDefault();
-            
-            const cliente = {
-                id: contadorId++,
-                nombre: document.getElementById('nombre').value,
-                apellido: document.getElementById('apellido').value,
-                telefono: document.getElementById('telefono').value,
-                calle: document.getElementById('calle').value,
-                numero: document.getElementById('numero').value,
-                piso: document.getElementById('piso').value,
-                codigoPostal: document.getElementById('codigoPostal').value,
-                localidad: document.getElementById('localidad').value,
-                email: document.getElementById('email').value
-            };
-            
-            clientes.push(cliente);
-            localStorage.setItem('sistema_pastrami_clientes', JSON.stringify(clientes));
-            
-            // FORZAR SINCRONIZACIÓN
-            setTimeout(function() {
-                window.location.reload();
-            }, 500);
-            
-            mostrarClientes();
-            actualizarSelects();
-            event.target.reset();
-            alert('Cliente guardado');
-        }
-
-        function mostrarClientes() {
-            const lista = document.getElementById('lista-clientes');
-            
-            if (clientes.length === 0) {
-                lista.innerHTML = '<div class="no-items">No hay clientes</div>';
-                return;
-            }
-            
-            lista.innerHTML = clientes.map(c => {
-                let direccion = '';
-                if (c.calle) direccion += c.calle;
-                if (c.numero) direccion += ' ' + c.numero;
-                if (c.piso) direccion += ', ' + c.piso;
-                if (c.localidad) direccion += ', ' + c.localidad;
-                if (c.codigoPostal) direccion += ' (' + c.codigoPostal + ')';
-                
-                return `
-                    <div class="item">
-                        <div class="item-header">
-                            <div><strong>ID: ${c.id} - ${c.nombre} ${c.apellido}</strong></div>
-                            <button class="btn btn-danger" onclick="eliminarCliente(${c.id})">🗑️</button>
-                        </div>
-                        <div>Tel: ${c.telefono}</div>
-                        ${c.email ? `<div>Email: ${c.email}</div>` : ''}
-                        ${direccion ? `<div>Dir: ${direccion}</div>` : ''}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function eliminarCliente(id) {
-            if (confirm('¿Eliminar cliente?')) {
-                clientes = clientes.filter(c => c.id !== id);
-                localStorage.setItem('sistema_pastrami_clientes', JSON.stringify(clientes));
-                
-                // FORZAR SINCRONIZACIÓN
-                setTimeout(function() {
-                    window.location.reload();
-                }, 500);
-                
-                mostrarClientes();
-                actualizarSelects();
-            }
-        }
-
+        // ========================================
+        // FUNCIONES DE PRODUCTOS
+        // ========================================
+        
         function toggleComponentes() {
-            const tipo = document.getElementById('productoTipo').value;
+            const tipo = document.getElementById('producto-tipo').value;
             const section = document.getElementById('componentes-section');
             
             if (tipo === 'caja') {
@@ -432,393 +923,384 @@
             } else {
                 section.style.display = 'none';
                 componentesTemp = [];
-                mostrarComponentes();
             }
         }
 
         function agregarComponente() {
-            const id = document.getElementById('componenteId').value.trim();
-            const cantidad = parseInt(document.getElementById('componenteCantidad').value);
+            const nombre = document.getElementById('componente-nombre').value.trim();
+            const cantidad = parseInt(document.getElementById('componente-cantidad').value);
             
-            if (!id || !cantidad) {
-                alert('Completa ID y cantidad');
+            if (!nombre || !cantidad || cantidad < 1) {
+                mostrarNotificacion('Ingresa nombre y cantidad válidos', 'warning');
                 return;
             }
             
-            const existe = productos.find(p => p.id === id);
-            if (!existe) {
-                alert('El producto componente no existe. Créalo primero.');
-                return;
-            }
+            componentesTemp.push({ nombre, cantidad });
+            mostrarComponentesTemp();
             
-            const yaAgregado = componentesTemp.find(c => c.id === id);
-            if (yaAgregado) {
-                alert('Componente ya agregado');
-                return;
-            }
-            
-            componentesTemp.push({
-                id: id,
-                nombre: existe.nombre,
-                cantidad: cantidad
-            });
-            
-            mostrarComponentes();
-            document.getElementById('componenteId').value = '';
-            document.getElementById('componenteCantidad').value = '';
+            document.getElementById('componente-nombre').value = '';
+            document.getElementById('componente-cantidad').value = '';
         }
 
-        function mostrarComponentes() {
-            const lista = document.getElementById('lista-componentes');
-            
+        function mostrarComponentesTemp() {
+            const lista = document.getElementById('componentes-list');
             if (componentesTemp.length === 0) {
-                lista.innerHTML = '<div style="color: #666; padding: 10px;">Sin componentes</div>';
+                lista.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>';
                 return;
             }
             
             lista.innerHTML = componentesTemp.map((comp, index) => `
-                <div class="item">
-                    <div class="item-header">
-                        <div><strong>${comp.id}</strong> - ${comp.nombre} (${comp.cantidad} unidades)</div>
-                        <button class="btn btn-danger" onclick="quitarComponente(${index})">❌</button>
-                    </div>
+                <div class="component-item">
+                    <span>${comp.cantidad}x ${comp.nombre}</span>
+                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(${index})">❌</button>
                 </div>
             `).join('');
         }
 
-        function quitarComponente(index) {
+        function eliminarComponenteTemp(index) {
             componentesTemp.splice(index, 1);
-            mostrarComponentes();
+            mostrarComponentesTemp();
         }
 
-        function guardarProducto(event) {
-            event.preventDefault();
-            
-            const tipo = document.getElementById('productoTipo').value;
-            
-            if (tipo === 'caja' && componentesTemp.length === 0) {
-                alert('Las cajas deben tener componentes');
-                return;
-            }
-            
-            const producto = {
-                id: document.getElementById('productoId').value,
-                nombre: document.getElementById('productoNombre').value,
-                precio: parseFloat(document.getElementById('productoPrecio').value),
-                stock: parseInt(document.getElementById('productoStock').value),
-                tipo: tipo,
-                componentes: tipo === 'caja' ? componentesTemp.slice() : []
-            };
-            
-            if (productos.find(p => p.id === producto.id)) {
-                alert('Ya existe ese ID');
-                return;
-            }
-            
-            productos.push(producto);
-            localStorage.setItem('sistema_pastrami_productos', JSON.stringify(productos));
-            
-            // FORZAR SINCRONIZACIÓN
-            setTimeout(function() {
-                window.location.reload();
-            }, 500);
-            
-            mostrarProductos();
-            actualizarSelects();
-            componentesTemp = [];
-            mostrarComponentes();
-            document.getElementById('componentes-section').style.display = 'none';
-            event.target.reset();
-            alert('Producto guardado');
-        }
-
-        function mostrarProductos() {
-            const lista = document.getElementById('lista-productos');
-            
-            if (productos.length === 0) {
-                lista.innerHTML = '<div class="no-items">No hay productos</div>';
-                return;
-            }
-            
-            lista.innerHTML = productos.map(p => `
-                <div class="item">
-                    <div class="item-header">
-                        <div><strong>${p.id} - ${p.nombre}</strong></div>
-                        <button class="btn btn-danger" onclick="eliminarProducto('${p.id}')">🗑️</button>
-                    </div>
-                    <div>Precio: ${p.precio.toFixed(2)} | Stock: ${p.stock} | Tipo: ${p.tipo === 'caja' ? 'Caja' : 'Simple'}</div>
-                    ${p.tipo === 'caja' && p.componentes ? `
-                        <div style="background: #e9ecef; padding: 10px; margin-top: 10px; border-radius: 5px;">
-                            <strong>Componentes:</strong><br>
-                            ${p.componentes.map(comp => `• ${comp.cantidad}x ${comp.id} - ${comp.nombre}`).join('<br>')}
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-        }
-
-        function eliminarProducto(id) {
-            if (confirm('¿Eliminar producto?')) {
-                productos = productos.filter(p => p.id !== id);
-                localStorage.setItem('sistema_pastrami_productos', JSON.stringify(productos));
+        // Event listener para formulario de productos
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('producto-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                // FORZAR SINCRONIZACIÓN
-                setTimeout(function() {
-                    window.location.reload();
-                }, 500);
+                const nombre = document.getElementById('producto-nombre').value.trim();
+                const precio = parseFloat(document.getElementById('producto-precio').value);
+                const tipo = document.getElementById('producto-tipo').value;
                 
+                if (!nombre || !precio || !tipo) {
+                    mostrarNotificacion('Completa todos los campos obligatorios', 'warning');
+                    return;
+                }
+                
+                if (tipo === 'caja' && componentesTemp.length === 0) {
+                    mostrarNotificacion('Los productos tipo caja deben tener componentes', 'warning');
+                    return;
+                }
+                
+                const ahora = Date.now();
+                const producto = {
+                    id: editandoProducto ? editandoProducto.id : ahora,
+                    nombre,
+                    precio,
+                    tipo,
+                    componentes: tipo === 'caja' ? [...componentesTemp] : [],
+                    fechaCreacion: editandoProducto ? editandoProducto.fechaCreacion : ahora,
+                    fechaModificacion: ahora,
+                    pendienteSincronizacion: true,
+                    sincronizado: false
+                };
+                
+                if (editandoProducto) {
+                    const index = productos.findIndex(p => p.id === editandoProducto.id);
+                    productos[index] = producto;
+                    editandoProducto = null;
+                } else {
+                    productos.push(producto);
+                }
+                
+                localStorage.setItem('productos_sync', JSON.stringify(productos));
                 mostrarProductos();
-                actualizarSelects();
-            }
-        }
-
-        function agregarProductoAPedido() {
-            const productoId = document.getElementById('pedidoProducto').value;
-            const cantidad = parseInt(document.getElementById('pedidoCantidad').value);
-            
-            if (!productoId) {
-                alert('Selecciona producto');
-                return;
-            }
-            
-            const producto = productos.find(p => p.id === productoId);
-            const existe = productosEnPedido.find(p => p.id === productoId);
-            
-            if (existe) {
-                existe.cantidad += cantidad;
-            } else {
-                productosEnPedido.push({
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    precio: producto.precio,
-                    cantidad: cantidad
-                });
-            }
-            
-            mostrarProductosEnPedido();
-            document.getElementById('pedidoProducto').value = '';
-            document.getElementById('pedidoCantidad').value = 1;
-        }
-
-        function mostrarProductosEnPedido() {
-            const container = document.getElementById('productos-en-pedido');
-            
-            if (productosEnPedido.length === 0) {
-                container.innerHTML = '<div style="color: #666; padding: 10px;">Sin productos</div>';
-                calcularTotalPedido();
-                return;
-            }
-            
-            container.innerHTML = productosEnPedido.map((item, index) => `
-                <div class="item">
-                    <div class="item-header">
-                        <div>${item.cantidad}x ${item.nombre} - $${item.precio.toFixed(2)}</div>
-                        <div>
-                            <strong>$${(item.precio * item.cantidad).toFixed(2)}</strong>
-                            <button class="btn btn-danger" onclick="quitarProducto(${index})">❌</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-            
-            calcularTotalPedido();
-        }
-
-        function quitarProducto(index) {
-            productosEnPedido.splice(index, 1);
-            mostrarProductosEnPedido();
-        }
-
-        function calcularTotalPedido() {
-            const subtotal = productosEnPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-            const envio = parseFloat(document.getElementById('pedidoEnvio').value) || 0;
-            document.getElementById('totalPedido').textContent = (subtotal + envio).toFixed(2);
-        }
-
-        function guardarPedido(event) {
-            event.preventDefault();
-            
-            if (productosEnPedido.length === 0) {
-                alert('Agrega productos');
-                return;
-            }
-            
-            const clienteId = parseInt(document.getElementById('pedidoCliente').value);
-            const cliente = clientes.find(c => c.id === clienteId);
-            const subtotal = productosEnPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-            const envio = parseFloat(document.getElementById('pedidoEnvio').value) || 0;
-            
-            const pedido = {
-                id: Date.now(),
-                clienteId: clienteId,
-                clienteNombre: cliente.nombre + ' ' + cliente.apellido,
-                fecha: document.getElementById('pedidoFecha').value,
-                horario: document.getElementById('pedidoHorario').value,
-                productos: productosEnPedido.slice(),
-                subtotal: subtotal,
-                envio: envio,
-                total: subtotal + envio,
-                estado: 'Pendiente'
-            };
-            
-            pedidos.push(pedido);
-            localStorage.setItem('sistema_pastrami_pedidos', JSON.stringify(pedidos));
-            
-            // FORZAR SINCRONIZACIÓN
-            setTimeout(function() {
-                window.location.reload();
-            }, 500);
-            
-            mostrarPedidos();
-            actualizarSelects();
-            productosEnPedido = [];
-            mostrarProductosEnPedido();
-            event.target.reset();
-            alert('Pedido guardado');
-        }
-
-        function mostrarPedidos() {
-            const lista = document.getElementById('lista-pedidos');
-            
-            if (pedidos.length === 0) {
-                lista.innerHTML = '<div class="no-items">No hay pedidos</div>';
-                return;
-            }
-            
-            lista.innerHTML = pedidos.map(p => {
-                const totalPagado = calcularTotalPagado(p.id);
-                const saldo = p.total - totalPagado;
+                limpiarFormularioProducto();
                 
-                return `
-                    <div class="item">
-                        <div class="item-header">
-                            <div><strong>Pedido #${p.id} - ${p.clienteNombre}</strong></div>
-                            <button class="btn btn-danger" onclick="eliminarPedido(${p.id})">🗑️</button>
-                        </div>
-                        <div>${p.fecha} - ${p.horario}</div>
-                        <div>Total: $${p.total.toFixed(2)} | Pagado: $${totalPagado.toFixed(2)} | Saldo: $${saldo.toFixed(2)}</div>
-                        <div>Estado: ${p.estado}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function eliminarPedido(id) {
-            if (confirm('¿Eliminar pedido?')) {
-                pedidos = pedidos.filter(p => p.id !== id);
-                localStorage.setItem('sistema_pastrami_pedidos', JSON.stringify(pedidos));
+                mostrarNotificacion('Producto guardado localmente', 'success');
                 
-                // FORZAR SINCRONIZACIÓN
-                setTimeout(function() {
-                    window.location.reload();
-                }, 500);
-                
-                mostrarPedidos();
-                actualizarSelects();
-            }
-        }
-
-        function guardarPago(event) {
-            event.preventDefault();
-            
-            const pago = {
-                id: Date.now(),
-                pedidoId: parseInt(document.getElementById('pagoPedido').value),
-                monto: parseFloat(document.getElementById('pagoMonto').value),
-                metodo: document.getElementById('pagoMetodo').value,
-                fecha: document.getElementById('pagoFecha').value
-            };
-            
-            pagos.push(pago);
-            localStorage.setItem('sistema_pastrami_pagos', JSON.stringify(pagos));
-            
-            // FORZAR SINCRONIZACIÓN
-            setTimeout(function() {
-                window.location.reload();
-            }, 500);
-            
-            mostrarPagos();
-            mostrarPedidos();
-            actualizarSelects();
-            event.target.reset();
-            document.getElementById('pagoFecha').value = new Date().toISOString().split('T')[0];
-            alert('Pago registrado');
-        }
-
-        function mostrarPagos() {
-            const lista = document.getElementById('lista-pagos');
-            
-            if (pagos.length === 0) {
-                lista.innerHTML = '<div class="no-items">No hay pagos</div>';
-                return;
-            }
-            
-            lista.innerHTML = pagos.map(p => {
-                const pedido = pedidos.find(ped => ped.id === p.pedidoId);
-                return `
-                    <div class="item">
-                        <div class="item-header">
-                            <div><strong>$${p.monto.toFixed(2)} - ${p.metodo}</strong></div>
-                            <button class="btn btn-danger" onclick="eliminarPago(${p.id})">🗑️</button>
-                        </div>
-                        <div>Pedido: #${p.pedidoId} ${pedido ? '- ' + pedido.clienteNombre : ''}</div>
-                        <div>Fecha: ${p.fecha}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function eliminarPago(id) {
-            if (confirm('¿Eliminar pago?')) {
-                pagos = pagos.filter(p => p.id !== id);
-                localStorage.setItem('sistema_pastrami_pagos', JSON.stringify(pagos));
-                
-                // FORZAR SINCRONIZACIÓN
-                setTimeout(function() {
-                    window.location.reload();
-                }, 500);
-                
-                mostrarPagos();
-                mostrarPedidos();
-            }
-        }
-
-        function calcularTotalPagado(pedidoId) {
-            return pagos.filter(p => p.pedidoId === pedidoId).reduce((sum, p) => sum + p.monto, 0);
-        }
-
-        function actualizarSelects() {
-            const selectClientes = document.getElementById('pedidoCliente');
-            selectClientes.innerHTML = '<option value="">Seleccionar cliente...</option>';
-            clientes.forEach(c => {
-                selectClientes.innerHTML += `<option value="${c.id}">${c.nombre} ${c.apellido}</option>`;
-            });
-
-            const selectProductos = document.getElementById('pedidoProducto');
-            selectProductos.innerHTML = '<option value="">Seleccionar producto...</option>';
-            productos.forEach(p => {
-                selectProductos.innerHTML += `<option value="${p.id}">${p.id} - ${p.nombre} ($${p.precio.toFixed(2)})</option>`;
-            });
-
-            const selectPedidos = document.getElementById('pagoPedido');
-            selectPedidos.innerHTML = '<option value="">Seleccionar pedido...</option>';
-            pedidos.forEach(p => {
-                const totalPagado = calcularTotalPagado(p.id);
-                const saldo = p.total - totalPagado;
-                if (saldo > 0) {
-                    selectPedidos.innerHTML += `<option value="${p.id}">Pedido #${p.id} - ${p.clienteNombre} (Saldo: $${saldo.toFixed(2)})</option>`;
+                // Intentar sincronizar si estamos online
+                if (isOnline && !isSyncing) {
+                    setTimeout(() => sincronizarDatos(), 1000);
                 }
             });
+        });
+
+        function mostrarProductos() {
+            const lista = document.getElementById('productos-lista');
+            
+            if (productos.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay productos registrados</div>';
+                return;
+            }
+            
+            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            lista.innerHTML = productosOrdenados.map(producto => {
+                // Determinar estado de sincronización
+                let syncBadge = '';
+                if (producto.pendienteSincronizacion) {
+                    syncBadge = '<div class="sync-badge pending">PENDIENTE</div>';
+                } else if (producto.sincronizado) {
+                    syncBadge = '<div class="sync-badge">SYNC</div>';
+                } else if (producto.origen === 'servidor') {
+                    syncBadge = '<div class="sync-badge">SERVIDOR</div>';
+                }
+                
+                return `
+                    <div class="item">
+                        ${syncBadge}
+                        <div class="item-header">
+                            <div class="item-title">${producto.nombre}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-warning btn-small" onclick="editarProducto(${producto.id})">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarProducto(${producto.id})">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Precio:</strong> ${producto.precio.toFixed(2)} | 
+                            <strong>Tipo:</strong> ${producto.tipo === 'simple' ? 'Producto Simple' : 'Producto Caja'}
+                            ${producto.fechaModificacion ? ` | <strong>Modificado:</strong> ${new Date(producto.fechaModificacion).toLocaleString()}` : ''}
+                        </div>
+                        ${producto.tipo === 'caja' && producto.componentes.length > 0 ? `
+                            <div class="item-components">
+                                <strong>Componentes:</strong>
+                                ${producto.componentes.map(comp => `
+                                    <div class="component-item">
+                                        <span>${comp.cantidad}x ${comp.nombre}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            mostrarClientes();
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+            
+            editandoProducto = producto;
+            componentesTemp = [...(producto.componentes || [])];
+            
+            document.getElementById('producto-nombre').value = producto.nombre;
+            document.getElementById('producto-precio').value = producto.precio;
+            document.getElementById('producto-tipo').value = producto.tipo;
+            
+            toggleComponentes();
+            mostrarComponentesTemp();
+        }
+
+        async function eliminarProducto(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                return;
+            }
+            
+            const producto = productos.find(p => p.id === id);
+            if (producto && producto.sincronizado) {
+                // Si está sincronizado, marcarlo para eliminación en el servidor
+                producto.eliminado = true;
+                producto.fechaModificacion = Date.now();
+                producto.pendienteSincronizacion = true;
+            } else {
+                // Si no está sincronizado, eliminarlo localmente
+                productos = productos.filter(p => p.id !== id);
+            }
+            
+            localStorage.setItem('productos_sync', JSON.stringify(productos));
             mostrarProductos();
-            mostrarPedidos();
-            mostrarPagos();
-            actualizarSelects();
-            document.getElementById('pagoFecha').value = new Date().toISOString().split('T')[0];
+            mostrarNotificacion('Producto eliminado', 'success');
+            
+            // Intentar sincronizar si estamos online
+            if (isOnline && !isSyncing) {
+                setTimeout(() => sincronizarDatos(), 1000);
+            }
+        }
+
+        function cancelarEdicion() {
+            limpiarFormularioProducto();
+        }
+
+        function limpiarFormularioProducto() {
+            document.getElementById('producto-form').reset();
+            editandoProducto = null;
+            componentesTemp = [];
+            document.getElementById('componentes-section').style.display = 'none';
+            mostrarComponentesTemp();
+        }
+
+        // ========================================
+        // FUNCIONES DE CLIENTES
+        // ========================================
+        
+        // Event listener para formulario de clientes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('cliente-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const nombre = document.getElementById('cliente-nombre').value.trim();
+                const apellido = document.getElementById('cliente-apellido').value.trim();
+                const telefono = document.getElementById('cliente-telefono').value.trim();
+                const calle = document.getElementById('cliente-calle').value.trim();
+                const numero = document.getElementById('cliente-numero').value.trim();
+                const piso = document.getElementById('cliente-piso').value.trim();
+                const departamento = document.getElementById('cliente-departamento').value.trim();
+                const email = document.getElementById('cliente-email').value.trim();
+                const localidad = document.getElementById('cliente-localidad').value.trim();
+                const codigoPostal = document.getElementById('cliente-codigo-postal').value.trim();
+                
+                if (!nombre || !apellido || !telefono) {
+                    mostrarNotificacion('Nombre, Apellido y Teléfono son obligatorios', 'warning');
+                    return;
+                }
+                
+                const ahora = Date.now();
+                const cliente = {
+                    id: editandoCliente ? editandoCliente.id : ahora,
+                    nombre,
+                    apellido,
+                    telefono,
+                    calle,
+                    numero,
+                    piso,
+                    departamento,
+                    email,
+                    localidad,
+                    codigoPostal,
+                    fechaCreacion: editandoCliente ? editandoCliente.fechaCreacion : ahora,
+                    fechaModificacion: ahora,
+                    pendienteSincronizacion: true,
+                    sincronizado: false
+                };
+                
+                if (editandoCliente) {
+                    const index = clientes.findIndex(c => c.id === editandoCliente.id);
+                    clientes[index] = cliente;
+                    editandoCliente = null;
+                } else {
+                    clientes.push(cliente);
+                }
+                
+                localStorage.setItem('clientes_sync', JSON.stringify(clientes));
+                mostrarClientes();
+                limpiarFormularioCliente();
+                
+                mostrarNotificacion('Cliente guardado localmente', 'success');
+                
+                // Intentar sincronizar si estamos online
+                if (isOnline && !isSyncing) {
+                    setTimeout(() => sincronizarDatos(), 1000);
+                }
+            });
         });
+
+        function mostrarClientes() {
+            const lista = document.getElementById('clientes-lista');
+            
+            if (clientes.length === 0) {
+                lista.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
+                return;
+            }
+            
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            lista.innerHTML = clientesOrdenados.map(cliente => {
+                // Determinar estado de sincronización
+                let syncBadge = '';
+                if (cliente.pendienteSincronizacion) {
+                    syncBadge = '<div class="sync-badge pending">PENDIENTE</div>';
+                } else if (cliente.sincronizado) {
+                    syncBadge = '<div class="sync-badge">SYNC</div>';
+                } else if (cliente.origen === 'servidor') {
+                    syncBadge = '<div class="sync-badge">SERVIDOR</div>';
+                }
+                
+                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`;
+                
+                // Construir dirección
+                let direccion = '';
+                if (cliente.calle || cliente.numero) {
+                    direccion = `${cliente.calle || ''} ${cliente.numero || ''}`.trim();
+                    if (cliente.piso) direccion += `, Piso ${cliente.piso}`;
+                    if (cliente.departamento) direccion += `, Dto ${cliente.departamento}`;
+                    if (cliente.localidad) direccion += `, ${cliente.localidad}`;
+                    if (cliente.codigoPostal) direccion += ` (${cliente.codigoPostal})`;
+                }
+                
+                return `
+                    <div class="item">
+                        ${syncBadge}
+                        <div class="item-header">
+                            <div class="item-title">${nombreCompleto}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-warning btn-small" onclick="editarCliente(${cliente.id})">✏️ Editar</button>
+                                <button class="btn btn-danger btn-small" onclick="eliminarCliente(${cliente.id})">🗑️ Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <strong>Teléfono:</strong> ${cliente.telefono}
+                            ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
+                            ${cliente.fechaModificacion ? ` | <strong>Modificado:</strong> ${new Date(cliente.fechaModificacion).toLocaleString()}` : ''}
+                        </div>
+                        ${direccion ? `
+                            <div class="item-details">
+                                <strong>Dirección:</strong> ${direccion}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            editandoCliente = cliente;
+            
+            document.getElementById('cliente-nombre').value = cliente.nombre;
+            document.getElementById('cliente-apellido').value = cliente.apellido;
+            document.getElementById('cliente-telefono').value = cliente.telefono;
+            document.getElementById('cliente-calle').value = cliente.calle || '';
+            document.getElementById('cliente-numero').value = cliente.numero || '';
+            document.getElementById('cliente-piso').value = cliente.piso || '';
+            document.getElementById('cliente-departamento').value = cliente.departamento || '';
+            document.getElementById('cliente-email').value = cliente.email || '';
+            document.getElementById('cliente-localidad').value = cliente.localidad || '';
+            document.getElementById('cliente-codigo-postal').value = cliente.codigoPostal || '';
+        }
+
+        async function eliminarCliente(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+                return;
+            }
+            
+            const cliente = clientes.find(c => c.id === id);
+            if (cliente && cliente.sincronizado) {
+                // Si está sincronizado, marcarlo para eliminación en el servidor
+                cliente.eliminado = true;
+                cliente.fechaModificacion = Date.now();
+                cliente.pendienteSincronizacion = true;
+            } else {
+                // Si no está sincronizado, eliminarlo localmente
+                clientes = clientes.filter(c => c.id !== id);
+            }
+            
+            localStorage.setItem('clientes_sync', JSON.stringify(clientes));
+            mostrarClientes();
+            mostrarNotificacion('Cliente eliminado', 'success');
+            
+            // Intentar sincronizar si estamos online
+            if (isOnline && !isSyncing) {
+                setTimeout(() => sincronizarDatos(), 1000);
+            }
+        }
+
+        function cancelarCliente() {
+            limpiarFormularioCliente();
+        }
+
+        function limpiarFormularioCliente() {
+            document.getElementById('cliente-form').reset();
+            editandoCliente = null;
+        }
     </script>
 </body>
 </html>
