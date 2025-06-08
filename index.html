@@ -122,6 +122,7 @@
         /* Estilos para autocompletado */
         .autocomplete-container {
             position: relative;
+            width: 100%;
         }
 
         .autocomplete-suggestions {
@@ -137,6 +138,8 @@
             overflow-y: auto;
             z-index: 1000;
             display: none;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .autocomplete-suggestion {
@@ -501,6 +504,72 @@
             .cantidad-controls {
                 justify-content: center;
                 margin: 10px 0;
+            }
+
+            /* Fixes específicos para móviles */
+            .autocomplete-container {
+                position: relative;
+                width: 100%;
+                z-index: 1001;
+            }
+
+            .autocomplete-suggestions {
+                position: fixed;
+                top: auto;
+                left: 10px;
+                right: 10px;
+                width: auto;
+                max-height: 250px;
+                z-index: 1002;
+                background: white;
+                border: 2px solid #ff6b6b;
+                box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+                border-radius: 8px;
+            }
+
+            .autocomplete-suggestion {
+                padding: 15px;
+                font-size: 16px;
+                border-bottom: 1px solid #f8f9fa;
+            }
+
+            .suggestion-main {
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .suggestion-sub {
+                font-size: 14px;
+                margin-top: 5px;
+            }
+
+            /* Mejorar la visibilidad en móviles */
+            input, select, textarea {
+                font-size: 16px;
+                padding: 15px;
+                border: 2px solid #e9ecef;
+            }
+
+            input:focus, select:focus, textarea:focus {
+                border-color: #ff6b6b;
+                box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+            }
+
+            .btn {
+                padding: 15px 20px;
+                font-size: 16px;
+                margin-bottom: 10px;
+            }
+
+            .tab {
+                padding: 15px;
+                font-size: 16px;
+            }
+
+            /* Asegurar que los contenedores no se superpongan */
+            .tab-content {
+                position: relative;
+                z-index: 1;
             }
         }
     </style>
@@ -923,14 +992,40 @@
                     `;
                 }).join('');
                 
+                // Posicionamiento dinámico para móviles
+                if (window.innerWidth <= 768) {
+                    const rect = input.getBoundingClientRect();
+                    suggestions.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+                    suggestions.style.position = 'fixed';
+                    suggestions.style.left = '10px';
+                    suggestions.style.right = '10px';
+                    suggestions.style.width = 'auto';
+                } else {
+                    suggestions.style.position = 'absolute';
+                    suggestions.style.top = '100%';
+                    suggestions.style.left = '0';
+                    suggestions.style.right = '0';
+                    suggestions.style.width = '100%';
+                }
+                
                 suggestions.style.display = 'block';
             });
             
-            // Cerrar sugerencias al hacer clic fuera
+            // Cerrar sugerencias al hacer clic fuera o al scroll
             document.addEventListener('click', function(e) {
                 if (!input.contains(e.target) && !suggestions.contains(e.target)) {
                     suggestions.style.display = 'none';
                 }
+            });
+
+            window.addEventListener('scroll', function() {
+                if (window.innerWidth <= 768) {
+                    suggestions.style.display = 'none';
+                }
+            });
+
+            window.addEventListener('resize', function() {
+                suggestions.style.display = 'none';
             });
         }
 
