@@ -7,9 +7,9 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: 0;
             padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         .container {
             max-width: 1200px;
@@ -42,29 +42,27 @@
             background: white;
             color: #ff6b6b;
         }
-        .tab-content {
+        .content {
             display: none;
             padding: 20px;
         }
-        .tab-content.active {
+        .content.active {
             display: block;
         }
         .form-row {
             display: flex;
             gap: 15px;
             margin-bottom: 15px;
-            flex-wrap: wrap;
         }
         .form-col {
             flex: 1;
-            min-width: 200px;
         }
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input, select, textarea {
+        input, select {
             width: 100%;
             padding: 10px;
             border: 2px solid #ddd;
@@ -80,11 +78,7 @@
             font-weight: bold;
         }
         .btn-primary { background: #ff6b6b; color: white; }
-        .btn-secondary { background: #6c757d; color: white; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-warning { background: #ffc107; color: black; }
         .btn-danger { background: #dc3545; color: white; }
-        .btn-small { padding: 5px 10px; font-size: 12px; }
         .item {
             background: #f8f9fa;
             margin: 10px 0;
@@ -97,10 +91,6 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
-        }
-        .item-title {
-            font-weight: bold;
-            font-size: 16px;
         }
         .required { color: red; }
         .no-items {
@@ -115,126 +105,121 @@
     <div class="container">
         <div class="header">
             <h1>🥪 Sistema Pastrami</h1>
-            <p>Gestión simple y funcional</p>
+            <p>Gestión simple y efectiva</p>
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="showTab('clientes')">👥 Clientes</button>
-            <button class="tab" onclick="showTab('productos')">📦 Productos</button>
-            <button class="tab" onclick="showTab('pedidos')">📋 Pedidos</button>
-            <button class="tab" onclick="showTab('pagos')">💰 Pagos</button>
+            <button class="tab active" onclick="mostrarTab('clientes')">👥 Clientes</button>
+            <button class="tab" onclick="mostrarTab('productos')">📦 Productos</button>
+            <button class="tab" onclick="mostrarTab('pedidos')">📋 Pedidos</button>
+            <button class="tab" onclick="mostrarTab('pagos')">💰 Pagos</button>
         </div>
 
         <!-- CLIENTES -->
-        <div id="clientes" class="tab-content active">
+        <div id="clientes" class="content active">
             <h2>👥 Gestión de Clientes</h2>
             
-            <form id="cliente-form">
+            <form onsubmit="guardarCliente(event)">
                 <div class="form-row">
                     <div class="form-col">
                         <label>Nombre <span class="required">*</span>:</label>
-                        <input type="text" id="cliente-nombre" required>
+                        <input type="text" id="nombre" required>
                     </div>
                     <div class="form-col">
                         <label>Apellido <span class="required">*</span>:</label>
-                        <input type="text" id="cliente-apellido" required>
+                        <input type="text" id="apellido" required>
                     </div>
                     <div class="form-col">
                         <label>Teléfono <span class="required">*</span>:</label>
-                        <input type="tel" id="cliente-telefono" required>
+                        <input type="tel" id="telefono" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
                         <label>Calle:</label>
-                        <input type="text" id="cliente-calle">
+                        <input type="text" id="calle">
                     </div>
                     <div class="form-col">
                         <label>Número:</label>
-                        <input type="text" id="cliente-numero">
+                        <input type="text" id="numero">
                     </div>
                     <div class="form-col">
-                        <label>Piso/Departamento:</label>
-                        <input type="text" id="cliente-piso">
+                        <label>Piso/Depto:</label>
+                        <input type="text" id="piso">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
                         <label>Código Postal:</label>
-                        <input type="text" id="cliente-codigo-postal">
+                        <input type="text" id="codigoPostal">
                     </div>
                     <div class="form-col">
                         <label>Localidad:</label>
-                        <input type="text" id="cliente-localidad">
+                        <input type="text" id="localidad">
                     </div>
                     <div class="form-col">
                         <label>Email:</label>
-                        <input type="email" id="cliente-email">
+                        <input type="email" id="email">
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
-                <button type="button" class="btn btn-secondary" onclick="limpiarCliente()">❌ Cancelar</button>
             </form>
 
-            <div id="clientes-lista"></div>
+            <div id="lista-clientes"></div>
         </div>
 
         <!-- PRODUCTOS -->
-        <div id="productos" class="tab-content">
+        <div id="productos" class="content">
             <h2>📦 Gestión de Productos</h2>
             
-            <form id="producto-form">
+            <form onsubmit="guardarProducto(event)">
                 <div class="form-row">
                     <div class="form-col">
-                        <label>ID del Producto:</label>
-                        <input type="text" id="producto-id" required>
+                        <label>ID Producto:</label>
+                        <input type="text" id="productoId" required>
                     </div>
                     <div class="form-col">
                         <label>Nombre:</label>
-                        <input type="text" id="producto-nombre" required>
+                        <input type="text" id="productoNombre" required>
                     </div>
                     <div class="form-col">
                         <label>Precio:</label>
-                        <input type="number" id="producto-precio" step="0.01" required>
+                        <input type="number" id="productoPrecio" step="0.01" required>
                     </div>
-                </div>
-
-                <div class="form-row">
                     <div class="form-col">
                         <label>Stock:</label>
-                        <input type="number" id="producto-stock" value="0">
+                        <input type="number" id="productoStock" value="0">
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
-                <button type="button" class="btn btn-secondary" onclick="limpiarProducto()">❌ Cancelar</button>
             </form>
 
-            <div id="productos-lista"></div>
+            <div id="lista-productos"></div>
         </div>
 
         <!-- PEDIDOS -->
-        <div id="pedidos" class="tab-content">
+        <div id="pedidos" class="content">
             <h2>📋 Gestión de Pedidos</h2>
             
-            <form id="pedido-form">
+            <form onsubmit="guardarPedido(event)">
                 <div class="form-row">
                     <div class="form-col">
                         <label>Cliente <span class="required">*</span>:</label>
-                        <select id="pedido-cliente" required>
+                        <select id="pedidoCliente" required>
                             <option value="">Seleccionar cliente...</option>
                         </select>
                     </div>
                     <div class="form-col">
-                        <label>Fecha de Entrega <span class="required">*</span>:</label>
-                        <input type="date" id="pedido-fecha" required>
+                        <label>Fecha <span class="required">*</span>:</label>
+                        <input type="date" id="pedidoFecha" required>
                     </div>
                     <div class="form-col">
                         <label>Horario <span class="required">*</span>:</label>
-                        <select id="pedido-horario" required>
+                        <select id="pedidoHorario" required>
                             <option value="">Seleccionar...</option>
                             <option value="Mañana">Mañana</option>
                             <option value="Tarde">Tarde</option>
@@ -245,63 +230,59 @@
                 <div class="form-row">
                     <div class="form-col">
                         <label>Producto:</label>
-                        <select id="pedido-producto">
+                        <select id="pedidoProducto">
                             <option value="">Seleccionar producto...</option>
                         </select>
                     </div>
                     <div class="form-col">
                         <label>Cantidad:</label>
-                        <input type="number" id="pedido-cantidad" min="1" value="1">
+                        <input type="number" id="pedidoCantidad" min="1" value="1">
                     </div>
                     <div class="form-col">
-                        <button type="button" class="btn btn-secondary" onclick="agregarProducto()">➕ Agregar</button>
+                        <button type="button" class="btn btn-primary" onclick="agregarProductoAPedido()">➕ Agregar</button>
                     </div>
                 </div>
 
-                <div id="productos-pedido"></div>
+                <div id="productos-en-pedido"></div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Costo de Envío:</label>
-                        <input type="number" id="pedido-envio" step="0.01" value="0">
+                        <label>Costo Envío:</label>
+                        <input type="number" id="pedidoEnvio" step="0.01" value="0" onchange="calcularTotalPedido()">
                     </div>
-                </div>
-
-                <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                    <div><strong>Subtotal: $<span id="subtotal">0.00</span></strong></div>
-                    <div><strong>Envío: $<span id="envio-display">0.00</span></strong></div>
-                    <div style="font-size: 18px;"><strong>TOTAL: $<span id="total">0.00</span></strong></div>
+                    <div class="form-col">
+                        <strong>TOTAL: $<span id="totalPedido">0.00</span></strong>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">💾 Guardar Pedido</button>
-                <button type="button" class="btn btn-secondary" onclick="limpiarPedido()">❌ Cancelar</button>
             </form>
 
-            <div id="pedidos-lista"></div>
+            <div id="lista-pedidos"></div>
         </div>
 
         <!-- PAGOS -->
-        <div id="pagos" class="tab-content">
+        <div id="pagos" class="content">
             <h2>💰 Gestión de Pagos</h2>
             
-            <form id="pago-form">
+            <form onsubmit="guardarPago(event)">
                 <div class="form-row">
                     <div class="form-col">
                         <label>Pedido:</label>
-                        <select id="pago-pedido" required>
+                        <select id="pagoPedido" required>
                             <option value="">Seleccionar pedido...</option>
                         </select>
                     </div>
                     <div class="form-col">
                         <label>Monto:</label>
-                        <input type="number" id="pago-monto" step="0.01" required>
+                        <input type="number" id="pagoMonto" step="0.01" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
                         <label>Método:</label>
-                        <select id="pago-metodo" required>
+                        <select id="pagoMetodo" required>
                             <option value="">Seleccionar...</option>
                             <option value="Mercado Pago">Mercado Pago</option>
                             <option value="Efectivo">Efectivo</option>
@@ -310,98 +291,82 @@
                     </div>
                     <div class="form-col">
                         <label>Fecha:</label>
-                        <input type="date" id="pago-fecha" required>
+                        <input type="date" id="pagoFecha" required>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">💰 Registrar Pago</button>
-                <button type="button" class="btn btn-secondary" onclick="limpiarPago()">❌ Cancelar</button>
             </form>
 
-            <div id="pagos-lista"></div>
+            <div id="lista-pagos"></div>
         </div>
     </div>
 
     <script>
-        let clientes = JSON.parse(localStorage.getItem('pastrami_clientes') || '[]');
-        let productos = JSON.parse(localStorage.getItem('pastrami_productos') || '[]');
-        let pedidos = JSON.parse(localStorage.getItem('pastrami_pedidos') || '[]');
-        let pagos = JSON.parse(localStorage.getItem('pastrami_pagos') || '[]');
-        let productosPedidoTemp = [];
-        let contadorClientes = Math.max(0, ...clientes.map(c => c.id || 0)) + 1;
+        let clientes = JSON.parse(localStorage.getItem('pastramix_clientes') || '[]');
+        let productos = JSON.parse(localStorage.getItem('pastramix_productos') || '[]');
+        let pedidos = JSON.parse(localStorage.getItem('pastramix_pedidos') || '[]');
+        let pagos = JSON.parse(localStorage.getItem('pastramix_pagos') || '[]');
+        let productosEnPedido = [];
+        let contadorId = Math.max(0, ...clientes.map(c => c.id || 0)) + 1;
 
-        document.addEventListener('DOMContentLoaded', function() {
-            mostrarClientes();
-            mostrarProductos();
-            mostrarPedidos();
-            mostrarPagos();
-            actualizarSelects();
-            document.getElementById('pago-fecha').value = new Date().toISOString().split('T')[0];
-        });
-
-        function showTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        function mostrarTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
             
             event.target.classList.add('active');
             document.getElementById(tabName).classList.add('active');
         }
 
-        // CLIENTES
-        document.getElementById('cliente-form').addEventListener('submit', function(e) {
-            e.preventDefault();
+        function guardarCliente(event) {
+            event.preventDefault();
             
             const cliente = {
-                id: contadorClientes++,
-                nombre: document.getElementById('cliente-nombre').value.trim(),
-                apellido: document.getElementById('cliente-apellido').value.trim(),
-                telefono: document.getElementById('cliente-telefono').value.trim(),
-                calle: document.getElementById('cliente-calle').value.trim(),
-                numero: document.getElementById('cliente-numero').value.trim(),
-                piso: document.getElementById('cliente-piso').value.trim(),
-                codigoPostal: document.getElementById('cliente-codigo-postal').value.trim(),
-                localidad: document.getElementById('cliente-localidad').value.trim(),
-                email: document.getElementById('cliente-email').value.trim()
+                id: contadorId++,
+                nombre: document.getElementById('nombre').value,
+                apellido: document.getElementById('apellido').value,
+                telefono: document.getElementById('telefono').value,
+                calle: document.getElementById('calle').value,
+                numero: document.getElementById('numero').value,
+                piso: document.getElementById('piso').value,
+                codigoPostal: document.getElementById('codigoPostal').value,
+                localidad: document.getElementById('localidad').value,
+                email: document.getElementById('email').value
             };
             
-            if (!cliente.nombre || !cliente.apellido || !cliente.telefono) {
-                alert('Nombre, Apellido y Teléfono son obligatorios');
-                return;
-            }
-            
             clientes.push(cliente);
-            localStorage.setItem('pastrami_clientes', JSON.stringify(clientes));
+            localStorage.setItem('pastramix_clientes', JSON.stringify(clientes));
             mostrarClientes();
             actualizarSelects();
-            limpiarCliente();
-            alert('Cliente guardado exitosamente');
-        });
+            event.target.reset();
+            alert('Cliente guardado');
+        }
 
         function mostrarClientes() {
-            const lista = document.getElementById('clientes-lista');
+            const lista = document.getElementById('lista-clientes');
             
             if (clientes.length === 0) {
-                lista.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
+                lista.innerHTML = '<div class="no-items">No hay clientes</div>';
                 return;
             }
             
-            lista.innerHTML = clientes.map(cliente => {
+            lista.innerHTML = clientes.map(c => {
                 let direccion = '';
-                if (cliente.calle) direccion += cliente.calle;
-                if (cliente.numero) direccion += ' ' + cliente.numero;
-                if (cliente.piso) direccion += ', ' + cliente.piso;
-                if (cliente.localidad) direccion += ', ' + cliente.localidad;
-                if (cliente.codigoPostal) direccion += ' (' + cliente.codigoPostal + ')';
+                if (c.calle) direccion += c.calle;
+                if (c.numero) direccion += ' ' + c.numero;
+                if (c.piso) direccion += ', ' + c.piso;
+                if (c.localidad) direccion += ', ' + c.localidad;
+                if (c.codigoPostal) direccion += ' (' + c.codigoPostal + ')';
                 
                 return `
                     <div class="item">
                         <div class="item-header">
-                            <div class="item-title">ID: ${cliente.id} - ${cliente.nombre} ${cliente.apellido}</div>
-                            <button class="btn btn-danger btn-small" onclick="eliminarCliente(${cliente.id})">🗑️</button>
+                            <div><strong>ID: ${c.id} - ${c.nombre} ${c.apellido}</strong></div>
+                            <button class="btn btn-danger" onclick="eliminarCliente(${c.id})">🗑️</button>
                         </div>
-                        <div>Teléfono: ${cliente.telefono}</div>
-                        ${cliente.email ? `<div>Email: ${cliente.email}</div>` : ''}
-                        ${direccion ? `<div>Dirección: ${direccion}</div>` : ''}
+                        <div>Tel: ${c.telefono}</div>
+                        ${c.email ? `<div>Email: ${c.email}</div>` : ''}
+                        ${direccion ? `<div>Dir: ${direccion}</div>` : ''}
                     </div>
                 `;
             }).join('');
@@ -410,60 +375,50 @@
         function eliminarCliente(id) {
             if (confirm('¿Eliminar cliente?')) {
                 clientes = clientes.filter(c => c.id !== id);
-                localStorage.setItem('pastrami_clientes', JSON.stringify(clientes));
+                localStorage.setItem('pastramix_clientes', JSON.stringify(clientes));
                 mostrarClientes();
                 actualizarSelects();
             }
         }
 
-        function limpiarCliente() {
-            document.getElementById('cliente-form').reset();
-        }
-
-        // PRODUCTOS
-        document.getElementById('producto-form').addEventListener('submit', function(e) {
-            e.preventDefault();
+        function guardarProducto(event) {
+            event.preventDefault();
             
             const producto = {
-                id: document.getElementById('producto-id').value.trim(),
-                nombre: document.getElementById('producto-nombre').value.trim(),
-                precio: parseFloat(document.getElementById('producto-precio').value),
-                stock: parseInt(document.getElementById('producto-stock').value) || 0
+                id: document.getElementById('productoId').value,
+                nombre: document.getElementById('productoNombre').value,
+                precio: parseFloat(document.getElementById('productoPrecio').value),
+                stock: parseInt(document.getElementById('productoStock').value)
             };
             
-            if (!producto.id || !producto.nombre || !producto.precio) {
-                alert('Todos los campos son obligatorios');
-                return;
-            }
-            
             if (productos.find(p => p.id === producto.id)) {
-                alert('Ya existe un producto con este ID');
+                alert('Ya existe ese ID');
                 return;
             }
             
             productos.push(producto);
-            localStorage.setItem('pastrami_productos', JSON.stringify(productos));
+            localStorage.setItem('pastramix_productos', JSON.stringify(productos));
             mostrarProductos();
             actualizarSelects();
-            limpiarProducto();
-            alert('Producto guardado exitosamente');
-        });
+            event.target.reset();
+            alert('Producto guardado');
+        }
 
         function mostrarProductos() {
-            const lista = document.getElementById('productos-lista');
+            const lista = document.getElementById('lista-productos');
             
             if (productos.length === 0) {
-                lista.innerHTML = '<div class="no-items">No hay productos registrados</div>';
+                lista.innerHTML = '<div class="no-items">No hay productos</div>';
                 return;
             }
             
-            lista.innerHTML = productos.map(producto => `
+            lista.innerHTML = productos.map(p => `
                 <div class="item">
                     <div class="item-header">
-                        <div class="item-title">${producto.id} - ${producto.nombre}</div>
-                        <button class="btn btn-danger btn-small" onclick="eliminarProducto('${producto.id}')">🗑️</button>
+                        <div><strong>${p.id} - ${p.nombre}</strong></div>
+                        <button class="btn btn-danger" onclick="eliminarProducto('${p.id}')">🗑️</button>
                     </div>
-                    <div>Precio: $${producto.precio.toFixed(2)} | Stock: ${producto.stock}</div>
+                    <div>Precio: $${p.precio.toFixed(2)} | Stock: ${p.stock}</div>
                 </div>
             `).join('');
         }
@@ -471,34 +426,28 @@
         function eliminarProducto(id) {
             if (confirm('¿Eliminar producto?')) {
                 productos = productos.filter(p => p.id !== id);
-                localStorage.setItem('pastrami_productos', JSON.stringify(productos));
+                localStorage.setItem('pastramix_productos', JSON.stringify(productos));
                 mostrarProductos();
                 actualizarSelects();
             }
         }
 
-        function limpiarProducto() {
-            document.getElementById('producto-form').reset();
-        }
-
-        // PEDIDOS
-        function agregarProducto() {
-            const productoId = document.getElementById('pedido-producto').value;
-            const cantidad = parseInt(document.getElementById('pedido-cantidad').value) || 1;
+        function agregarProductoAPedido() {
+            const productoId = document.getElementById('pedidoProducto').value;
+            const cantidad = parseInt(document.getElementById('pedidoCantidad').value);
             
             if (!productoId) {
-                alert('Selecciona un producto');
+                alert('Selecciona producto');
                 return;
             }
             
             const producto = productos.find(p => p.id === productoId);
-            if (!producto) return;
+            const existe = productosEnPedido.find(p => p.id === productoId);
             
-            const existe = productosPedidoTemp.find(p => p.id === productoId);
             if (existe) {
                 existe.cantidad += cantidad;
             } else {
-                productosPedidoTemp.push({
+                productosEnPedido.push({
                     id: producto.id,
                     nombre: producto.nombre,
                     precio: producto.precio,
@@ -506,80 +455,66 @@
                 });
             }
             
-            mostrarProductosPedido();
-            document.getElementById('pedido-producto').value = '';
-            document.getElementById('pedido-cantidad').value = 1;
+            mostrarProductosEnPedido();
+            document.getElementById('pedidoProducto').value = '';
+            document.getElementById('pedidoCantidad').value = 1;
         }
 
-        function mostrarProductosPedido() {
-            const container = document.getElementById('productos-pedido');
+        function mostrarProductosEnPedido() {
+            const container = document.getElementById('productos-en-pedido');
             
-            if (productosPedidoTemp.length === 0) {
-                container.innerHTML = '<div style="color: #666; font-style: italic; padding: 10px;">No hay productos en el pedido</div>';
-                calcularTotal();
+            if (productosEnPedido.length === 0) {
+                container.innerHTML = '<div style="color: #666; padding: 10px;">Sin productos</div>';
+                calcularTotalPedido();
                 return;
             }
             
-            container.innerHTML = productosPedidoTemp.map((item, index) => `
+            container.innerHTML = productosEnPedido.map((item, index) => `
                 <div class="item">
                     <div class="item-header">
-                        <div>${item.cantidad}x ${item.nombre} - $${item.precio.toFixed(2)} c/u</div>
+                        <div>${item.cantidad}x ${item.nombre} - $${item.precio.toFixed(2)}</div>
                         <div>
-                            <span style="font-weight: bold;">$${(item.precio * item.cantidad).toFixed(2)}</span>
-                            <button class="btn btn-danger btn-small" onclick="quitarProducto(${index})">❌</button>
+                            <strong>$${(item.precio * item.cantidad).toFixed(2)}</strong>
+                            <button class="btn btn-danger" onclick="quitarProducto(${index})">❌</button>
                         </div>
                     </div>
                 </div>
             `).join('');
             
-            calcularTotal();
+            calcularTotalPedido();
         }
 
         function quitarProducto(index) {
-            productosPedidoTemp.splice(index, 1);
-            mostrarProductosPedido();
+            productosEnPedido.splice(index, 1);
+            mostrarProductosEnPedido();
         }
 
-        function calcularTotal() {
-            const subtotal = productosPedidoTemp.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-            const envio = parseFloat(document.getElementById('pedido-envio').value) || 0;
-            const total = subtotal + envio;
-            
-            document.getElementById('subtotal').textContent = subtotal.toFixed(2);
-            document.getElementById('envio-display').textContent = envio.toFixed(2);
-            document.getElementById('total').textContent = total.toFixed(2);
+        function calcularTotalPedido() {
+            const subtotal = productosEnPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            const envio = parseFloat(document.getElementById('pedidoEnvio').value) || 0;
+            document.getElementById('totalPedido').textContent = (subtotal + envio).toFixed(2);
         }
 
-        document.getElementById('pedido-envio').addEventListener('change', calcularTotal);
-
-        document.getElementById('pedido-form').addEventListener('submit', function(e) {
-            e.preventDefault();
+        function guardarPedido(event) {
+            event.preventDefault();
             
-            const clienteId = parseInt(document.getElementById('pedido-cliente').value);
-            const fecha = document.getElementById('pedido-fecha').value;
-            const horario = document.getElementById('pedido-horario').value;
-            const envio = parseFloat(document.getElementById('pedido-envio').value) || 0;
-            
-            if (!clienteId || !fecha || !horario) {
-                alert('Completa todos los campos obligatorios');
+            if (productosEnPedido.length === 0) {
+                alert('Agrega productos');
                 return;
             }
             
-            if (productosPedidoTemp.length === 0) {
-                alert('Agrega al menos un producto');
-                return;
-            }
-            
+            const clienteId = parseInt(document.getElementById('pedidoCliente').value);
             const cliente = clientes.find(c => c.id === clienteId);
-            const subtotal = productosPedidoTemp.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            const subtotal = productosEnPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            const envio = parseFloat(document.getElementById('pedidoEnvio').value) || 0;
             
             const pedido = {
                 id: Date.now(),
                 clienteId: clienteId,
                 clienteNombre: cliente.nombre + ' ' + cliente.apellido,
-                fecha: fecha,
-                horario: horario,
-                productos: productosPedidoTemp.slice(),
+                fecha: document.getElementById('pedidoFecha').value,
+                horario: document.getElementById('pedidoHorario').value,
+                productos: productosEnPedido.slice(),
                 subtotal: subtotal,
                 envio: envio,
                 total: subtotal + envio,
@@ -587,126 +522,89 @@
             };
             
             pedidos.push(pedido);
-            localStorage.setItem('pastrami_pedidos', JSON.stringify(pedidos));
+            localStorage.setItem('pastramix_pedidos', JSON.stringify(pedidos));
             mostrarPedidos();
             actualizarSelects();
-            limpiarPedido();
-            alert('Pedido guardado exitosamente');
-        });
+            productosEnPedido = [];
+            mostrarProductosEnPedido();
+            event.target.reset();
+            alert('Pedido guardado');
+        }
 
         function mostrarPedidos() {
-            const lista = document.getElementById('pedidos-lista');
+            const lista = document.getElementById('lista-pedidos');
             
             if (pedidos.length === 0) {
-                lista.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
+                lista.innerHTML = '<div class="no-items">No hay pedidos</div>';
                 return;
             }
             
-            lista.innerHTML = pedidos.map(pedido => {
-                const totalPagado = calcularTotalPagado(pedido.id);
-                const saldo = pedido.total - totalPagado;
-                if (saldo > 0) {
-                    selectPedidos.innerHTML += `<option value="${pedido.id}">Pedido #${pedido.id} - ${pedido.clienteNombre} (Saldo: ${saldo.toFixed(2)})</option>`;
-                }
-            });
-        }
-    </script>
-</body>
-</html>
-                const saldo = pedido.total - totalPagado;
+            lista.innerHTML = pedidos.map(p => {
+                const totalPagado = calcularTotalPagado(p.id);
+                const saldo = p.total - totalPagado;
                 
                 return `
                     <div class="item">
                         <div class="item-header">
-                            <div class="item-title">Pedido #${pedido.id} - ${pedido.clienteNombre}</div>
-                            <div>
-                                ${pedido.estado === 'Pendiente' ? `<button class="btn btn-success btn-small" onclick="entregarPedido(${pedido.id})">✅ Entregar</button>` : ''}
-                                <button class="btn btn-danger btn-small" onclick="eliminarPedido(${pedido.id})">🗑️</button>
-                            </div>
+                            <div><strong>Pedido #${p.id} - ${p.clienteNombre}</strong></div>
+                            <button class="btn btn-danger" onclick="eliminarPedido(${p.id})">🗑️</button>
                         </div>
-                        <div>${pedido.fecha} - ${pedido.horario}</div>
-                        <div>Total: $${pedido.total.toFixed(2)} | Pagado: $${totalPagado.toFixed(2)} | Saldo: $${saldo.toFixed(2)}</div>
-                        <div>Estado: ${pedido.estado}</div>
+                        <div>${p.fecha} - ${p.horario}</div>
+                        <div>Total: $${p.total.toFixed(2)} | Pagado: $${totalPagado.toFixed(2)} | Saldo: $${saldo.toFixed(2)}</div>
+                        <div>Estado: ${p.estado}</div>
                     </div>
                 `;
             }).join('');
         }
 
-        function entregarPedido(id) {
-            if (confirm('¿Marcar como entregado?')) {
-                const pedido = pedidos.find(p => p.id === id);
-                if (pedido) {
-                    pedido.estado = 'Entregado';
-                    localStorage.setItem('pastrami_pedidos', JSON.stringify(pedidos));
-                    mostrarPedidos();
-                }
-            }
-        }
-
         function eliminarPedido(id) {
             if (confirm('¿Eliminar pedido?')) {
                 pedidos = pedidos.filter(p => p.id !== id);
-                localStorage.setItem('pastrami_pedidos', JSON.stringify(pedidos));
+                localStorage.setItem('pastramix_pedidos', JSON.stringify(pedidos));
                 mostrarPedidos();
                 actualizarSelects();
             }
         }
 
-        function limpiarPedido() {
-            document.getElementById('pedido-form').reset();
-            productosPedidoTemp = [];
-            mostrarProductosPedido();
-        }
-
-        // PAGOS
-        document.getElementById('pago-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const pedidoId = parseInt(document.getElementById('pago-pedido').value);
-            const monto = parseFloat(document.getElementById('pago-monto').value);
-            const metodo = document.getElementById('pago-metodo').value;
-            const fecha = document.getElementById('pago-fecha').value;
-            
-            if (!pedidoId || !monto || !metodo || !fecha) {
-                alert('Completa todos los campos');
-                return;
-            }
+        function guardarPago(event) {
+            event.preventDefault();
             
             const pago = {
                 id: Date.now(),
-                pedidoId: pedidoId,
-                monto: monto,
-                metodo: metodo,
-                fecha: fecha
+                pedidoId: parseInt(document.getElementById('pagoPedido').value),
+                monto: parseFloat(document.getElementById('pagoMonto').value),
+                metodo: document.getElementById('pagoMetodo').value,
+                fecha: document.getElementById('pagoFecha').value
             };
             
             pagos.push(pago);
-            localStorage.setItem('pastrami_pagos', JSON.stringify(pagos));
+            localStorage.setItem('pastramix_pagos', JSON.stringify(pagos));
             mostrarPagos();
             mostrarPedidos();
             actualizarSelects();
-            limpiarPago();
-            alert('Pago registrado exitosamente');
-        });
+            event.target.reset();
+            document.getElementById('pagoFecha').value = new Date().toISOString().split('T')[0];
+            alert('Pago registrado');
+        }
 
         function mostrarPagos() {
-            const lista = document.getElementById('pagos-lista');
+            const lista = document.getElementById('lista-pagos');
             
             if (pagos.length === 0) {
-                lista.innerHTML = '<div class="no-items">No hay pagos registrados</div>';
+                lista.innerHTML = '<div class="no-items">No hay pagos</div>';
                 return;
             }
             
-            lista.innerHTML = pagos.map(pago => {
-                const pedido = pedidos.find(p => p.id === pago.pedidoId);
+            lista.innerHTML = pagos.map(p => {
+                const pedido = pedidos.find(ped => ped.id === p.pedidoId);
                 return `
                     <div class="item">
                         <div class="item-header">
-                            <div class="item-title">$${pago.monto.toFixed(2)} - ${pago.metodo}</div>
-                            <button class="btn btn-danger btn-small" onclick="eliminarPago(${pago.id})">🗑️</button>
+                            <div><strong>$${p.monto.toFixed(2)} - ${p.metodo}</strong></div>
+                            <button class="btn btn-danger" onclick="eliminarPago(${p.id})">🗑️</button>
                         </div>
-                        <div>Pedido: #${pago.pedidoId} ${pedido ? '- ' + pedido.clienteNombre : ''}</div>
-                        <div>Fecha: ${pago.fecha}</div>
+                        <div>Pedido: #${p.pedidoId} ${pedido ? '- ' + pedido.clienteNombre : ''}</div>
+                        <div>Fecha: ${p.fecha}</div>
                     </div>
                 `;
             }).join('');
@@ -715,39 +613,48 @@
         function eliminarPago(id) {
             if (confirm('¿Eliminar pago?')) {
                 pagos = pagos.filter(p => p.id !== id);
-                localStorage.setItem('pastrami_pagos', JSON.stringify(pagos));
+                localStorage.setItem('pastramix_pagos', JSON.stringify(pagos));
                 mostrarPagos();
                 mostrarPedidos();
             }
         }
 
-        function limpiarPago() {
-            document.getElementById('pago-form').reset();
-            document.getElementById('pago-fecha').value = new Date().toISOString().split('T')[0];
-        }
-
-        // UTILIDADES
         function calcularTotalPagado(pedidoId) {
             return pagos.filter(p => p.pedidoId === pedidoId).reduce((sum, p) => sum + p.monto, 0);
         }
 
         function actualizarSelects() {
-            // Actualizar select de clientes en pedidos
-            const selectClientes = document.getElementById('pedido-cliente');
+            const selectClientes = document.getElementById('pedidoCliente');
             selectClientes.innerHTML = '<option value="">Seleccionar cliente...</option>';
-            clientes.forEach(cliente => {
-                selectClientes.innerHTML += `<option value="${cliente.id}">${cliente.nombre} ${cliente.apellido}</option>`;
+            clientes.forEach(c => {
+                selectClientes.innerHTML += `<option value="${c.id}">${c.nombre} ${c.apellido}</option>`;
             });
 
-            // Actualizar select de productos en pedidos
-            const selectProductos = document.getElementById('pedido-producto');
+            const selectProductos = document.getElementById('pedidoProducto');
             selectProductos.innerHTML = '<option value="">Seleccionar producto...</option>';
-            productos.forEach(producto => {
-                selectProductos.innerHTML += `<option value="${producto.id}">${producto.id} - ${producto.nombre} ($${producto.precio.toFixed(2)})</option>`;
+            productos.forEach(p => {
+                selectProductos.innerHTML += `<option value="${p.id}">${p.id} - ${p.nombre} ($${p.precio.toFixed(2)})</option>`;
             });
 
-            // Actualizar select de pedidos en pagos
-            const selectPedidos = document.getElementById('pago-pedido');
+            const selectPedidos = document.getElementById('pagoPedido');
             selectPedidos.innerHTML = '<option value="">Seleccionar pedido...</option>';
-            pedidos.forEach(pedido => {
-                const totalPagado = calcularTotalPagado(pedido.id);
+            pedidos.forEach(p => {
+                const totalPagado = calcularTotalPagado(p.id);
+                const saldo = p.total - totalPagado;
+                if (saldo > 0) {
+                    selectPedidos.innerHTML += `<option value="${p.id}">Pedido #${p.id} - ${p.clienteNombre} (Saldo: $${saldo.toFixed(2)})</option>`;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            mostrarClientes();
+            mostrarProductos();
+            mostrarPedidos();
+            mostrarPagos();
+            actualizarSelects();
+            document.getElementById('pagoFecha').value = new Date().toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>
