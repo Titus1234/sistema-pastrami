@@ -1334,12 +1334,13 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             }
         }
 
-        // Función para agregar datos de prueba
+        // Función para agregar datos de prueba INMEDIATAMENTE
         function addTestData() {
             const productosTest = [
                 { id: 'test1', nombre: 'Pastrami Clásico', precio: 15.50, descripcion: 'Delicioso pastrami tradicional' },
                 { id: 'test2', nombre: 'Pastrami Especial', precio: 18.00, descripcion: 'Pastrami gourmet con especias' },
-                { id: 'test3', nombre: 'Sandwich Jamón', precio: 12.00, descripcion: 'Sandwich clásico de jamón' }
+                { id: 'test3', nombre: 'Sandwich Jamón', precio: 12.00, descripcion: 'Sandwich clásico de jamón' },
+                { id: 'test4', nombre: 'Pastrami 200', precio: 22.50, descripcion: 'Pastrami premium' }
             ];
             
             const clientesTest = [
@@ -1355,12 +1356,21 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             mostrarClientes();
             
             mostrarNotificacion('✅ Datos de prueba agregados', 'success');
-            console.log('📦 Datos de prueba agregados:', productosTest.length, 'productos,', clientesTest.length, 'clientes');
+            console.log('📦 Productos agregados:', productos.length);
+            console.log('👥 Clientes agregados:', clientes.length);
         }
 
         // Inicializar la aplicación cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
             init();
+            
+            // AGREGAR DATOS DE PRUEBA AUTOMÁTICAMENTE
+            setTimeout(() => {
+                if (productos.length === 0) {
+                    addTestData();
+                    console.log('🔄 Datos de prueba agregados automáticamente');
+                }
+            }, 500);
             
             // Función global para debug
             window.addTestData = addTestData;
@@ -1376,8 +1386,8 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             };
             
             console.log('🎯 Sistema Pastrami v2.0 cargado correctamente');
-            console.log('🔧 Para agregar datos de prueba: addTestData()');
-            console.log('🔧 Para debug completo: window.debug');
+            console.log('🔧 Para agregar más datos: addTestData()');
+            console.log('🔧 Para debug: window.debug');
         });
     </script>
 </body>
