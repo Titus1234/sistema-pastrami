@@ -559,7 +559,7 @@
             <div class="status-indicator">
                 <div id="status-dot" class="status-dot status-loading"></div>
                 <span id="status-text">Inicializando...</span>
-                <button id="sync-btn" class="sync-btn" onclick="manualSync()">🔄 Sync</button>
+                <button id="sync-btn" class="sync-btn" onclick="window.manualSync()">🔄 Sync</button>
             </div>
         </div>
 
@@ -2083,6 +2083,31 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
         // ========================================
         // 🚀 INICIO DE LA APLICACIÓN
         // ========================================
+        
+        // Exponer funciones globalmente para que sean accesibles desde HTML
+        window.manualSync = manualSync;
+        window.showTab = showTab;
+        window.guardarProducto = guardarProducto;
+        window.editarProducto = editarProducto;
+        window.eliminarProducto = eliminarProducto;
+        window.cancelarProducto = cancelarProducto;
+        window.guardarCliente = guardarCliente;
+        window.editarCliente = editarCliente;
+        window.eliminarCliente = eliminarCliente;
+        window.cancelarCliente = cancelarCliente;
+        window.guardarPedido = guardarPedido;
+        window.cancelarPedido = cancelarPedido;
+        window.seleccionarCliente = seleccionarCliente;
+        window.agregarProductoPedido = agregarProductoPedido;
+        window.cambiarCantidadPedido = cambiarCantidadPedido;
+        window.eliminarProductoPedido = eliminarProductoPedido;
+        window.toggleMontoParcial = toggleMontoParcial;
+        window.marcarPagado = marcarPagado;
+        window.marcarEntregado = marcarEntregado;
+        window.verDetallePedido = verDetallePedido;
+        window.toggleComponentes = toggleComponentes;
+        window.agregarComponente = agregarComponente;
+        window.eliminarComponenteTemp = eliminarComponenteTemp;
         
         // Inicializar cuando se carga la página
         document.addEventListener('DOMContentLoaded', () => {
