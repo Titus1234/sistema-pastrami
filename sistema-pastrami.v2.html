@@ -557,6 +557,79 @@
                     mostrarPedidos(); // Refrescar lista para que desaparezca
                 }, 1000);
             }
+        }
+
+        function mostrarPedidos() {
+            const container = document.getElementById('pedidos-lista');
+            
+            if (pedidos.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
+                return;
+            }
+            
+            // Ordenar por fecha de entrega (más cercano primero)
+            const pedidosOrdenados = [...pedidos]
+                .filter(pedido => !pedido.estado.pagado || !pedido.estado.entregado) // Solo mostrar pendientes
+                .sort((a, b) => {
+                    const fechaA = new Date(a.fechaEntrega);
+                    const fechaB = new Date(b.fechaEntrega);
+                    return fechaA - fechaB;
+                });
+            
+            if (pedidosOrdenados.length === 0) {
+                container.innerHTML = '<div class="no-items">✅ Todos los pedidos están completos</div>';
+                return;
+            }
+            
+            container.innerHTML = pedidosOrdenados.map(pedido => {
+                const fechaEntrega = new Date(pedido.fechaEntrega);
+                const esHoy = fechaEntrega.toDateString() === new Date().toDateString();
+                const esPasado = fechaEntrega < new Date();
+                
+                let fechaClass = '';
+                if (esPasado) fechaClass = 'color: #dc3545; font-weight: bold;';
+                else if (esHoy) fechaClass = 'color: #ffc107; font-weight: bold;';
+                
+                return `<div class="item-card">
+                    <div class="sync-badge ${pedido.synced ? 'synced' : 'pending'}">
+                        ${pedido.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
+                    <div class="item-header">
+                        <div class="item-title">
+                            ${pedido.cliente.nombre} ${pedido.cliente.apellido}
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn ${pedido.estado.pagado ? 'btn-secondary' : 'btn-warning'} btn-small" 
+                                    onclick="togglePagado('${pedido.id}')" 
+                                    ${pedido.estado.pagado ? 'disabled' : ''}>
+                                ${pedido.estado.pagado ? '✅ PAGADO' : '💰 COBRAR'}
+                            </button>
+                            <button class="btn ${pedido.estado.entregado ? 'btn-secondary' : 'btn-primary'} btn-small" 
+                                    onclick="toggleEntregado('${pedido.id}')"
+                                    ${pedido.estado.entregado ? 'disabled' : ''}>
+                                ${pedido.estado.entregado ? '✅ ENTREGADO' : '🚚 ENTREGAR'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="item-details">
+                        <strong>📞 Teléfono:</strong> ${pedido.cliente.telefono}<br>
+                        ${pedido.cliente.direccion ? `<strong>📍 Dirección:</strong> ${pedido.cliente.direccion}<br>` : ''}
+                        <span style="${fechaClass}">
+                            <strong>📅 Entrega:</strong> ${fechaEntrega.toLocaleDateString()} - ${pedido.turno.toUpperCase()}
+                            ${esPasado ? ' (VENCIDO)' : esHoy ? ' (HOY)' : ''}
+                        </span><br>
+                        <strong>🛒 Productos:</strong> ${pedido.productos.map(p => `${p.cantidad}x ${p.nombre}`).join(', ')}<br>
+                        <strong>💰 Total:</strong> ${pedido.total.toFixed(2)} | 
+                        <strong>Pagado:</strong> ${pedido.montoPagado.toFixed(2)}
+                        ${pedido.saldoPendiente > 0 ? ` | <span style="color: #dc3545;"><strong>Saldo:</strong> ${pedido.saldoPendiente.toFixed(2)}</span>` : ''}
+                        <br>
+                        <strong>💳 Método:</strong> ${getMetodoPagoDisplay(pedido.metodoPago)}
+                        <br><small><strong>Creado:</strong> ${formatDate(pedido.fechaCreacion)}</small>
+                    </div>
+                </div>`;
+            }).join('');
         }<!DOCTYPE html>
 <html lang="es">
 <head>
