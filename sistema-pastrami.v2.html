@@ -488,7 +488,7 @@
             <div class="status-indicator">
                 <div class="status-dot"></div>
                 <span>Sistema Offline</span>
-                <button class="sync-btn" onclick="syncSystem()">🔄 Sync</button>
+                <button class="sync-btn" onclick="window.syncSystem()">🔄 Sync</button>
             </div>
         </div>
 
@@ -497,16 +497,16 @@
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="showTab('productos', this)">📦 Productos</button>
-            <button class="tab" onclick="showTab('clientes', this)">👥 Clientes</button>
-            <button class="tab" onclick="showTab('pedidos', this)">🛒 Pedidos</button>
+            <button class="tab active" onclick="window.showTab('productos', this)">📦 Productos</button>
+            <button class="tab" onclick="window.showTab('clientes', this)">👥 Clientes</button>
+            <button class="tab" onclick="window.showTab('pedidos', this)">🛒 Pedidos</button>
         </div>
 
         <!-- TAB PRODUCTOS -->
         <div id="productos" class="tab-content active">
             <h2>📦 Gestión de Productos</h2>
             
-            <form onsubmit="guardarProducto(event)">
+            <form onsubmit="window.guardarProducto(event)">
                 <div class="form-row">
                     <div class="form-col">
                         <label>Nombre del Producto <span class="required">*</span>:</label>
@@ -520,6 +520,17 @@
 
                 <div class="form-row">
                     <div class="form-col">
+                        <label>Stock Inicial <span class="required">*</span>:</label>
+                        <input type="number" id="producto-stock-inicial" min="0" required>
+                    </div>
+                    <div class="form-col">
+                        <label>Stock Mínimo <span class="required">*</span>:</label>
+                        <input type="number" id="producto-stock-minimo" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
                         <label>Descripción:</label>
                         <input type="text" id="producto-descripcion" placeholder="Descripción opcional">
                     </div>
@@ -527,7 +538,7 @@
 
                 <div style="margin-top: 20px;">
                     <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
-                    <button type="button" class="btn btn-secondary" onclick="cancelarProducto()">❌ Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.cancelarProducto()">❌ Cancelar</button>
                 </div>
             </form>
 
@@ -543,7 +554,7 @@
         <div id="clientes" class="tab-content">
             <h2>👥 Gestión de Clientes</h2>
             
-            <form onsubmit="guardarCliente(event)">
+            <form onsubmit="window.guardarCliente(event)">
                 <div class="form-row">
                     <div class="form-col">
                         <label>Nombre <span class="required">*</span>:</label>
@@ -575,7 +586,7 @@
 
                 <div style="margin-top: 20px;">
                     <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
-                    <button type="button" class="btn btn-secondary" onclick="cancelarCliente()">❌ Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.cancelarCliente()">❌ Cancelar</button>
                 </div>
             </form>
 
@@ -591,7 +602,7 @@
         <div id="pedidos" class="tab-content">
             <h2>🛒 Gestión de Pedidos</h2>
             
-            <form onsubmit="guardarPedido(event)">
+            <form onsubmit="window.guardarPedido(event)">
                 <div class="form-row">
                     <div class="form-col">
                         <label>Cliente <span class="required">*</span>:</label>
@@ -619,7 +630,7 @@
                 <div class="form-row">
                     <div class="form-col">
                         <label>Costo de Envío:</label>
-                        <input type="number" id="pedido-costo-envio" placeholder="0.00" step="0.01" min="0" onchange="calcularTotales()">
+                        <input type="number" id="pedido-costo-envio" placeholder="0.00" step="0.01" min="0" onchange="window.calcularTotales()">
                     </div>
                 </div>
 
@@ -658,7 +669,7 @@
                 <div class="form-row">
                     <div class="form-col">
                         <label>Opción de Pago <span class="required">*</span>:</label>
-                        <select id="pedido-opcion-pago" onchange="toggleMontoParcial()" required>
+                        <select id="pedido-opcion-pago" onchange="window.toggleMontoParcial()" required>
                             <option value="">Seleccionar opción</option>
                             <option value="total">Total</option>
                             <option value="parcial">Parcial</option>
@@ -683,7 +694,7 @@
 
                 <div style="margin-top: 20px;">
                     <button type="submit" class="btn btn-primary">💾 Guardar Pedido</button>
-                    <button type="button" class="btn btn-secondary" onclick="cancelarPedido()">❌ Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.cancelarPedido()">❌ Cancelar</button>
                 </div>
             </form>
 
@@ -708,12 +719,50 @@
         let productosSeleccionados = [];
         let clienteSeleccionado = null;
 
-        // Cargar datos al inicio
-        function init() {
-            cargarDatos();
-            configurarAutocompletado();
-            establecerFechaMinima();
-            mostrarNotificacion('✅ Sistema iniciado correctamente', 'success');
+        // EXPONER FUNCIONES GLOBALMENTE DESDE EL INICIO
+        window.showTab = showTab;
+        window.syncSystem = syncSystem;
+        window.guardarProducto = guardarProducto;
+        window.editarProducto = editarProducto;
+        window.eliminarProducto = eliminarProducto;
+        window.cancelarProducto = cancelarProducto;
+        window.guardarCliente = guardarCliente;
+        window.editarCliente = editarCliente;
+        window.eliminarCliente = eliminarCliente;
+        window.cancelarCliente = cancelarCliente;
+        window.guardarPedido = guardarPedido;
+        window.cancelarPedido = cancelarPedido;
+        window.seleccionarCliente = seleccionarCliente;
+        window.agregarProductoPedido = agregarProductoPedido;
+        window.cambiarCantidadPedido = cambiarCantidadPedido;
+        window.eliminarProductoPedido = eliminarProductoPedido;
+        window.calcularTotales = calcularTotales;
+        window.toggleMontoParcial = toggleMontoParcial;
+        window.marcarPagado = marcarPagado;
+        window.marcarEntregado = marcarEntregado;
+        window.verDetallePedido = verDetallePedido;
+
+        function syncSystem() {
+            mostrarNotificacion('🔄 Sistema sincronizado', 'info');
+        }
+
+        function showTab(tabName, tabElement) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            tabElement.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = `notification ${tipo}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
 
         function cargarDatos() {
@@ -738,39 +787,18 @@
             localStorage.setItem('pedidos', JSON.stringify(pedidos));
         }
 
-        function mostrarNotificacion(mensaje, tipo = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = mensaje;
-            notification.className = `notification ${tipo}`;
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        function syncSystem() {
-            mostrarNotificacion('🔄 Sistema sincronizado', 'info');
-        }
-
-        function showTab(tabName, tabElement) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            tabElement.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
-        }
-
         // PRODUCTOS
         function guardarProducto(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('producto-nombre').value.trim();
             const precio = parseFloat(document.getElementById('producto-precio').value);
+            const stockInicial = parseInt(document.getElementById('producto-stock-inicial').value);
+            const stockMinimo = parseInt(document.getElementById('producto-stock-minimo').value);
             const descripcion = document.getElementById('producto-descripcion').value.trim();
             
-            if (!nombre || !precio) {
-                mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
+            if (!nombre || !precio || isNaN(stockInicial) || isNaN(stockMinimo)) {
+                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
                 return;
             }
             
@@ -778,6 +806,9 @@
                 id: editandoProductoId || Date.now().toString(),
                 nombre,
                 precio,
+                stockInicial,
+                stockActual: stockInicial,
+                stockMinimo,
                 descripcion
             };
             
@@ -802,6 +833,8 @@
             editandoProductoId = id;
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-precio').value = producto.precio;
+            document.getElementById('producto-stock-inicial').value = producto.stockInicial || 0;
+            document.getElementById('producto-stock-minimo').value = producto.stockMinimo || 0;
             document.getElementById('producto-descripcion').value = producto.descripcion || '';
         }
 
@@ -834,12 +867,13 @@
                     <div class="item-header">
                         <div class="item-title">${producto.nombre}</div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editarProducto('${producto.id}')">✏️ Editar</button>
-                            <button class="btn btn-danger btn-small" onclick="eliminarProducto('${producto.id}')">🗑️ Eliminar</button>
+                            <button class="btn btn-warning btn-small" onclick="window.editarProducto('${producto.id}')">✏️ Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="window.eliminarProducto('${producto.id}')">🗑️ Eliminar</button>
                         </div>
                     </div>
                     <div class="item-details">
-                        <strong>Precio:</strong> $${producto.precio.toFixed(2)}
+                        <strong>Precio:</strong> $${producto.precio.toFixed(2)} | 
+                        <strong>Stock:</strong> ${producto.stockActual || 0}/${producto.stockInicial || 0}
                         ${producto.descripcion ? `<br><strong>Descripción:</strong> ${producto.descripcion}` : ''}
                     </div>
                 </div>
@@ -925,8 +959,8 @@
                     <div class="item-header">
                         <div class="item-title">${cliente.nombre} ${cliente.apellido}</div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editarCliente('${cliente.id}')">✏️ Editar</button>
-                            <button class="btn btn-danger btn-small" onclick="eliminarCliente('${cliente.id}')">🗑️ Eliminar</button>
+                            <button class="btn btn-warning btn-small" onclick="window.editarCliente('${cliente.id}')">✏️ Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="window.eliminarCliente('${cliente.id}')">🗑️ Eliminar</button>
                         </div>
                     </div>
                     <div class="item-details">
@@ -944,74 +978,78 @@
             const clienteInput = document.getElementById('pedido-cliente');
             const clienteSuggestions = document.getElementById('cliente-suggestions');
 
-            clienteInput.addEventListener('input', function() {
-                const query = this.value.toLowerCase().trim();
-                
-                if (query.length < 1) {
-                    clienteSuggestions.style.display = 'none';
-                    clienteSeleccionado = null;
-                    return;
-                }
+            if (clienteInput) {
+                clienteInput.addEventListener('input', function() {
+                    const query = this.value.toLowerCase().trim();
+                    
+                    if (query.length < 1) {
+                        clienteSuggestions.style.display = 'none';
+                        clienteSeleccionado = null;
+                        return;
+                    }
 
-                const clientesFiltrados = clientes.filter(cliente => {
-                    const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`.toLowerCase();
-                    return nombreCompleto.includes(query) || cliente.telefono.includes(query);
+                    const clientesFiltrados = clientes.filter(cliente => {
+                        const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`.toLowerCase();
+                        return nombreCompleto.includes(query) || cliente.telefono.includes(query);
+                    });
+
+                    if (clientesFiltrados.length === 0) {
+                        clienteSuggestions.style.display = 'none';
+                        return;
+                    }
+
+                    clienteSuggestions.innerHTML = clientesFiltrados.map(cliente => 
+                        `<div class="suggestion-item" onclick="window.seleccionarCliente('${cliente.id}')">
+                            ${cliente.nombre} ${cliente.apellido} - ${cliente.telefono}
+                        </div>`
+                    ).join('');
+                    
+                    clienteSuggestions.style.display = 'block';
                 });
-
-                if (clientesFiltrados.length === 0) {
-                    clienteSuggestions.style.display = 'none';
-                    return;
-                }
-
-                clienteSuggestions.innerHTML = clientesFiltrados.map(cliente => 
-                    `<div class="suggestion-item" onclick="seleccionarCliente('${cliente.id}')">
-                        ${cliente.nombre} ${cliente.apellido} - ${cliente.telefono}
-                    </div>`
-                ).join('');
-                
-                clienteSuggestions.style.display = 'block';
-            });
+            }
 
             // Autocompletado de productos
             const productoInput = document.getElementById('pedido-producto');
             const productoSuggestions = document.getElementById('producto-suggestions');
 
-            productoInput.addEventListener('input', function() {
-                const query = this.value.toLowerCase().trim();
-                
-                console.log('🔍 Buscando productos:', query, '- Total productos:', productos.length);
-                
-                if (query.length < 1) {
-                    productoSuggestions.style.display = 'none';
-                    return;
-                }
+            if (productoInput) {
+                productoInput.addEventListener('input', function() {
+                    const query = this.value.toLowerCase().trim();
+                    
+                    console.log('🔍 Buscando productos:', query, '- Total productos:', productos.length);
+                    
+                    if (query.length < 1) {
+                        productoSuggestions.style.display = 'none';
+                        return;
+                    }
 
-                const productosFiltrados = productos.filter(producto => 
-                    producto.nombre.toLowerCase().includes(query)
-                );
+                    const productosFiltrados = productos.filter(producto => 
+                        producto.nombre.toLowerCase().includes(query)
+                    );
 
-                console.log('✅ Productos encontrados:', productosFiltrados.length);
+                    console.log('✅ Productos encontrados:', productosFiltrados.length);
 
-                if (productosFiltrados.length === 0) {
-                    productoSuggestions.style.display = 'none';
-                    return;
-                }
+                    if (productosFiltrados.length === 0) {
+                        productoSuggestions.style.display = 'none';
+                        return;
+                    }
 
-                productoSuggestions.innerHTML = productosFiltrados.map(producto => 
-                    `<div class="suggestion-item" onclick="agregarProductoPedido('${producto.id}')">
-                        ${producto.nombre} - ${producto.precio.toFixed(2)}
-                    </div>`
-                ).join('');
-                
-                productoSuggestions.style.display = 'block';
-            });
+                    productoSuggestions.innerHTML = productosFiltrados.map(producto => 
+                        `<div class="suggestion-item" onclick="window.agregarProductoPedido('${producto.id}')">
+                            ${producto.nombre} - ${producto.precio.toFixed(2)}
+                        </div>`
+                    ).join('');
+                    
+                    productoSuggestions.style.display = 'block';
+                });
+            }
 
             // Ocultar sugerencias al hacer click fuera
             document.addEventListener('click', function(e) {
-                if (!clienteInput.contains(e.target) && !clienteSuggestions.contains(e.target)) {
+                if (clienteInput && clienteSuggestions && !clienteInput.contains(e.target) && !clienteSuggestions.contains(e.target)) {
                     clienteSuggestions.style.display = 'none';
                 }
-                if (!productoInput.contains(e.target) && !productoSuggestions.contains(e.target)) {
+                if (productoInput && productoSuggestions && !productoInput.contains(e.target) && !productoSuggestions.contains(e.target)) {
                     productoSuggestions.style.display = 'none';
                 }
             });
@@ -1026,12 +1064,13 @@
         }
 
         function agregarProductoPedido(productoId) {
-            console.log('🛒 Agregando producto:', productoId);
+            console.log('🛒 Intentando agregar producto ID:', productoId);
+            console.log('📦 Productos disponibles:', productos.map(p => `${p.id}: ${p.nombre} - ${p.precio}`));
             
             const producto = productos.find(p => p.id === productoId);
             
             if (!producto) {
-                console.error('❌ Producto no encontrado:', productoId);
+                console.error('❌ Producto no encontrado con ID:', productoId);
                 mostrarNotificacion('❌ Producto no encontrado', 'error');
                 return;
             }
@@ -1041,15 +1080,16 @@
             const existente = productosSeleccionados.find(p => p.id === productoId);
             if (existente) {
                 existente.cantidad++;
-                console.log('📊 Cantidad actualizada:', existente.cantidad);
+                console.log('📊 Cantidad actualizada a:', existente.cantidad);
             } else {
-                productosSeleccionados.push({
+                const nuevoProducto = {
                     id: producto.id,
                     nombre: producto.nombre,
-                    precio: producto.precio,
+                    precio: parseFloat(producto.precio),
                     cantidad: 1
-                });
-                console.log('➕ Producto agregado nuevo');
+                };
+                productosSeleccionados.push(nuevoProducto);
+                console.log('➕ Producto agregado:', nuevoProducto);
             }
 
             document.getElementById('pedido-producto').value = '';
@@ -1058,7 +1098,7 @@
             mostrarProductosPedido();
             calcularTotales();
             
-            console.log('🔄 Productos en pedido:', productosSeleccionados);
+            console.log('🔄 Estado actual productos seleccionados:', productosSeleccionados);
         }
 
         function mostrarProductosPedido() {
@@ -1074,11 +1114,11 @@
                     <div>${producto.nombre}</div>
                     <div>
                         <input type="number" value="${producto.cantidad}" min="1" 
-                               onchange="cambiarCantidadPedido('${producto.id}', this.value)">
+                               onchange="window.cambiarCantidadPedido('${producto.id}', this.value)">
                     </div>
                     <div>${producto.precio.toFixed(2)}</div>
                     <div>
-                        <button class="btn btn-danger btn-small" onclick="eliminarProductoPedido('${producto.id}')">
+                        <button class="btn btn-danger btn-small" onclick="window.eliminarProductoPedido('${producto.id}')">
                             🗑️
                         </button>
                     </div>
@@ -1103,24 +1143,35 @@
         }
 
         function calcularTotales() {
-            console.log('💰 Calculando totales...');
+            console.log('💰 === CALCULANDO TOTALES ===');
+            console.log('📦 Productos seleccionados:', productosSeleccionados);
             
-            const subtotal = productosSeleccionados.reduce((total, producto) => {
+            let subtotal = 0;
+            
+            productosSeleccionados.forEach((producto, index) => {
                 const precio = parseFloat(producto.precio) || 0;
                 const cantidad = parseInt(producto.cantidad) || 0;
                 const subtotalProducto = precio * cantidad;
-                console.log(`📊 ${producto.nombre}: ${precio} x ${cantidad} = ${subtotalProducto}`);
-                return total + subtotalProducto;
-            }, 0);
+                
+                console.log(`${index + 1}. ${producto.nombre}: ${precio} x ${cantidad} = ${subtotalProducto}`);
+                subtotal += subtotalProducto;
+            });
             
-            const costoEnvio = parseFloat(document.getElementById('pedido-costo-envio').value) || 0;
+            const costoEnvioInput = document.getElementById('pedido-costo-envio');
+            const costoEnvio = costoEnvioInput ? (parseFloat(costoEnvioInput.value) || 0) : 0;
             const totalCompra = subtotal + costoEnvio;
 
-            console.log(`💵 Subtotal: ${subtotal}, Envío: ${costoEnvio}, Total: ${totalCompra}`);
+            console.log(`💵 RESUMEN: Subtotal: ${subtotal}, Envío: ${costoEnvio}, TOTAL: ${totalCompra}`);
 
-            document.getElementById('subtotal-productos').textContent = `${subtotal.toFixed(2)}`;
-            document.getElementById('total-envio').textContent = `${costoEnvio.toFixed(2)}`;
-            document.getElementById('total-compra').textContent = `${totalCompra.toFixed(2)}`;
+            const subtotalElement = document.getElementById('subtotal-productos');
+            const envioElement = document.getElementById('total-envio');
+            const totalElement = document.getElementById('total-compra');
+            
+            if (subtotalElement) subtotalElement.textContent = `${subtotal.toFixed(2)}`;
+            if (envioElement) envioElement.textContent = `${costoEnvio.toFixed(2)}`;
+            if (totalElement) totalElement.textContent = `${totalCompra.toFixed(2)}`;
+            
+            console.log('✅ Totales actualizados en pantalla');
         }
 
         function toggleMontoParcial() {
@@ -1253,16 +1304,16 @@
                     
                     <div class="pedido-actions">
                         ${pedido.estadoPago !== 'pagado' ? 
-                            `<button class="btn btn-success btn-small" onclick="marcarPagado('${pedido.id}')">
+                            `<button class="btn btn-success btn-small" onclick="window.marcarPagado('${pedido.id}')">
                                 💰 MARCAR PAGADO
                             </button>` : ''
                         }
                         ${pedido.estadoEntrega !== 'entregado' ? 
-                            `<button class="btn btn-warning btn-small" onclick="marcarEntregado('${pedido.id}')">
+                            `<button class="btn btn-warning btn-small" onclick="window.marcarEntregado('${pedido.id}')">
                                 🚚 MARCAR ENTREGADO
                             </button>` : ''
                         }
-                        <button class="btn btn-primary btn-small" onclick="verDetallePedido('${pedido.id}')">
+                        <button class="btn btn-primary btn-small" onclick="window.verDetallePedido('${pedido.id}')">
                             👁️ VER DETALLE
                         </button>
                     </div>
@@ -1326,21 +1377,12 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             alert(detalle);
         }
 
-        function establecerFechaMinima() {
-            const fechaInput = document.getElementById('pedido-fecha-entrega');
-            if (fechaInput) {
-                const hoy = new Date().toISOString().split('T')[0];
-                fechaInput.min = hoy;
-            }
-        }
-
-        // Función para agregar datos de prueba INMEDIATAMENTE
         function addTestData() {
             const productosTest = [
-                { id: 'test1', nombre: 'Pastrami Clásico', precio: 15.50, descripcion: 'Delicioso pastrami tradicional' },
-                { id: 'test2', nombre: 'Pastrami Especial', precio: 18.00, descripcion: 'Pastrami gourmet con especias' },
-                { id: 'test3', nombre: 'Sandwich Jamón', precio: 12.00, descripcion: 'Sandwich clásico de jamón' },
-                { id: 'test4', nombre: 'Pastrami 200', precio: 22.50, descripcion: 'Pastrami premium' }
+                { id: 'test1', nombre: 'Pastrami Clásico', precio: 15.50, stockInicial: 100, stockActual: 100, stockMinimo: 10, descripcion: 'Delicioso pastrami tradicional' },
+                { id: 'test2', nombre: 'Pastrami Especial', precio: 18.00, stockInicial: 50, stockActual: 50, stockMinimo: 5, descripcion: 'Pastrami gourmet con especias' },
+                { id: 'test3', nombre: 'Sandwich Jamón', precio: 12.00, stockInicial: 80, stockActual: 80, stockMinimo: 8, descripcion: 'Sandwich clásico de jamón' },
+                { id: 'test4', nombre: 'Pastrami 200', precio: 22.50, stockInicial: 30, stockActual: 30, stockMinimo: 3, descripcion: 'Pastrami premium' }
             ];
             
             const clientesTest = [
@@ -1360,45 +1402,26 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             console.log('👥 Clientes agregados:', clientes.length);
         }
 
-        // Inicializar la aplicación cuando se carga la página
+        function establecerFechaMinima() {
+            const fechaInput = document.getElementById('pedido-fecha-entrega');
+            if (fechaInput) {
+                const hoy = new Date().toISOString().split('T')[0];
+                fechaInput.min = hoy;
+            }
+        }
+
+        // Inicializar cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
-            init();
+            cargarDatos();
+            configurarAutocompletado();
+            establecerFechaMinima();
             
-            // AGREGAR DATOS DE PRUEBA AUTOMÁTICAMENTE
-            setTimeout(() => {
-                if (productos.length === 0) {
-                    addTestData();
-                    console.log('🔄 Datos de prueba agregados automáticamente');
-                }
-            }, 500);
+            // Agregar datos de prueba si no hay ninguno
+            if (productos.length === 0) {
+                addTestData();
+            }
             
-            // EXPONER FUNCIONES GLOBALMENTE
-            window.showTab = showTab;
-            window.syncSystem = syncSystem;
-            window.guardarProducto = guardarProducto;
-            window.editarProducto = editarProducto;
-            window.eliminarProducto = eliminarProducto;
-            window.cancelarProducto = cancelarProducto;
-            window.guardarCliente = guardarCliente;
-            window.editarCliente = editarCliente;
-            window.eliminarCliente = eliminarCliente;
-            window.cancelarCliente = cancelarCliente;
-            window.guardarPedido = guardarPedido;
-            window.cancelarPedido = cancelarPedido;
-            window.seleccionarCliente = seleccionarCliente;
-            window.agregarProductoPedido = agregarProductoPedido;
-            window.cambiarCantidadPedido = cambiarCantidadPedido;
-            window.eliminarProductoPedido = eliminarProductoPedido;
-            window.calcularTotales = calcularTotales;
-            window.toggleMontoParcial = toggleMontoParcial;
-            window.marcarPagado = marcarPagado;
-            window.marcarEntregado = marcarEntregado;
-            window.verDetallePedido = verDetallePedido;
             window.addTestData = addTestData;
-            
-            console.log('✅ Todas las funciones expuestas globalmente');
-            
-            // Función global para debug
             window.debug = {
                 productos: () => productos,
                 clientes: () => clientes,
@@ -1410,8 +1433,8 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
                 }
             };
             
+            mostrarNotificacion('✅ Sistema iniciado correctamente', 'success');
             console.log('🎯 Sistema Pastrami v2.0 cargado correctamente');
-            console.log('🔧 Para agregar más datos: addTestData()');
             console.log('🔧 Para debug: window.debug');
         });
     </script>
