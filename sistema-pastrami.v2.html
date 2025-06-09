@@ -1,4 +1,563 @@
-<!DOCTYPE html>
+// ========================================
+        // 🛠️ FUNCIONES DE PEDIDOS - EL SISTEMA ÉPICO
+        // ========================================
+        
+        function buscarClientes(query) {
+            const container = document.getElementById('clientes-suggestions');
+            
+            if (!query || query.length < 2) {
+                container.classList.remove('show');
+                return;
+            }
+            
+            const clientesFiltrados = clientes.filter(cliente => {
+                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`.toLowerCase();
+                const telefono = cliente.telefono;
+                return nombreCompleto.includes(query.toLowerCase()) || 
+                       telefono.includes(query);
+            });
+            
+            if (clientesFiltrados.length === 0) {
+                container.innerHTML = '<div class="suggestion-item">No se encontraron clientes</div>';
+            } else {
+                container.innerHTML = clientesFiltrados.map((cliente, index) => `
+                    <div class="suggestion-item" onclick="seleccionarCliente('${cliente.id}')" data-index="${index}">
+                        <strong>${cliente.nombre} ${cliente.apellido}</strong><br>
+                        <small>📞 ${cliente.telefono}</small>
+                    </div>
+                `).join('');
+            }
+            
+            sugerenciasActivas = 'clientes';
+            indiceSugerencia = -1;
+            container.classList.add('show');
+        }
+
+        function buscarProductos(query) {
+            const container = document.getElementById('productos-suggestions');
+            
+            if (!query || query.length < 2) {
+                container.classList.remove('show');
+                return;
+            }
+            
+            const productosFiltrados = productos.filter(producto => {
+                return producto.nombre.toLowerCase().includes(query.toLowerCase()) &&
+                       (producto.stockActual || 0) > 0; // Solo productos con stock
+            });
+            
+            if (productosFiltrados.length === 0) {
+                container.innerHTML = '<div class="suggestion-item">No hay productos disponibles</div>';
+            } else {
+                container.innerHTML = productosFiltrados.map((producto, index) => {
+                    const stock = producto.stockActual || 0;
+                    const stockClass = stock <= (producto.stockMinimo || 0) ? 'stock-warning' : 'stock-ok';
+                    
+                    return `
+                    <div class="suggestion-item" onclick="seleccionarProducto('${producto.id}')" data-index="${index}">
+                        <strong>${producto.nombre}</strong> - ${producto.precio?.toFixed(2)}<br>
+                        <small class="${stockClass}">Stock: ${stock} unidades</small>
+                    </div>
+                `;
+                }).join('');
+            }
+            
+            sugerenciasActivas = 'productos';
+            indiceSugerencia = -1;
+            container.classList.add('show');
+        }
+
+        function navegarSugerencias(event, tipo) {
+            if (!sugerenciasActivas || sugerenciasActivas !== tipo) return;
+            
+            const container = document.getElementById(`${tipo}-suggestions`);
+            const items = container.querySelectorAll('.suggestion-item');
+            
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                indiceSugerencia = Math.min(indiceSugerencia + 1, items.length - 1);
+                actualizarSeleccionSugerencia(items);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                indiceSugerencia = Math.max(indiceSugerencia - 1, -1);
+                actualizarSeleccionSugerencia(items);
+            } else if (event.key === 'Enter' && indiceSugerencia >= 0) {
+                event.preventDefault();
+                items[indiceSugerencia].click();
+            } else if (event.key === 'Escape') {
+                container.classList.remove('show');
+                sugerenciasActivas = null;
+                indiceSugerencia = -1;
+            }
+        }
+
+        function actualizarSeleccionSugerencia(items) {
+            items.forEach((item, index) => {
+                item.classList.toggle('selected', index === indiceSugerencia);
+            });
+        }
+
+        function seleccionarCliente(clienteId) {
+            const cliente = clientes.find(c => c.id === clienteId);
+            if (!cliente) return;
+            
+            clienteSeleccionado = cliente;
+            document.getElementById('pedido-cliente').value = `${cliente.nombre} ${cliente.apellido}`;
+            document.getElementById('cliente-seleccionado-id').value = clienteId;
+            document.getElementById('clientes-suggestions').classList.remove('show');
+            
+            sugerenciasActivas = null;
+            indiceSugerencia = -1;
+        }
+
+        function seleccionarProducto(productoId) {
+            const producto = productos.find(p => p.id === productoId);
+            if (!producto) return;
+            
+            document.getElementById('pedido-producto').value = producto.nombre;
+            document.getElementById('productos-suggestions').classList.remove('show');
+            
+            // Enfocar en la cantidad
+            document.getElementById('pedido-cantidad').focus();
+            document.getElementById('pedido-cantidad').select();
+            
+            sugerenciasActivas = null;
+            indiceSugerencia = -1;
+            
+            // Guardar el producto seleccionado temporalmente
+            window.productoTemporal = producto;
+        }
+
+        function agregarProductoAlCarrito() {
+            const productoInput = document.getElementById('pedido-producto').value;
+            const cantidad = parseInt(document.getElementById('pedido-cantidad').value);
+            
+            if (!window.productoTemporal || !cantidad || cantidad < 1) {
+                mostrarNotificacion('❌ Seleccione un producto y cantidad válida', 'error');
+                return;
+            }
+            
+            const producto = window.productoTemporal;
+            const stockDisponible = producto.stockActual || 0;
+            
+            // Verificar stock disponible
+            const cantidadEnCarrito = carritoActual
+                .filter(item => item.producto.id === producto.id)
+                .reduce((total, item) => total + item.cantidad, 0);
+            
+            if (cantidadEnCarrito + cantidad > stockDisponible) {
+                mostrarNotificacion(`❌ Stock insuficiente. Disponible: ${stockDisponible - cantidadEnCarrito}`, 'error');
+                return;
+            }
+            
+            // Verificar si el producto ya está en el carrito
+            const itemExistente = carritoActual.find(item => item.producto.id === producto.id);
+            
+            if (itemExistente) {
+                itemExistente.cantidad += cantidad;
+            } else {
+                carritoActual.push({
+                    producto: { ...producto },
+                    cantidad: cantidad,
+                    precioUnitario: producto.precio
+                });
+            }
+            
+            // Limpiar campos
+            document.getElementById('pedido-producto').value = '';
+            document.getElementById('pedido-cantidad').value = '1';
+            window.productoTemporal = null;
+            
+            // Actualizar vista del carrito
+            mostrarCarrito();
+            calcularTotal();
+            
+            mostrarNotificacion(`✅ ${producto.nombre} agregado al pedido`, 'success');
+        }
+
+        function mostrarCarrito() {
+            const container = document.getElementById('carrito-items');
+            
+            if (carritoActual.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">No hay productos en el pedido</div>';
+                return;
+            }
+            
+            container.innerHTML = carritoActual.map((item, index) => `
+                <div class="carrito-item">
+                    <div class="carrito-item-info">
+                        <strong>${item.producto.nombre}</strong><br>
+                        <small>Precio: ${item.precioUnitario.toFixed(2)} | Subtotal: ${(item.cantidad * item.precioUnitario).toFixed(2)}</small>
+                    </div>
+                    <div class="carrito-item-actions">
+                        <input type="number" class="cantidad-input" min="1" 
+                               value="${item.cantidad}" 
+                               onchange="actualizarCantidadCarrito(${index}, this.value)"
+                               max="${item.producto.stockActual || 0}">
+                        <button type="button" class="btn btn-danger btn-small" onclick="eliminarDelCarrito(${index})">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function actualizarCantidadCarrito(index, nuevaCantidad) {
+            const cantidad = parseInt(nuevaCantidad);
+            const item = carritoActual[index];
+            
+            if (!cantidad || cantidad < 1) {
+                eliminarDelCarrito(index);
+                return;
+            }
+            
+            const stockDisponible = item.producto.stockActual || 0;
+            if (cantidad > stockDisponible) {
+                mostrarNotificacion(`❌ Stock máximo: ${stockDisponible}`, 'error');
+                mostrarCarrito(); // Restaurar valor anterior
+                return;
+            }
+            
+            item.cantidad = cantidad;
+            mostrarCarrito();
+            calcularTotal();
+        }
+
+        function eliminarDelCarrito(index) {
+            carritoActual.splice(index, 1);
+            mostrarCarrito();
+            calcularTotal();
+        }
+
+        function calcularTotal() {
+            const subtotal = carritoActual.reduce((total, item) => {
+                return total + (item.cantidad * item.precioUnitario);
+            }, 0);
+            
+            const envio = parseFloat(document.getElementById('pedido-envio').value) || 0;
+            const total = subtotal + envio;
+            
+            document.getElementById('subtotal-productos').textContent = `${subtotal.toFixed(2)}`;
+            document.getElementById('costo-envio-display').textContent = `${envio.toFixed(2)}`;
+            document.getElementById('total-compra').textContent = `${total.toFixed(2)}`;
+        }
+
+        function toggleMontoPagado() {
+            const tipoPago = document.getElementById('pedido-pago-tipo').value;
+            const container = document.getElementById('monto-pagado-container');
+            const montoInput = document.getElementById('pedido-monto-pagado');
+            
+            if (tipoPago === 'parcial') {
+                container.style.display = 'block';
+                montoInput.required = true;
+            } else {
+                container.style.display = 'none';
+                montoInput.required = false;
+                montoInput.value = '';
+            }
+        }
+
+        function guardarPedido(event) {
+            event.preventDefault();
+            
+            if (!clienteSeleccionado) {
+                mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
+                return;
+            }
+            
+            if (carritoActual.length === 0) {
+                mostrarNotificacion('❌ Debe agregar al menos un producto', 'error');
+                return;
+            }
+            
+            const tipoPago = document.getElementById('pedido-pago-tipo').value;
+            const metodoPago = document.getElementById('pedido-metodo-pago').value;
+            const fechaEntrega = document.getElementById('pedido-fecha-entrega').value;
+            const turno = document.getElementById('pedido-turno').value;
+            const costoEnvio = parseFloat(document.getElementById('pedido-envio').value) || 0;
+            
+            if (!tipoPago || !metodoPago || !fechaEntrega || !turno) {
+                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
+                return;
+            }
+            
+            const subtotal = carritoActual.reduce((total, item) => total + (item.cantidad * item.precioUnitario), 0);
+            const total = subtotal + costoEnvio;
+            
+            let montoPagado = 0;
+            if (tipoPago === 'total') {
+                montoPagado = total;
+            } else {
+                montoPagado = parseFloat(document.getElementById('pedido-monto-pagado').value) || 0;
+                if (montoPagado <= 0 || montoPagado > total) {
+                    mostrarNotificacion('❌ Monto pagado inválido', 'error');
+                    return;
+                }
+            }
+            
+            const pedido = {
+                cliente: {
+                    id: clienteSeleccionado.id,
+                    nombre: clienteSeleccionado.nombre,
+                    apellido: clienteSeleccionado.apellido,
+                    telefono: clienteSeleccionado.telefono,
+                    direccion: construirDireccionCompleta(clienteSeleccionado)
+                },
+                productos: carritoActual.map(item => ({
+                    id: item.producto.id,
+                    nombre: item.producto.nombre,
+                    cantidad: item.cantidad,
+                    precioUnitario: item.precioUnitario,
+                    subtotal: item.cantidad * item.precioUnitario
+                })),
+                subtotal: subtotal,
+                costoEnvio: costoEnvio,
+                total: total,
+                tipoPago: tipoPago,
+                metodoPago: metodoPago,
+                montoPagado: montoPagado,
+                saldoPendiente: total - montoPagado,
+                fechaEntrega: fechaEntrega,
+                turno: turno,
+                estado: {
+                    pagado: montoPagado >= total,
+                    entregado: false
+                },
+                fechaCreacion: firebase.firestore.Timestamp.now(),
+                fechaModificacion: firebase.firestore.Timestamp.now()
+            };
+            
+            if (isFirebaseConnected) {
+                // Actualizar stock de productos primero
+                const actualizacionesStock = carritoActual.map(item => {
+                    const nuevoStock = (item.producto.stockActual || 0) - item.cantidad;
+                    return db.collection('productos').doc(item.producto.id).update({
+                        stockActual: Math.max(0, nuevoStock),
+                        fechaModificacion: firebase.firestore.Timestamp.now()
+                    });
+                });
+                
+                Promise.all(actualizacionesStock).then(() => {
+                    // Crear el pedido
+                    return db.collection('pedidos').add(pedido);
+                }).then(() => {
+                    mostrarNotificacion(`✅ Pedido creado para ${clienteSeleccionado.nombre}`, 'success');
+                    limpiarFormularioPedido();
+                }).catch(error => {
+                    console.error('Error creando pedido:', error);
+                    mostrarNotificacion('❌ Error creando pedido', 'error');
+                });
+            } else {
+                // Modo offline
+                pedido.id = Date.now().toString();
+                pedido.synced = false;
+                pedidos.push(pedido);
+                
+                // Actualizar stock local
+                carritoActual.forEach(item => {
+                    const producto = productos.find(p => p.id === item.producto.id);
+                    if (producto) {
+                        producto.stockActual = Math.max(0, (producto.stockActual || 0) - item.cantidad);
+                        producto.synced = false;
+                    }
+                });
+                
+                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                
+                mostrarPedidos();
+                mostrarProductos();
+                mostrarNotificacion(`💾 Pedido guardado localmente`, 'warning');
+                limpiarFormularioPedido();
+            }
+        }
+
+        function construirDireccionCompleta(cliente) {
+            let direccion = '';
+            if (cliente.direccion || cliente.numero) {
+                direccion = `${cliente.direccion || ''} ${cliente.numero || ''}`.trim();
+                if (cliente.piso) direccion += `, Piso ${cliente.piso}`;
+                if (cliente.departamento) direccion += `, Dto ${cliente.departamento}`;
+                if (cliente.ciudad) direccion += `, ${cliente.ciudad}`;
+            }
+            return direccion;
+        }
+
+        function limpiarFormularioPedido() {
+            document.getElementById('pedidos-form').reset();
+            clienteSeleccionado = null;
+            carritoActual = [];
+            window.productoTemporal = null;
+            
+            document.getElementById('cliente-seleccionado-id').value = '';
+            document.getElementById('monto-pagado-container').style.display = 'none';
+            
+            mostrarCarrito();
+            calcularTotal();
+            
+            // Establecer fecha mínima como hoy
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('pedido-fecha-entrega').min = hoy;
+        }
+
+        function cancelarPedido() {
+            limpiarFormularioPedido();
+        }
+
+        function mostrarPedidos() {
+            const container = document.getElementById('pedidos-lista');
+            
+            if (pedidos.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
+                return;
+            }
+            
+            // Ordenar por fecha de entrega (más cercano primero)
+            const pedidosOrdenados = [...pedidos]
+                .filter(pedido => !pedido.estado.pagado || !pedido.estado.entregado) // Solo mostrar pendientes
+                .sort((a, b) => {
+                    const fechaA = new Date(a.fechaEntrega);
+                    const fechaB = new Date(b.fechaEntrega);
+                    return fechaA - fechaB;
+                });
+            
+            if (pedidosOrdenados.length === 0) {
+                container.innerHTML = '<div class="no-items">✅ Todos los pedidos están completos</div>';
+                return;
+            }
+            
+            container.innerHTML = pedidosOrdenados.map(pedido => {
+                const fechaEntrega = new Date(pedido.fechaEntrega);
+                const esHoy = fechaEntrega.toDateString() === new Date().toDateString();
+                const esPasado = fechaEntrega < new Date();
+                
+                let fechaClass = '';
+                if (esPasado) fechaClass = 'color: #dc3545; font-weight: bold;';
+                else if (esHoy) fechaClass = 'color: #ffc107; font-weight: bold;';
+                
+                return `
+                <div class="item-card">
+                    <div class="sync-badge ${pedido.synced ? 'synced' : 'pending'}">
+                        ${pedido.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
+                    <div class="item-header">
+                        <div class="item-title">
+                            ${pedido.cliente.nombre} ${pedido.cliente.apellido}
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn ${pedido.estado.pagado ? 'btn-secondary' : 'btn-warning'} btn-small" 
+                                    onclick="togglePagado('${pedido.id}')" 
+                                    ${pedido.estado.pagado ? 'disabled' : ''}>
+                                ${pedido.estado.pagado ? '✅ PAGADO' : '💰 COBRAR'}
+                            </button>
+                            <button class="btn ${pedido.estado.entregado ? 'btn-secondary' : 'btn-primary'} btn-small" 
+                                    onclick="toggleEntregado('${pedido.id}')"
+                                    ${pedido.estado.entregado ? 'disabled' : ''}>
+                                ${pedido.estado.entregado ? '✅ ENTREGADO' : '🚚 ENTREGAR'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="item-details">
+                        <strong>📞 Teléfono:</strong> ${pedido.cliente.telefono}<br>
+                        ${pedido.cliente.direccion ? `<strong>📍 Dirección:</strong> ${pedido.cliente.direccion}<br>` : ''}
+                        <span style="${fechaClass}">
+                            <strong>📅 Entrega:</strong> ${fechaEntrega.toLocaleDateString()} - ${pedido.turno.toUpperCase()}
+                            ${esPasado ? ' (VENCIDO)' : esHoy ? ' (HOY)' : ''}
+                        </span><br>
+                        <strong>🛒 Productos:</strong> ${pedido.productos.map(p => `${p.cantidad}x ${p.nombre}`).join(', ')}<br>
+                        <strong>💰 Total:</strong> ${pedido.total.toFixed(2)} | 
+                        <strong>Pagado:</strong> ${pedido.montoPagado.toFixed(2)}
+                        ${pedido.saldoPendiente > 0 ? ` | <span style="color: #dc3545;"><strong>Saldo:</strong> ${pedido.saldoPendiente.toFixed(2)}</span>` : ''}
+                        <br>
+                        <strong>💳 Método:</strong> ${getMetodoPagoDisplay(pedido.metodoPago)}
+                        <br><small><strong>Creado:</strong> ${formatDate(pedido.fechaCreacion)}</small>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        function getMetodoPagoDisplay(metodo) {
+            const metodos = {
+                'efectivo': '💵 Efectivo',
+                'transferencia': '🏦 Transferencia',
+                'mercadopago': '💳 MercadoPago'
+            };
+            return metodos[metodo] || metodo;
+        }
+
+        function togglePagado(pedidoId) {
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido || pedido.estado.pagado) return;
+            
+            if (!confirm(`¿Marcar como PAGADO el pedido de ${pedido.cliente.nombre}?`)) return;
+            
+            pedido.estado.pagado = true;
+            pedido.montoPagado = pedido.total;
+            pedido.saldoPendiente = 0;
+            pedido.fechaModificacion = firebase.firestore.Timestamp.now();
+            
+            if (isFirebaseConnected) {
+                db.collection('pedidos').doc(pedidoId).update({
+                    'estado.pagado': true,
+                    montoPagado: pedido.total,
+                    saldoPendiente: 0,
+                    fechaModificacion: firebase.firestore.Timestamp.now()
+                }).then(() => {
+                    mostrarNotificacion('✅ Pedido marcado como PAGADO', 'success');
+                    verificarPedidoCompleto(pedido);
+                }).catch(error => {
+                    console.error('Error actualizando pedido:', error);
+                    mostrarNotificacion('❌ Error actualizando pedido', 'error');
+                });
+            } else {
+                pedido.synced = false;
+                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
+                mostrarPedidos();
+                mostrarNotificacion('💾 Estado guardado localmente', 'warning');
+                verificarPedidoCompleto(pedido);
+            }
+        }
+
+        function toggleEntregado(pedidoId) {
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido || pedido.estado.entregado) return;
+            
+            if (!confirm(`¿Marcar como ENTREGADO el pedido de ${pedido.cliente.nombre}?`)) return;
+            
+            pedido.estado.entregado = true;
+            pedido.fechaModificacion = firebase.firestore.Timestamp.now();
+            
+            if (isFirebaseConnected) {
+                db.collection('pedidos').doc(pedidoId).update({
+                    'estado.entregado': true,
+                    fechaModificacion: firebase.firestore.Timestamp.now()
+                }).then(() => {
+                    mostrarNotificacion('✅ Pedido marcado como ENTREGADO', 'success');
+                    verificarPedidoCompleto(pedido);
+                }).catch(error => {
+                    console.error('Error actualizando pedido:', error);
+                    mostrarNotificacion('❌ Error actualizando pedido', 'error');
+                });
+            } else {
+                pedido.synced = false;
+                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
+                mostrarPedidos();
+                mostrarNotificacion('💾 Estado guardado localmente', 'warning');
+                verificarPedidoCompleto(pedido);
+            }
+        }
+
+        function verificarPedidoCompleto(pedido) {
+            if (pedido.estado.pagado && pedido.estado.entregado) {
+                setTimeout(() => {
+                    mostrarNotificacion(`🎉 Pedido de ${pedido.cliente.nombre} completado!`, 'success');
+                    mostrarPedidos(); // Refrescar lista para que desaparezca
+                }, 1000);
+            }
+        }<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -314,12 +873,116 @@
             color: #721c24;
         }
 
-        .no-items {
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-suggestions.show {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item.selected {
+            background-color: #ff6b6b;
+            color: white;
+        }
+
+        .carrito-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .carrito-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .carrito-item-info {
+            flex: 1;
+        }
+
+        .carrito-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cantidad-input {
+            width: 60px;
+            padding: 5px;
             text-align: center;
-            color: #6c757d;
-            font-style: italic;
-            padding: 40px;
-            font-size: 1.1em;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .resumen-pedido {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .resumen-linea {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .resumen-total {
+            border-top: 2px solid rgba(255,255,255,0.3);
+            padding-top: 10px;
+            margin-top: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .stock-warning {
+            color: #dc3545;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .stock-ok {
+            color: #28a745;
+            font-size: 12px;
         }
 
         /* NOTIFICACIONES */
@@ -411,6 +1074,7 @@
         <div class="tabs">
             <button class="tab active" onclick="showTab('productos', this)">📦 Productos</button>
             <button class="tab" onclick="showTab('clientes', this)">👥 Clientes</button>
+            <button class="tab" onclick="showTab('pedidos', this)">🥪 Pedidos</button>
         </div>
 
         <!-- TAB PRODUCTOS -->
@@ -553,6 +1217,137 @@
                 </div>
             </div>
         </div>
+
+        <!-- TAB PEDIDOS -->
+        <div id="pedidos" class="tab-content">
+            <h2>🥪 Gestión de Pedidos</h2>
+            
+            <form id="pedidos-form" onsubmit="guardarPedido(event)">
+                <!-- CLIENTE -->
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="pedido-cliente">Cliente <span class="required">*</span>:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="pedido-cliente" placeholder="Buscar cliente..." 
+                                   oninput="buscarClientes(this.value)" onkeydown="navegarSugerencias(event, 'clientes')" required>
+                            <div id="clientes-suggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                        <input type="hidden" id="cliente-seleccionado-id">
+                    </div>
+                </div>
+
+                <!-- PRODUCTOS -->
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="pedido-producto">Agregar Producto:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="pedido-producto" placeholder="Buscar producto..." 
+                                   oninput="buscarProductos(this.value)" onkeydown="navegarSugerencias(event, 'productos')">
+                            <div id="productos-suggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                    </div>
+                    <div class="form-col" style="flex: 0.3;">
+                        <label for="pedido-cantidad">Cantidad:</label>
+                        <input type="number" id="pedido-cantidad" min="1" value="1" placeholder="Cant.">
+                    </div>
+                    <div class="form-col" style="flex: 0.3;">
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-primary" onclick="agregarProductoAlCarrito()">
+                            ➕ Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CARRITO -->
+                <div class="carrito-container">
+                    <h3>🛒 Productos del Pedido</h3>
+                    <div id="carrito-items">
+                        <div style="text-align: center; color: #6c757d; padding: 20px;">
+                            No hay productos en el pedido
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DETALLES DEL PEDIDO -->
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="pedido-envio">Costo de Envío:</label>
+                        <input type="number" id="pedido-envio" step="0.01" min="0" value="0" 
+                               oninput="calcularTotal()" placeholder="0.00">
+                    </div>
+                    <div class="form-col">
+                        <label for="pedido-pago-tipo">Opción de Pago <span class="required">*</span>:</label>
+                        <select id="pedido-pago-tipo" required onchange="toggleMontoPagado()">
+                            <option value="">Seleccionar...</option>
+                            <option value="total">Pago Total</option>
+                            <option value="parcial">Pago Parcial</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="pedido-metodo-pago">Pagado con <span class="required">*</span>:</label>
+                        <select id="pedido-metodo-pago" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="efectivo">💵 Efectivo</option>
+                            <option value="transferencia">🏦 Transferencia Bancaria</option>
+                            <option value="mercadopago">💳 MercadoPago</option>
+                        </select>
+                    </div>
+                    <div class="form-col" id="monto-pagado-container" style="display: none;">
+                        <label for="pedido-monto-pagado">Monto Pagado:</label>
+                        <input type="number" id="pedido-monto-pagado" step="0.01" min="0" 
+                               placeholder="Ingrese monto pagado">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="pedido-fecha-entrega">Fecha de Entrega <span class="required">*</span>:</label>
+                        <input type="date" id="pedido-fecha-entrega" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="pedido-turno">Turno Horario <span class="required">*</span>:</label>
+                        <select id="pedido-turno" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="mañana">🌅 Mañana</option>
+                            <option value="tarde">🌆 Tarde</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- RESUMEN -->
+                <div class="resumen-pedido">
+                    <h3>💰 Resumen del Pedido</h3>
+                    <div class="resumen-linea">
+                        <span>Subtotal Productos:</span>
+                        <span id="subtotal-productos">$0.00</span>
+                    </div>
+                    <div class="resumen-linea">
+                        <span>Costo de Envío:</span>
+                        <span id="costo-envio-display">$0.00</span>
+                    </div>
+                    <div class="resumen-linea resumen-total">
+                        <span>Total de la Compra:</span>
+                        <span id="total-compra">$0.00</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">💾 Crear Pedido</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelarPedido()">❌ Cancelar</button>
+                </div>
+            </form>
+
+            <!-- LISTA DE PEDIDOS -->
+            <div class="items-container">
+                <h3>📋 Lista de Pedidos</h3>
+                <div id="pedidos-lista">
+                    <div class="no-items">Cargando pedidos...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Notificaciones -->
@@ -583,9 +1378,15 @@
         let isFirebaseConnected = false;
         let productos = [];
         let clientes = [];
+        let pedidos = [];
         let editandoProductoId = null;
         let editandoClienteId = null;
+        let editandoPedidoId = null;
         let componentesTemp = [];
+        let carritoActual = [];
+        let clienteSeleccionado = null;
+        let sugerenciasActivas = null;
+        let indiceSugerencia = -1;
 
         // ========================================
         // 🚀 INICIALIZACIÓN
@@ -662,9 +1463,9 @@
                     synced: true
                 }));
                 
-                // Cargar clientes
-                const clientesSnapshot = await db.collection('clientes').get();
-                clientes = clientesSnapshot.docs.map(doc => ({
+                // Cargar pedidos
+                const pedidosSnapshot = await db.collection('pedidos').get();
+                pedidos = pedidosSnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
                     synced: true
@@ -673,12 +1474,14 @@
                 // Guardar backup local
                 localStorage.setItem('productos_backup', JSON.stringify(productos));
                 localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
                 
                 // Mostrar datos
                 mostrarProductos();
                 mostrarClientes();
+                mostrarPedidos();
                 
-                console.log(`✅ Cargados ${productos.length} productos y ${clientes.length} clientes`);
+                console.log(`✅ Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos`);
                 
             } catch (error) {
                 console.error('❌ Error cargando desde Firebase:', error);
@@ -754,6 +1557,37 @@
                     mostrarClientes();
                 });
                 
+                // Listener para pedidos
+                db.collection('pedidos').onSnapshot((snapshot) => {
+                    console.log('📥 Actualización de pedidos recibida');
+                    
+                    snapshot.docChanges().forEach((change) => {
+                        const pedido = { 
+                            id: change.doc.id, 
+                            ...change.doc.data(),
+                            synced: true
+                        };
+                        
+                        if (change.type === 'added') {
+                            const exists = pedidos.find(p => p.id === pedido.id);
+                            if (!exists) {
+                                pedidos.push(pedido);
+                                mostrarNotificacion(`➕ Nuevo pedido recibido`, 'success');
+                            }
+                        } else if (change.type === 'modified') {
+                            const index = pedidos.findIndex(p => p.id === pedido.id);
+                            if (index >= 0) {
+                                pedidos[index] = pedido;
+                            }
+                        } else if (change.type === 'removed') {
+                            pedidos = pedidos.filter(p => p.id !== pedido.id);
+                        }
+                    });
+                    
+                    localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
+                    mostrarPedidos();
+                });
+                
                 console.log('✅ Listeners en tiempo real configurados');
                 
             } catch (error) {
@@ -765,18 +1599,22 @@
             try {
                 productos = JSON.parse(localStorage.getItem('productos_backup') || '[]');
                 clientes = JSON.parse(localStorage.getItem('clientes_backup') || '[]');
+                pedidos = JSON.parse(localStorage.getItem('pedidos_backup') || '[]');
                 
                 mostrarProductos();
                 mostrarClientes();
+                mostrarPedidos();
                 
-                console.log(`📂 Cargados ${productos.length} productos y ${clientes.length} clientes locales`);
+                console.log(`📂 Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos locales`);
                 
             } catch (error) {
                 console.error('❌ Error cargando datos locales:', error);
                 productos = [];
                 clientes = [];
+                pedidos = [];
                 mostrarProductos();
                 mostrarClientes();
+                mostrarPedidos();
             }
         }
 
@@ -1298,6 +2136,24 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🎯 Iniciando Sistema Pastrami v2.0...');
             
+            // Configurar fecha mínima para entrega (hoy)
+            const hoy = new Date().toISOString().split('T')[0];
+            const fechaEntregaInput = document.getElementById('pedido-fecha-entrega');
+            if (fechaEntregaInput) {
+                fechaEntregaInput.min = hoy;
+            }
+            
+            // Cerrar sugerencias al hacer click fuera
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.autocomplete-container')) {
+                    document.querySelectorAll('.autocomplete-suggestions').forEach(container => {
+                        container.classList.remove('show');
+                    });
+                    sugerenciasActivas = null;
+                    indiceSugerencia = -1;
+                }
+            });
+            
             // Verificar que Firebase esté disponible
             if (typeof firebase !== 'undefined') {
                 console.log('✅ Firebase SDK detectado');
@@ -1314,16 +2170,30 @@
         window.debug = {
             productos: () => productos,
             clientes: () => clientes,
+            pedidos: () => pedidos,
+            carrito: () => carritoActual,
+            clienteSeleccionado: () => clienteSeleccionado,
             firebase: () => ({ app, db, connected: isFirebaseConnected }),
             clearLocal: () => {
                 localStorage.clear();
                 location.reload();
             },
-            testConnection: testFirebaseConnection
+            testConnection: testFirebaseConnection,
+            simularPedido: () => {
+                // Función para testing rápido
+                if (clientes.length > 0 && productos.length > 0) {
+                    seleccionarCliente(clientes[0].id);
+                    window.productoTemporal = productos[0];
+                    document.getElementById('pedido-cantidad').value = '1';
+                    agregarProductoAlCarrito();
+                    console.log('🧪 Pedido de prueba creado');
+                }
+            }
         };
 
-        console.log('🎯 Sistema Pastrami v2.0 cargado - Versión Completa y Corregida');
+        console.log('🎯 Sistema Pastrami v2.0 + PEDIDOS cargado - Versión Épica Completa');
         console.log('🔧 Para debug: window.debug');
+        console.log('🧪 Para testing: window.debug.simularPedido()');
         
     </script>
 </body>
