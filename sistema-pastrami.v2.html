@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Pastrami v3.0 - LIMPIO</title>
+    <title>Sistema Pastrami - STANDALONE</title>
     <style>
         * {
             margin: 0;
@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
@@ -32,13 +32,11 @@
             color: white;
             padding: 30px;
             text-align: center;
-            position: relative;
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         .tabs {
@@ -52,7 +50,6 @@
             text-align: center;
             background: #e9ecef;
             cursor: pointer;
-            transition: all 0.3s ease;
             font-weight: 600;
             font-size: 1.1em;
             border: none;
@@ -60,7 +57,6 @@
 
         .tab:hover {
             background: #dee2e6;
-            transform: translateY(-2px);
         }
 
         .tab.active {
@@ -100,13 +96,12 @@
             color: #dc3545;
         }
 
-        input, select, textarea {
+        input, select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e9ecef;
             border-radius: 8px;
             font-size: 16px;
-            transition: border-color 0.3s ease;
         }
 
         input:focus, select:focus {
@@ -121,17 +116,12 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
             margin-right: 10px;
         }
 
         .btn-primary {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
         }
 
         .btn-secondary {
@@ -245,9 +235,55 @@
             background: #007bff;
         }
 
+        .item-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .item-title {
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 flex-direction: column;
+            }
+            
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
             }
         }
     </style>
@@ -255,8 +291,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🥪 Sistema Pastrami v3.0</h1>
-            <p>Versión LIMPIA y FUNCIONAL</p>
+            <h1>🥪 Sistema Pastrami</h1>
+            <p>Versión STANDALONE - Sin dependencias externas</p>
         </div>
 
         <div class="tabs">
@@ -420,7 +456,7 @@
     <div id="notification" class="notification"></div>
 
     <script>
-        // Variables globales SIMPLES
+        // Variables globales
         let productos = [];
         let clientes = [];
         let pedidos = [];
@@ -476,8 +512,14 @@
                 const stock = producto.stockActual || 0;
                 const stockClass = stock <= producto.stockMinimo ? 'color: red' : 'color: green';
                 
-                html += '<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">';
-                html += '<h4>' + producto.nombre + '</h4>';
+                html += '<div class="item-card">';
+                html += '<div class="item-header">';
+                html += '<div class="item-title">' + producto.nombre + '</div>';
+                html += '<div class="item-actions">';
+                html += '<button class="btn btn-warning btn-small" onclick="editarProducto(\'' + producto.id + '\')">✏️ Editar</button>';
+                html += '<button class="btn btn-danger btn-small" onclick="eliminarProducto(\'' + producto.id + '\')">🗑️ Eliminar</button>';
+                html += '</div>';
+                html += '</div>';
                 html += '<p>Precio: $' + producto.precio.toFixed(2) + '</p>';
                 html += '<p style="' + stockClass + '">Stock: ' + stock + ' unidades</p>';
                 html += '<p>Stock Mínimo: ' + producto.stockMinimo + '</p>';
@@ -485,6 +527,25 @@
             });
             
             container.innerHTML = html;
+        }
+
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+            
+            document.getElementById('producto-nombre').value = producto.nombre;
+            document.getElementById('producto-precio').value = producto.precio;
+            document.getElementById('producto-stock-inicial').value = producto.stockInicial;
+            document.getElementById('producto-stock-minimo').value = producto.stockMinimo;
+        }
+
+        function eliminarProducto(id) {
+            if (!confirm('¿Eliminar este producto?')) return;
+            
+            productos = productos.filter(p => p.id !== id);
+            guardarEnStorage();
+            mostrarProductos();
+            mostrarNotificacion('🗑️ Producto eliminado', 'success');
         }
 
         function limpiarFormProducto() {
@@ -535,8 +596,14 @@
             
             let html = '';
             clientes.forEach(cliente => {
-                html += '<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">';
-                html += '<h4>' + cliente.nombre + ' ' + cliente.apellido + '</h4>';
+                html += '<div class="item-card">';
+                html += '<div class="item-header">';
+                html += '<div class="item-title">' + cliente.nombre + ' ' + cliente.apellido + '</div>';
+                html += '<div class="item-actions">';
+                html += '<button class="btn btn-warning btn-small" onclick="editarCliente(\'' + cliente.id + '\')">✏️ Editar</button>';
+                html += '<button class="btn btn-danger btn-small" onclick="eliminarCliente(\'' + cliente.id + '\')">🗑️ Eliminar</button>';
+                html += '</div>';
+                html += '</div>';
                 html += '<p>📞 ' + cliente.telefono + '</p>';
                 if (cliente.direccion) {
                     html += '<p>📍 ' + cliente.direccion + '</p>';
@@ -547,12 +614,31 @@
             container.innerHTML = html;
         }
 
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            document.getElementById('cliente-nombre').value = cliente.nombre;
+            document.getElementById('cliente-apellido').value = cliente.apellido;
+            document.getElementById('cliente-telefono').value = cliente.telefono;
+            document.getElementById('cliente-direccion').value = cliente.direccion || '';
+        }
+
+        function eliminarCliente(id) {
+            if (!confirm('¿Eliminar este cliente?')) return;
+            
+            clientes = clientes.filter(c => c.id !== id);
+            guardarEnStorage();
+            mostrarClientes();
+            mostrarNotificacion('🗑️ Cliente eliminado', 'success');
+        }
+
         function limpiarFormCliente() {
             document.getElementById('clientes-form').reset();
         }
 
         // ========================================
-        // FUNCIONES DE PEDIDOS - VERSION SIMPLE
+        // FUNCIONES DE PEDIDOS
         // ========================================
         
         function buscarClientes(query) {
@@ -753,6 +839,14 @@
                 fechaCreacion: new Date()
             };
             
+            const pedido = {
+                id: Date.now().toString(),
+                cliente: JSON.parse(JSON.stringify(clienteSeleccionado)),
+                productos: JSON.parse(JSON.stringify(carrito)),
+                total: total,
+                fechaCreacion: new Date()
+            };
+            
             pedidos.push(pedido);
             
             // Actualizar stock
@@ -781,22 +875,36 @@
             
             let html = '';
             pedidos.forEach(pedido => {
-                html += '<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">';
-                html += '<h4>Pedido #' + pedido.id + '</h4>';
+                html += '<div class="item-card">';
+                html += '<div class="item-header">';
+                html += '<div class="item-title">Pedido #' + pedido.id + '</div>';
+                html += '<div class="item-actions">';
+                html += '<button class="btn btn-danger btn-small" onclick="eliminarPedido(\'' + pedido.id + '\')">🗑️ Eliminar</button>';
+                html += '</div>';
+                html += '</div>';
                 html += '<p><strong>Cliente:</strong> ' + pedido.cliente.nombre + ' ' + pedido.cliente.apellido + '</p>';
                 html += '<p><strong>Teléfono:</strong> ' + pedido.cliente.telefono + '</p>';
                 html += '<p><strong>Productos:</strong></p>';
                 html += '<ul>';
                 pedido.productos.forEach(item => {
-                    html += '<li>' + item.cantidad + 'x ' + item.producto.nombre + ' - $' + (item.producto.precio * item.cantidad).toFixed(2) + '</li>';
+                    html += '<li>' + item.cantidad + 'x ' + item.producto.nombre + ' -  + (item.producto.precio * item.cantidad).toFixed(2) + '</li>';
                 });
                 html += '</ul>';
-                html += '<p><strong>Total: $' + pedido.total.toFixed(2) + '</strong></p>';
+                html += '<p><strong>Total:  + pedido.total.toFixed(2) + '</strong></p>';
                 html += '<p><small>Fecha: ' + new Date(pedido.fechaCreacion).toLocaleString() + '</small></p>';
                 html += '</div>';
             });
             
             container.innerHTML = html;
+        }
+
+        function eliminarPedido(id) {
+            if (!confirm('¿Eliminar este pedido?')) return;
+            
+            pedidos = pedidos.filter(p => p.id !== id);
+            guardarEnStorage();
+            mostrarPedidos();
+            mostrarNotificacion('🗑️ Pedido eliminado', 'success');
         }
 
         function limpiarFormPedido() {
@@ -884,7 +992,7 @@
 
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Sistema Pastrami v3.0 - LIMPIO iniciado');
+            console.log('🚀 Sistema Pastrami STANDALONE iniciado');
             cargarDeStorage();
             
             // Debug para testing
@@ -896,11 +1004,58 @@
                 limpiarTodo: () => {
                     localStorage.clear();
                     location.reload();
+                },
+                crearDatosPrueba: () => {
+                    // Productos de prueba
+                    productos.push({
+                        id: '1',
+                        nombre: 'Pastrami Clásico',
+                        precio: 850,
+                        stockActual: 20,
+                        stockInicial: 20,
+                        stockMinimo: 5,
+                        fechaCreacion: new Date()
+                    });
+                    
+                    productos.push({
+                        id: '2',
+                        nombre: 'Pastrami Especial',
+                        precio: 950,
+                        stockActual: 15,
+                        stockInicial: 15,
+                        stockMinimo: 3,
+                        fechaCreacion: new Date()
+                    });
+                    
+                    // Clientes de prueba
+                    clientes.push({
+                        id: '1',
+                        nombre: 'Juan',
+                        apellido: 'Pérez',
+                        telefono: '11-1234-5678',
+                        direccion: 'Av. Corrientes 1234',
+                        fechaCreacion: new Date()
+                    });
+                    
+                    clientes.push({
+                        id: '2',
+                        nombre: 'María',
+                        apellido: 'García',
+                        telefono: '11-8765-4321',
+                        direccion: 'Av. Santa Fe 5678',
+                        fechaCreacion: new Date()
+                    });
+                    
+                    guardarEnStorage();
+                    mostrarProductos();
+                    mostrarClientes();
+                    console.log('✅ Datos de prueba creados');
                 }
             };
             
             console.log('✅ Sistema listo para usar');
             console.log('🔧 Para debug: window.debug');
+            console.log('🧪 Para crear datos de prueba: window.debug.crearDatosPrueba()');
         });
 
     </script>
