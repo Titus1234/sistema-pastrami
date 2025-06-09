@@ -863,6 +863,289 @@
         let clienteSeleccionado = null;
 
         // ========================================
+        // 🛠️ FUNCIONES PRINCIPALES (DEFINIDAS PRIMERO)
+        // ========================================
+
+        function manualSync() {
+            console.log('🔄 Sync manual iniciado');
+            if (!isFirebaseConnected) {
+                console.log('🔄 Intentando reconectar a Firebase...');
+                updateStatus('loading', 'Reconectando...');
+                mostrarNotificacion('🔄 Intentando reconectar...', 'info');
+                
+                // Reintentar conexión
+                setTimeout(async () => {
+                    try {
+                        await testFirebaseConnection();
+                        if (isFirebaseConnected) {
+                            mostrarNotificacion('✅ Reconectado exitosamente', 'success');
+                        }
+                    } catch (error) {
+                        console.error('Error en reconexión:', error);
+                        mostrarNotificacion('❌ No se pudo reconectar', 'error');
+                        updateStatus('offline', 'Sin conexión');
+                    }
+                }, 1000);
+                return;
+            }
+            
+            updateStatus('loading', 'Sincronizando...');
+            
+            setTimeout(async () => {
+                try {
+                    await cargarDatosDesdeFirebase();
+                    mostrarNotificacion('🔄 Sincronización manual completada', 'success');
+                } catch (error) {
+                    console.error('Error en sincronización manual:', error);
+                    mostrarNotificacion('❌ Error en sincronización', 'error');
+                    updateStatus('offline', 'Error sync');
+                }
+            }, 1000);
+        }
+
+        function showTab(tabName, tabElement) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            tabElement.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function updateStatus(status, text) {
+            const dot = document.getElementById('status-dot');
+            const textEl = document.getElementById('status-text');
+            
+            if (dot) dot.className = `status-dot status-${status}`;
+            if (textEl) textEl.textContent = text;
+        }
+
+        function updateFirebaseStatus(type, message) {
+            const statusEl = document.getElementById('firebase-status');
+            if (statusEl) {
+                statusEl.className = `firebase-status ${type}`;
+                statusEl.textContent = message;
+            }
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            if (notification) {
+                notification.textContent = mensaje;
+                notification.className = `notification ${tipo}`;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 4000);
+            }
+        }
+
+        function formatDate(dateField) {
+            if (!dateField) return 'Sin fecha';
+            
+            try {
+                if (dateField.toDate) {
+                    return dateField.toDate().toLocaleDateString();
+                } else if (dateField.seconds) {
+                    return new Date(dateField.seconds * 1000).toLocaleDateString();
+                } else {
+                    return new Date(dateField).toLocaleDateString();
+                }
+            } catch (error) {
+                return 'Fecha inválida';
+            }
+        }
+
+        function cargarDatosLocales() {
+            try {
+                productos = JSON.parse(localStorage.getItem('productos_backup') || '[]');
+                clientes = JSON.parse(localStorage.getItem('clientes_backup') || '[]');
+                pedidos = JSON.parse(localStorage.getItem('pedidos_backup') || '[]');
+                
+                mostrarProductos();
+                mostrarClientes();
+                mostrarPedidos();
+                
+                console.log(`📂 Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos locales`);
+                
+            } catch (error) {
+                console.error('❌ Error cargando datos locales:', error);
+                productos = [];
+                clientes = [];
+                pedidos = [];
+                mostrarProductos();
+                mostrarClientes();
+                mostrarPedidos();
+            }
+        }
+
+        function mostrarProductos() {
+            const container = document.getElementById('productos-lista');
+            
+            if (!container) return;
+            
+            if (productos.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay productos registrados</div>';
+                return;
+            }
+            
+            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            container.innerHTML = productosOrdenados.map(producto => `
+                <div class="item-card">
+                    <div class="sync-badge ${producto.synced ? 'synced' : 'pending'}">
+                        ${producto.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
+                    <div class="item-header">
+                        <div class="item-title">${producto.nombre}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="window.editarProducto('${producto.id}')">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="window.eliminarProducto('${producto.id}')">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="item-details">
+                        <strong>Precio:</strong> ${producto.precio?.toFixed(2)} | 
+                        <strong>Tipo:</strong> ${producto.tipo || 'Simple'}
+                        ${producto.descripcion ? `<br><strong>Descripción:</strong> ${producto.descripcion}` : ''}
+                        <br><small><strong>Creado:</strong> ${formatDate(producto.fechaCreacion)}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function mostrarClientes() {
+            const container = document.getElementById('clientes-lista');
+            
+            if (!container) return;
+            
+            if (clientes.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
+                return;
+            }
+            
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            container.innerHTML = clientesOrdenados.map(cliente => {
+                // Construir dirección completa
+                let direccionCompleta = '';
+                if (cliente.direccion || cliente.numero) {
+                    direccionCompleta = `${cliente.direccion || ''} ${cliente.numero || ''}`.trim();
+                    if (cliente.piso) direccionCompleta += `, Piso ${cliente.piso}`;
+                    if (cliente.departamento) direccionCompleta += `, Dto ${cliente.departamento}`;
+                    if (cliente.ciudad) direccionCompleta += `, ${cliente.ciudad}`;
+                }
+                
+                return `
+                <div class="item-card">
+                    <div class="sync-badge ${cliente.synced ? 'synced' : 'pending'}">
+                        ${cliente.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
+                    <div class="item-header">
+                        <div class="item-title">${cliente.nombre} ${cliente.apellido}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-warning btn-small" onclick="window.editarCliente('${cliente.id}')">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="window.eliminarCliente('${cliente.id}')">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="item-details">
+                        <strong>Teléfono:</strong> ${cliente.telefono}
+                        ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
+                        <br>
+                        ${direccionCompleta ? `<strong>Dirección:</strong> ${direccionCompleta}<br>` : ''}
+                        <small><strong>Registrado:</strong> ${formatDate(cliente.fechaCreacion)}</small>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        function mostrarPedidos() {
+            const container = document.getElementById('pedidos-lista');
+            
+            if (!container) return;
+            
+            if (pedidos.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
+                return;
+            }
+
+            // Filtrar pedidos que no están completamente finalizados
+            const pedidosActivos = pedidos.filter(pedido => 
+                pedido.estadoPago !== 'pagado' || pedido.estadoEntrega !== 'entregado'
+            );
+
+            // Ordenar por fecha de entrega (más cercano primero)
+            pedidosActivos.sort((a, b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
+
+            if (pedidosActivos.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay pedidos pendientes</div>';
+                return;
+            }
+
+            container.innerHTML = pedidosActivos.map(pedido => `
+                <div class="pedido-card">
+                    <div class="sync-badge ${pedido.synced ? 'synced' : 'pending'}">
+                        ${pedido.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
+                    <div class="pedido-header">
+                        <h3>${pedido.cliente.nombre} ${pedido.cliente.apellido}</h3>
+                        <div>
+                            <span class="status-badge ${pedido.estadoPago === 'pagado' ? 'status-pagado' : 'status-pendiente'}">
+                                ${pedido.estadoPago === 'pagado' ? 'PAGADO' : 'SALDO PENDIENTE'}
+                            </span>
+                            <span class="status-badge ${pedido.estadoEntrega === 'entregado' ? 'status-entregado' : 'status-pendiente'}">
+                                ${pedido.estadoEntrega === 'entregado' ? 'ENTREGADO' : 'PENDIENTE'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="pedido-info">
+                        <div><strong>Fecha:</strong> ${new Date(pedido.fechaEntrega).toLocaleDateString()}</div>
+                        <div><strong>Turno:</strong> ${pedido.turno}</div>
+                        <div><strong>Total:</strong> ${pedido.totalCompra.toFixed(2)}</div>
+                        <div><strong>Saldo:</strong> ${pedido.saldoPendiente.toFixed(2)}</div>
+                    </div>
+                    
+                    <div class="pedido-actions">
+                        ${pedido.estadoPago !== 'pagado' ? 
+                            `<button class="btn btn-success btn-small" onclick="window.marcarPagado('${pedido.id}')">
+                                💰 MARCAR PAGADO
+                            </button>` : ''
+                        }
+                        ${pedido.estadoEntrega !== 'entregado' ? 
+                            `<button class="btn btn-warning btn-small" onclick="window.marcarEntregado('${pedido.id}')">
+                                🚚 MARCAR ENTREGADO
+                            </button>` : ''
+                        }
+                        <button class="btn btn-primary btn-small" onclick="window.verDetallePedido('${pedido.id}')">
+                            👁️ VER DETALLE
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ========================================
         // 🚀 INICIALIZACIÓN
         // ========================================
         
@@ -2091,6 +2374,38 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             }
         }
 
+        // Funciones placeholder para evitar errores (las completas vienen después)
+        function guardarProducto(event) { console.log('guardarProducto llamado'); }
+        function editarProducto(id) { console.log('editarProducto llamado', id); }
+        function eliminarProducto(id) { console.log('eliminarProducto llamado', id); }
+        function cancelarProducto() { console.log('cancelarProducto llamado'); }
+        function guardarCliente(event) { console.log('guardarCliente llamado'); }
+        function editarCliente(id) { console.log('editarCliente llamado', id); }
+        function eliminarCliente(id) { console.log('eliminarCliente llamado', id); }
+        function cancelarCliente() { console.log('cancelarCliente llamado'); }
+        function guardarPedido(event) { console.log('guardarPedido llamado'); }
+        function cancelarPedido() { console.log('cancelarPedido llamado'); }
+        function seleccionarCliente(clienteId) { console.log('seleccionarCliente llamado', clienteId); }
+        function agregarProductoPedido(productoId) { console.log('agregarProductoPedido llamado', productoId); }
+        function cambiarCantidadPedido(productoId, cantidad) { console.log('cambiarCantidadPedido llamado'); }
+        function eliminarProductoPedido(productoId) { console.log('eliminarProductoPedido llamado'); }
+        function toggleMontoParcial() { console.log('toggleMontoParcial llamado'); }
+        function marcarPagado(pedidoId) { console.log('marcarPagado llamado'); }
+        function marcarEntregado(pedidoId) { console.log('marcarEntregado llamado'); }
+        function verDetallePedido(pedidoId) { console.log('verDetallePedido llamado'); }
+        function toggleComponentes() { console.log('toggleComponentes llamado'); }
+        function agregarComponente() { console.log('agregarComponente llamado'); }
+        function eliminarComponenteTemp(index) { console.log('eliminarComponenteTemp llamado'); }
+        function inicializarApp() { console.log('inicializarApp llamado'); }
+        function testFirebaseConnection() { console.log('testFirebaseConnection llamado'); }
+        function cargarDatosDesdeFirebase() { console.log('cargarDatosDesdeFirebase llamado'); }
+        function setupRealtimeListeners() { console.log('setupRealtimeListeners llamado'); }
+        function configurarAutocompletadoPedidos() { console.log('configurarAutocompletadoPedidos llamado'); }
+        
+        // Exponer funciones globalmente de inmediato
+        window.manualSync = manualSync;
+        window.showTab = showTab;
+
         // ========================================
         // 🚀 INICIO DE LA APLICACIÓN
         // ========================================
@@ -2099,9 +2414,7 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🎯 Iniciando Sistema Pastrami v2.0...');
             
-            // Exponer funciones globalmente PRIMERO
-            window.manualSync = manualSync;
-            window.showTab = showTab;
+            // Exponer TODAS las funciones globalmente
             window.guardarProducto = guardarProducto;
             window.editarProducto = editarProducto;
             window.eliminarProducto = eliminarProducto;
