@@ -1018,3 +1018,401 @@
     </script>
 </body>
 </html>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🥪 Sistema Pastrami</h1>
+            <p>Gestión completa de productos, clientes y pedidos</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('productos', this)">📦 Productos</button>
+            <button class="tab" onclick="showTab('clientes', this)">👥 Clientes</button>
+            <button class="tab" onclick="showTab('pedidos', this)">🥪 Pedidos</button>
+        </div>
+
+        <div id="productos" class="tab-content active">
+            <h2>📦 Gestión de Productos</h2>
+            
+            <form id="productos-form" onsubmit="guardarProducto(event)">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-nombre">Nombre <span class="required">*</span>:</label>
+                        <input type="text" id="producto-nombre" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-precio">Precio <span class="required">*</span>:</label>
+                        <input type="number" id="producto-precio" step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-tipo">Tipo <span class="required">*</span>:</label>
+                        <select id="producto-tipo" onchange="toggleComponentes()" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="simple">Producto Simple</option>
+                            <option value="compuesto">Producto Compuesto</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-descripcion">Descripción:</label>
+                        <input type="text" id="producto-descripcion">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-stock-inicial">Stock Inicial <span class="required">*</span>:</label>
+                        <input type="number" id="producto-stock-inicial" min="0" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-stock-minimo">Stock Mínimo <span class="required">*</span>:</label>
+                        <input type="number" id="producto-stock-minimo" min="0" required>
+                    </div>
+                </div>
+
+                <div id="componentes-section" style="display: none;">
+                    <h3>Componentes del Producto</h3>
+                    <div id="componentes-list">
+                        <p style="color: #6c757d;">No hay componentes agregados</p>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <input type="text" id="componente-nombre" placeholder="Nombre del componente">
+                        </div>
+                        <div class="form-col">
+                            <input type="number" id="componente-cantidad" placeholder="Cantidad" min="1">
+                        </div>
+                        <div class="form-col">
+                            <button type="button" onclick="agregarComponente()">+ Agregar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">💾 Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="limpiarFormProducto()">❌ Limpiar</button>
+                </div>
+            </form>
+
+            <div style="margin-top: 30px;">
+                <h3>Lista de Productos</h3>
+                <div id="productos-lista">
+                    <p>No hay productos registrados</p>
+                </div>
+            </div>
+    // Función para guardar cliente
+        function guardarCliente(event) {
+            event.preventDefault();
+            
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const telefono = document.getElementById('cliente-telefono').value.trim();
+            const email = document.getElementById('cliente-email').value.trim();
+            const direccion = document.getElementById('cliente-direccion').value.trim();
+            
+            if (!nombre || !telefono) {
+                alert('Por favor, completa todos los campos obligatorios');
+                return;
+            }
+            
+            const cliente = {
+                id: editandoCliente ? editandoCliente.id : Date.now(),
+                nombre,
+                telefono,
+                email,
+                direccion
+            };
+            
+            if (editandoCliente) {
+                const index = clientes.findIndex(c => c.id === editandoCliente.id);
+                clientes[index] = cliente;
+                alert('Cliente actualizado correctamente');
+            } else {
+                clientes.push(cliente);
+                alert('Cliente guardado correctamente');
+            }
+            
+            limpiarFormCliente();
+            mostrarClientes();
+            actualizarSelectClientes();
+        }
+
+        // Función para mostrar lista de clientes
+        function mostrarClientes() {
+            const lista = document.getElementById('clientes-lista');
+            
+            if (clientes.length === 0) {
+                lista.innerHTML = '<p>No hay clientes registrados</p>';
+                return;
+            }
+            
+            let html = '';
+            clientes.forEach(cliente => {
+                html += `
+                    <div class="item-card">
+                        <div class="item-info">
+                            <h4>${cliente.nombre}</h4>
+                            <p><strong>Teléfono:</strong> ${cliente.telefono}</p>
+                            ${cliente.email ? `<p><strong>Email:</strong> ${cliente.email}</p>` : ''}
+                            ${cliente.direccion ? `<p><strong>Dirección:</strong> ${cliente.direccion}</p>` : ''}
+                        </div>
+                        <div class="item-actions">
+                            <button onclick="editarCliente(${cliente.id})" class="btn-edit">✏️</button>
+                            <button onclick="eliminarCliente(${cliente.id})" class="btn-delete">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = html;
+        }
+
+        // Función para editar cliente
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+            
+            editandoCliente = cliente;
+            
+            document.getElementById('cliente-nombre').value = cliente.nombre;
+            document.getElementById('cliente-telefono').value = cliente.telefono;
+            document.getElementById('cliente-email').value = cliente.email;
+            document.getElementById('cliente-direccion').value = cliente.direccion;
+        }
+
+        // Función para eliminar cliente
+        function eliminarCliente(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+                clientes = clientes.filter(c => c.id !== id);
+                mostrarClientes();
+                actualizarSelectClientes();
+                alert('Cliente eliminado correctamente');
+            }
+        }
+
+        // Función para actualizar select de clientes
+        function actualizarSelectClientes() {
+            const select = document.getElementById('pedido-cliente');
+            select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+            
+            clientes.forEach(cliente => {
+                select.innerHTML += `<option value="${cliente.id}">${cliente.nombre}</option>`;
+            });
+        }
+
+        // Función para agregar producto al pedido
+        function agregarProductoPedido() {
+            const productoId = document.getElementById('pedido-producto').value;
+            const cantidad = parseInt(document.getElementById('pedido-cantidad').value);
+            
+            if (!productoId || !cantidad || cantidad <= 0) {
+                alert('Por favor, selecciona un producto y una cantidad válida');
+                return;
+            }
+            
+            const producto = productos.find(p => p.id == productoId);
+            if (!producto) {
+                alert('Producto no encontrado');
+                return;
+            }
+            
+            if (cantidad > producto.stockActual) {
+                alert(`Stock insuficiente. Stock disponible: ${producto.stockActual}`);
+                return;
+            }
+            
+            const productoExistente = productosPedido.find(p => p.id == productoId);
+            if (productoExistente) {
+                productoExistente.cantidad += cantidad;
+            } else {
+                productosPedido.push({
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    cantidad: cantidad
+                });
+            }
+            
+            document.getElementById('pedido-producto').value = '';
+            document.getElementById('pedido-cantidad').value = '';
+            actualizarListaProductosPedido();
+        }
+
+        // Función para actualizar lista de productos en pedido
+        function actualizarListaProductosPedido() {
+            const lista = document.getElementById('productos-pedido');
+            
+            if (productosPedido.length === 0) {
+                lista.innerHTML = '<p style="color: #6c757d;">No hay productos agregados</p>';
+                return;
+            }
+            
+            let html = '';
+            let total = 0;
+            
+            productosPedido.forEach((producto, index) => {
+                const subtotal = producto.precio * producto.cantidad;
+                total += subtotal;
+                
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <span>${producto.nombre} x${producto.cantidad} = $${subtotal.toFixed(2)}</span>
+                        <button type="button" onclick="eliminarProductoPedido(${index})" style="background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">×</button>
+                    </div>
+                `;
+            });
+            
+            html += `<div style="margin-top: 10px; font-weight: bold; text-align: right;">Total: $${total.toFixed(2)}</div>`;
+            lista.innerHTML = html;
+        }
+
+        // Función para eliminar producto del pedido
+        function eliminarProductoPedido(index) {
+            productosPedido.splice(index, 1);
+            actualizarListaProductosPedido();
+        }    </div>
+// Función para guardar pedido
+        function guardarPedido(event) {
+            event.preventDefault();
+            
+            const clienteId = document.getElementById('pedido-cliente').value;
+            const fecha = document.getElementById('pedido-fecha').value;
+            const estado = document.getElementById('pedido-estado').value;
+            const notas = document.getElementById('pedido-notas').value.trim();
+            
+            if (!clienteId || !fecha || !estado) {
+                alert('Por favor, completa todos los campos obligatorios');
+                return;
+            }
+            
+            if (productosPedido.length === 0) {
+                alert('Agrega al menos un producto al pedido');
+                return;
+            }
+            
+            const cliente = clientes.find(c => c.id == clienteId);
+            let total = 0;
+            
+            // Calcular total y actualizar stock
+            productosPedido.forEach(prodPedido => {
+                total += prodPedido.precio * prodPedido.cantidad;
+                
+                if (!editandoPedido) {
+                    // Solo reducir stock si es un pedido nuevo
+                    const producto = productos.find(p => p.id == prodPedido.id);
+                    if (producto) {
+                        producto.stockActual -= prodPedido.cantidad;
+                    }
+                }
+            });
+            
+            const pedido = {
+                id: editandoPedido ? editandoPedido.id : Date.now(),
+                clienteId: parseInt(clienteId),
+                clienteNombre: cliente.nombre,
+                fecha,
+                estado,
+                notas,
+                productos: [...productosPedido],
+                total: total
+            };
+            
+            if (editandoPedido) {
+                const index = pedidos.findIndex(p => p.id === editandoPedido.id);
+                pedidos[index] = pedido;
+                alert('Pedido actualizado correctamente');
+            } else {
+                pedidos.push(pedido);
+                alert('Pedido guardado correctamente');
+            }
+            
+            limpiarFormPedido();
+            mostrarPedidos();
+            mostrarProductos(); // Actualizar vista de productos para mostrar nuevo stock
+        }
+
+        // Función para mostrar lista de pedidos
+        function mostrarPedidos() {
+            const lista = document.getElementById('pedidos-lista');
+            
+            if (pedidos.length === 0) {
+                lista.innerHTML = '<p>No hay pedidos registrados</p>';
+                return;
+            }
+            
+            let html = '';
+            pedidos.forEach(pedido => {
+                const productosHtml = pedido.productos.map(p => 
+                    `${p.nombre} x${p.cantidad}`
+                ).join(', ');
+                
+                const estadoColor = {
+                    'pendiente': '#ffc107',
+                    'preparando': '#17a2b8',
+                    'listo': '#28a745',
+                    'entregado': '#6c757d'
+                };
+                
+                html += `
+                    <div class="item-card">
+                        <div class="item-info">
+                            <h4>Pedido #${pedido.id}</h4>
+                            <p><strong>Cliente:</strong> ${pedido.clienteNombre}</p>
+                            <p><strong>Fecha:</strong> ${pedido.fecha}</p>
+                            <p><strong>Estado:</strong> <span style="color: ${estadoColor[pedido.estado]}; font-weight: bold;">${pedido.estado.toUpperCase()}</span></p>
+                            <p><strong>Productos:</strong> ${productosHtml}</p>
+                            <p><strong>Total:</strong> $${pedido.total.toFixed(2)}</p>
+                            ${pedido.notas ? `<p><strong>Notas:</strong> ${pedido.notas}</p>` : ''}
+                        </div>
+                        <div class="item-actions">
+                            <button onclick="editarPedido(${pedido.id})" class="btn-edit">✏️</button>
+                            <button onclick="eliminarPedido(${pedido.id})" class="btn-delete">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = html;
+        }
+
+        // Función para editar pedido
+        function editarPedido(id) {
+            const pedido = pedidos.find(p => p.id === id);
+            if (!pedido) return;
+            
+            editandoPedido = pedido;
+            
+            document.getElementById('pedido-cliente').value = pedido.clienteId;
+            document.getElementById('pedido-fecha').value = pedido.fecha;
+            document.getElementById('pedido-estado').value = pedido.estado;
+            document.getElementById('pedido-notas').value = pedido.notas;
+            
+            productosPedido = [...pedido.productos];
+            actualizarListaProductosPedido();
+        }
+
+        // Función para eliminar pedido
+        function eliminarPedido(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este pedido?')) {
+                pedidos = pedidos.filter(p => p.id !== id);
+                mostrarPedidos();
+                alert('Pedido eliminado correctamente');
+            }
+        }
+
+        // Inicialización cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Establecer fecha actual por defecto
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('pedido-fecha').value = today;
+            
+            // Mostrar listas vacías inicialmente
+            mostrarProductos();
+            mostrarClientes();
+            mostrarPedidos();
+        });
+    </script>
+</body>
+</html>
+
