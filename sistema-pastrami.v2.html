@@ -309,24 +309,9 @@
             color: #856404;
         }
 
-        .stock-alert {
-            background: #fff3cd;
-            color: #856404;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 600;
-            margin-left: 5px;
-        }
-
-        .stock-critical {
+        .sync-badge.error {
             background: #f8d7da;
             color: #721c24;
-        }
-
-        .stock-ok {
-            background: #d4edda;
-            color: #155724;
         }
 
         .no-items {
@@ -441,17 +426,6 @@
                     <div class="form-col">
                         <label for="producto-precio">Precio <span class="required">*</span>:</label>
                         <input type="number" id="producto-precio" step="0.01" min="0" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="producto-stock-inicial">Stock Inicial <span class="required">*</span>:</label>
-                        <input type="number" id="producto-stock-inicial" min="0" required>
-                    </div>
-                    <div class="form-col">
-                        <label for="producto-stock-minimo">Stock Mínimo <span class="required">*</span>:</label>
-                        <input type="number" id="producto-stock-minimo" min="0" required>
                     </div>
                 </div>
 
@@ -854,18 +828,11 @@
             
             const nombre = document.getElementById('producto-nombre').value.trim();
             const precio = parseFloat(document.getElementById('producto-precio').value);
-            const stockInicial = parseInt(document.getElementById('producto-stock-inicial').value);
-            const stockMinimo = parseInt(document.getElementById('producto-stock-minimo').value);
             const tipo = document.getElementById('producto-tipo').value;
             const descripcion = document.getElementById('producto-descripcion').value.trim();
             
-            if (!nombre || !precio || isNaN(stockInicial) || isNaN(stockMinimo) || !tipo) {
-                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
-                return;
-            }
-            
-            if (stockMinimo > stockInicial) {
-                mostrarNotificacion('❌ El stock mínimo no puede ser mayor al stock inicial', 'error');
+            if (!nombre || !precio || !tipo) {
+                mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
                 return;
             }
             
@@ -877,11 +844,6 @@
             const producto = {
                 nombre,
                 precio,
-                stockInicial,
-                stockActual: editandoProductoId ? 
-                    productos.find(p => p.id === editandoProductoId)?.stockActual || stockInicial : 
-                    stockInicial,
-                stockMinimo,
                 tipo,
                 descripcion,
                 componentes: tipo === 'compuesto' ? [...componentesTemp] : [],
@@ -937,8 +899,6 @@
             
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-precio').value = producto.precio;
-            document.getElementById('producto-stock-inicial').value = producto.stockInicial || 0;
-            document.getElementById('producto-stock-minimo').value = producto.stockMinimo || 0;
             document.getElementById('producto-tipo').value = producto.tipo || 'simple';
             document.getElementById('producto-descripcion').value = producto.descripcion || '';
             
