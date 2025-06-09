@@ -1,641 +1,9 @@
-// ========================================
-        // 🛠️ FUNCIONES DE PEDIDOS - EL SISTEMA ÉPICO
-        // ========================================
-        
-        function buscarClientes(query) {
-            const container = document.getElementById('clientes-suggestions');
-            
-            if (!query || query.length < 2) {
-                container.classList.remove('show');
-                return;
-            }
-            
-            const clientesFiltrados = clientes.filter(cliente => {
-                const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`.toLowerCase();
-                const telefono = cliente.telefono;
-                return nombreCompleto.includes(query.toLowerCase()) || 
-                       telefono.includes(query);
-            });
-            
-            if (clientesFiltrados.length === 0) {
-                container.innerHTML = '<div class="suggestion-item">No se encontraron clientes</div>';
-            } else {
-                container.innerHTML = clientesFiltrados.map((cliente, index) => `
-                    <div class="suggestion-item" onclick="seleccionarCliente('${cliente.id}')" data-index="${index}">
-                        <strong>${cliente.nombre} ${cliente.apellido}</strong><br>
-                        <small>📞 ${cliente.telefono}</small>
-                    </div>
-                `).join('');
-            }
-            
-            sugerenciasActivas = 'clientes';
-            indiceSugerencia = -1;
-            container.classList.add('show');
-        }
-
-        function buscarProductos(query) {
-            const container = document.getElementById('productos-suggestions');
-            
-            if (!query || query.length < 2) {
-                container.classList.remove('show');
-                return;
-            }
-            
-            const productosFiltrados = productos.filter(producto => {
-                return producto.nombre.toLowerCase().includes(query.toLowerCase()) &&
-                       (producto.stockActual || 0) > 0; // Solo productos con stock
-            });
-            
-            if (productosFiltrados.length === 0) {
-                container.innerHTML = '<div class="suggestion-item">No hay productos disponibles</div>';
-            } else {
-                container.innerHTML = productosFiltrados.map((producto, index) => {
-                    const stock = producto.stockActual || 0;
-                    const stockClass = stock <= (producto.stockMinimo || 0) ? 'stock-warning' : 'stock-ok';
-                    
-                    return `
-                    <div class="suggestion-item" onclick="seleccionarProducto('${producto.id}')" data-index="${index}">
-                        <strong>${producto.nombre}</strong> - ${producto.precio?.toFixed(2)}<br>
-                        <small class="${stockClass}">Stock: ${stock} unidades</small>
-                    </div>
-                `;
-                }).join('');
-            }
-            
-            sugerenciasActivas = 'productos';
-            indiceSugerencia = -1;
-            container.classList.add('show');
-        }
-
-        function navegarSugerencias(event, tipo) {
-            if (!sugerenciasActivas || sugerenciasActivas !== tipo) return;
-            
-            const container = document.getElementById(`${tipo}-suggestions`);
-            const items = container.querySelectorAll('.suggestion-item');
-            
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                indiceSugerencia = Math.min(indiceSugerencia + 1, items.length - 1);
-                actualizarSeleccionSugerencia(items);
-            } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                indiceSugerencia = Math.max(indiceSugerencia - 1, -1);
-                actualizarSeleccionSugerencia(items);
-            } else if (event.key === 'Enter' && indiceSugerencia >= 0) {
-                event.preventDefault();
-                items[indiceSugerencia].click();
-            } else if (event.key === 'Escape') {
-                container.classList.remove('show');
-                sugerenciasActivas = null;
-                indiceSugerencia = -1;
-            }
-        }
-
-        function actualizarSeleccionSugerencia(items) {
-            items.forEach((item, index) => {
-                item.classList.toggle('selected', index === indiceSugerencia);
-            });
-        }
-
-        function seleccionarCliente(clienteId) {
-            const cliente = clientes.find(c => c.id === clienteId);
-            if (!cliente) return;
-            
-            clienteSeleccionado = cliente;
-            document.getElementById('pedido-cliente').value = `${cliente.nombre} ${cliente.apellido}`;
-            document.getElementById('cliente-seleccionado-id').value = clienteId;
-            document.getElementById('clientes-suggestions').classList.remove('show');
-            
-            sugerenciasActivas = null;
-            indiceSugerencia = -1;
-        }
-
-        function seleccionarProducto(productoId) {
-            const producto = productos.find(p => p.id === productoId);
-            if (!producto) return;
-            
-            document.getElementById('pedido-producto').value = producto.nombre;
-            document.getElementById('productos-suggestions').classList.remove('show');
-            
-            // Enfocar en la cantidad
-            document.getElementById('pedido-cantidad').focus();
-            document.getElementById('pedido-cantidad').select();
-            
-            sugerenciasActivas = null;
-            indiceSugerencia = -1;
-            
-            // Guardar el producto seleccionado temporalmente
-            window.productoTemporal = producto;
-        }
-
-        function agregarProductoAlCarrito() {
-            const productoInput = document.getElementById('pedido-producto').value;
-            const cantidad = parseInt(document.getElementById('pedido-cantidad').value);
-            
-            if (!window.productoTemporal || !cantidad || cantidad < 1) {
-                mostrarNotificacion('❌ Seleccione un producto y cantidad válida', 'error');
-                return;
-            }
-            
-            const producto = window.productoTemporal;
-            const stockDisponible = producto.stockActual || 0;
-            
-            // Verificar stock disponible
-            const cantidadEnCarrito = carritoActual
-                .filter(item => item.producto.id === producto.id)
-                .reduce((total, item) => total + item.cantidad, 0);
-            
-            if (cantidadEnCarrito + cantidad > stockDisponible) {
-                mostrarNotificacion(`❌ Stock insuficiente. Disponible: ${stockDisponible - cantidadEnCarrito}`, 'error');
-                return;
-            }
-            
-            // Verificar si el producto ya está en el carrito
-            const itemExistente = carritoActual.find(item => item.producto.id === producto.id);
-            
-            if (itemExistente) {
-                itemExistente.cantidad += cantidad;
-            } else {
-                carritoActual.push({
-                    producto: { ...producto },
-                    cantidad: cantidad,
-                    precioUnitario: producto.precio
-                });
-            }
-            
-            // Limpiar campos
-            document.getElementById('pedido-producto').value = '';
-            document.getElementById('pedido-cantidad').value = '1';
-            window.productoTemporal = null;
-            
-            // Actualizar vista del carrito
-            mostrarCarrito();
-            calcularTotal();
-            
-            mostrarNotificacion(`✅ ${producto.nombre} agregado al pedido`, 'success');
-        }
-
-        function mostrarCarrito() {
-            const container = document.getElementById('carrito-items');
-            
-            if (carritoActual.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">No hay productos en el pedido</div>';
-                return;
-            }
-            
-            container.innerHTML = carritoActual.map((item, index) => `
-                <div class="carrito-item">
-                    <div class="carrito-item-info">
-                        <strong>${item.producto.nombre}</strong><br>
-                        <small>Precio: ${item.precioUnitario.toFixed(2)} | Subtotal: ${(item.cantidad * item.precioUnitario).toFixed(2)}</small>
-                    </div>
-                    <div class="carrito-item-actions">
-                        <input type="number" class="cantidad-input" min="1" 
-                               value="${item.cantidad}" 
-                               onchange="actualizarCantidadCarrito(${index}, this.value)"
-                               max="${item.producto.stockActual || 0}">
-                        <button type="button" class="btn btn-danger btn-small" onclick="eliminarDelCarrito(${index})">
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function actualizarCantidadCarrito(index, nuevaCantidad) {
-            const cantidad = parseInt(nuevaCantidad);
-            const item = carritoActual[index];
-            
-            if (!cantidad || cantidad < 1) {
-                eliminarDelCarrito(index);
-                return;
-            }
-            
-            const stockDisponible = item.producto.stockActual || 0;
-            if (cantidad > stockDisponible) {
-                mostrarNotificacion(`❌ Stock máximo: ${stockDisponible}`, 'error');
-                mostrarCarrito(); // Restaurar valor anterior
-                return;
-            }
-            
-            item.cantidad = cantidad;
-            mostrarCarrito();
-            calcularTotal();
-        }
-
-        function eliminarDelCarrito(index) {
-            carritoActual.splice(index, 1);
-            mostrarCarrito();
-            calcularTotal();
-        }
-
-        function calcularTotal() {
-            const subtotal = carritoActual.reduce((total, item) => {
-                return total + (item.cantidad * item.precioUnitario);
-            }, 0);
-            
-            const envio = parseFloat(document.getElementById('pedido-envio').value) || 0;
-            const total = subtotal + envio;
-            
-            document.getElementById('subtotal-productos').textContent = `${subtotal.toFixed(2)}`;
-            document.getElementById('costo-envio-display').textContent = `${envio.toFixed(2)}`;
-            document.getElementById('total-compra').textContent = `${total.toFixed(2)}`;
-        }
-
-        function toggleMontoPagado() {
-            const tipoPago = document.getElementById('pedido-pago-tipo').value;
-            const container = document.getElementById('monto-pagado-container');
-            const montoInput = document.getElementById('pedido-monto-pagado');
-            
-            if (tipoPago === 'parcial') {
-                container.style.display = 'block';
-                montoInput.required = true;
-            } else {
-                container.style.display = 'none';
-                montoInput.required = false;
-                montoInput.value = '';
-            }
-        }
-
-        function guardarPedido(event) {
-            event.preventDefault();
-            
-            if (!clienteSeleccionado) {
-                mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
-                return;
-            }
-            
-            if (carritoActual.length === 0) {
-                mostrarNotificacion('❌ Debe agregar al menos un producto', 'error');
-                return;
-            }
-            
-            const tipoPago = document.getElementById('pedido-pago-tipo').value;
-            const metodoPago = document.getElementById('pedido-metodo-pago').value;
-            const fechaEntrega = document.getElementById('pedido-fecha-entrega').value;
-            const turno = document.getElementById('pedido-turno').value;
-            const costoEnvio = parseFloat(document.getElementById('pedido-envio').value) || 0;
-            
-            if (!tipoPago || !metodoPago || !fechaEntrega || !turno) {
-                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
-                return;
-            }
-            
-            const subtotal = carritoActual.reduce((total, item) => total + (item.cantidad * item.precioUnitario), 0);
-            const total = subtotal + costoEnvio;
-            
-            let montoPagado = 0;
-            if (tipoPago === 'total') {
-                montoPagado = total;
-            } else {
-                montoPagado = parseFloat(document.getElementById('pedido-monto-pagado').value) || 0;
-                if (montoPagado <= 0 || montoPagado > total) {
-                    mostrarNotificacion('❌ Monto pagado inválido', 'error');
-                    return;
-                }
-            }
-            
-            const pedido = {
-                cliente: {
-                    id: clienteSeleccionado.id,
-                    nombre: clienteSeleccionado.nombre,
-                    apellido: clienteSeleccionado.apellido,
-                    telefono: clienteSeleccionado.telefono,
-                    direccion: construirDireccionCompleta(clienteSeleccionado)
-                },
-                productos: carritoActual.map(item => ({
-                    id: item.producto.id,
-                    nombre: item.producto.nombre,
-                    cantidad: item.cantidad,
-                    precioUnitario: item.precioUnitario,
-                    subtotal: item.cantidad * item.precioUnitario
-                })),
-                subtotal: subtotal,
-                costoEnvio: costoEnvio,
-                total: total,
-                tipoPago: tipoPago,
-                metodoPago: metodoPago,
-                montoPagado: montoPagado,
-                saldoPendiente: total - montoPagado,
-                fechaEntrega: fechaEntrega,
-                turno: turno,
-                estado: {
-                    pagado: montoPagado >= total,
-                    entregado: false
-                },
-                fechaCreacion: firebase.firestore.Timestamp.now(),
-                fechaModificacion: firebase.firestore.Timestamp.now()
-            };
-            
-            if (isFirebaseConnected) {
-                // Actualizar stock de productos primero
-                const actualizacionesStock = carritoActual.map(item => {
-                    const nuevoStock = (item.producto.stockActual || 0) - item.cantidad;
-                    return db.collection('productos').doc(item.producto.id).update({
-                        stockActual: Math.max(0, nuevoStock),
-                        fechaModificacion: firebase.firestore.Timestamp.now()
-                    });
-                });
-                
-                Promise.all(actualizacionesStock).then(() => {
-                    // Crear el pedido
-                    return db.collection('pedidos').add(pedido);
-                }).then(() => {
-                    mostrarNotificacion(`✅ Pedido creado para ${clienteSeleccionado.nombre}`, 'success');
-                    limpiarFormularioPedido();
-                }).catch(error => {
-                    console.error('Error creando pedido:', error);
-                    mostrarNotificacion('❌ Error creando pedido', 'error');
-                });
-            } else {
-                // Modo offline
-                pedido.id = Date.now().toString();
-                pedido.synced = false;
-                pedidos.push(pedido);
-                
-                // Actualizar stock local
-                carritoActual.forEach(item => {
-                    const producto = productos.find(p => p.id === item.producto.id);
-                    if (producto) {
-                        producto.stockActual = Math.max(0, (producto.stockActual || 0) - item.cantidad);
-                        producto.synced = false;
-                    }
-                });
-                
-                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                localStorage.setItem('productos_backup', JSON.stringify(productos));
-                
-                mostrarPedidos();
-                mostrarProductos();
-                mostrarNotificacion(`💾 Pedido guardado localmente`, 'warning');
-                limpiarFormularioPedido();
-            }
-        }
-
-        function construirDireccionCompleta(cliente) {
-            let direccion = '';
-            if (cliente.direccion || cliente.numero) {
-                direccion = `${cliente.direccion || ''} ${cliente.numero || ''}`.trim();
-                if (cliente.piso) direccion += `, Piso ${cliente.piso}`;
-                if (cliente.departamento) direccion += `, Dto ${cliente.departamento}`;
-                if (cliente.ciudad) direccion += `, ${cliente.ciudad}`;
-            }
-            return direccion;
-        }
-
-        function limpiarFormularioPedido() {
-            document.getElementById('pedidos-form').reset();
-            clienteSeleccionado = null;
-            carritoActual = [];
-            window.productoTemporal = null;
-            
-            document.getElementById('cliente-seleccionado-id').value = '';
-            document.getElementById('monto-pagado-container').style.display = 'none';
-            
-            mostrarCarrito();
-            calcularTotal();
-            
-            // Establecer fecha mínima como hoy
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('pedido-fecha-entrega').min = hoy;
-        }
-
-        function cancelarPedido() {
-            limpiarFormularioPedido();
-        }
-
-        function mostrarPedidos() {
-            const container = document.getElementById('pedidos-lista');
-            
-            if (pedidos.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
-                return;
-            }
-            
-            // Ordenar por fecha de entrega (más cercano primero)
-            const pedidosOrdenados = [...pedidos]
-                .filter(pedido => !pedido.estado.pagado || !pedido.estado.entregado) // Solo mostrar pendientes
-                .sort((a, b) => {
-                    const fechaA = new Date(a.fechaEntrega);
-                    const fechaB = new Date(b.fechaEntrega);
-                    return fechaA - fechaB;
-                });
-            
-            if (pedidosOrdenados.length === 0) {
-                container.innerHTML = '<div class="no-items">✅ Todos los pedidos están completos</div>';
-                return;
-            }
-            
-            container.innerHTML = pedidosOrdenados.map(pedido => {
-                const fechaEntrega = new Date(pedido.fechaEntrega);
-                const esHoy = fechaEntrega.toDateString() === new Date().toDateString();
-                const esPasado = fechaEntrega < new Date();
-                
-                let fechaClass = '';
-                if (esPasado) fechaClass = 'color: #dc3545; font-weight: bold;';
-                else if (esHoy) fechaClass = 'color: #ffc107; font-weight: bold;';
-                
-                return `
-                <div class="item-card">
-                    <div class="sync-badge ${pedido.synced ? 'synced' : 'pending'}">
-                        ${pedido.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
-                    <div class="item-header">
-                        <div class="item-title">
-                            ${pedido.cliente.nombre} ${pedido.cliente.apellido}
-                        </div>
-                        <div class="item-actions">
-                            <button class="btn ${pedido.estado.pagado ? 'btn-secondary' : 'btn-warning'} btn-small" 
-                                    onclick="togglePagado('${pedido.id}')" 
-                                    ${pedido.estado.pagado ? 'disabled' : ''}>
-                                ${pedido.estado.pagado ? '✅ PAGADO' : '💰 COBRAR'}
-                            </button>
-                            <button class="btn ${pedido.estado.entregado ? 'btn-secondary' : 'btn-primary'} btn-small" 
-                                    onclick="toggleEntregado('${pedido.id}')"
-                                    ${pedido.estado.entregado ? 'disabled' : ''}>
-                                ${pedido.estado.entregado ? '✅ ENTREGADO' : '🚚 ENTREGAR'}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="item-details">
-                        <strong>📞 Teléfono:</strong> ${pedido.cliente.telefono}<br>
-                        ${pedido.cliente.direccion ? `<strong>📍 Dirección:</strong> ${pedido.cliente.direccion}<br>` : ''}
-                        <span style="${fechaClass}">
-                            <strong>📅 Entrega:</strong> ${fechaEntrega.toLocaleDateString()} - ${pedido.turno.toUpperCase()}
-                            ${esPasado ? ' (VENCIDO)' : esHoy ? ' (HOY)' : ''}
-                        </span><br>
-                        <strong>🛒 Productos:</strong> ${pedido.productos.map(p => `${p.cantidad}x ${p.nombre}`).join(', ')}<br>
-                        <strong>💰 Total:</strong> ${pedido.total.toFixed(2)} | 
-                        <strong>Pagado:</strong> ${pedido.montoPagado.toFixed(2)}
-                        ${pedido.saldoPendiente > 0 ? ` | <span style="color: #dc3545;"><strong>Saldo:</strong> ${pedido.saldoPendiente.toFixed(2)}</span>` : ''}
-                        <br>
-                        <strong>💳 Método:</strong> ${getMetodoPagoDisplay(pedido.metodoPago)}
-                        <br><small><strong>Creado:</strong> ${formatDate(pedido.fechaCreacion)}</small>
-                    </div>
-                </div>
-            `;
-            }).join('');
-        }
-
-        function getMetodoPagoDisplay(metodo) {
-            const metodos = {
-                'efectivo': '💵 Efectivo',
-                'transferencia': '🏦 Transferencia',
-                'mercadopago': '💳 MercadoPago'
-            };
-            return metodos[metodo] || metodo;
-        }
-
-        function togglePagado(pedidoId) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            if (!pedido || pedido.estado.pagado) return;
-            
-            if (!confirm(`¿Marcar como PAGADO el pedido de ${pedido.cliente.nombre}?`)) return;
-            
-            pedido.estado.pagado = true;
-            pedido.montoPagado = pedido.total;
-            pedido.saldoPendiente = 0;
-            pedido.fechaModificacion = firebase.firestore.Timestamp.now();
-            
-            if (isFirebaseConnected) {
-                db.collection('pedidos').doc(pedidoId).update({
-                    'estado.pagado': true,
-                    montoPagado: pedido.total,
-                    saldoPendiente: 0,
-                    fechaModificacion: firebase.firestore.Timestamp.now()
-                }).then(() => {
-                    mostrarNotificacion('✅ Pedido marcado como PAGADO', 'success');
-                    verificarPedidoCompleto(pedido);
-                }).catch(error => {
-                    console.error('Error actualizando pedido:', error);
-                    mostrarNotificacion('❌ Error actualizando pedido', 'error');
-                });
-            } else {
-                pedido.synced = false;
-                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                mostrarPedidos();
-                mostrarNotificacion('💾 Estado guardado localmente', 'warning');
-                verificarPedidoCompleto(pedido);
-            }
-        }
-
-        function toggleEntregado(pedidoId) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            if (!pedido || pedido.estado.entregado) return;
-            
-            if (!confirm(`¿Marcar como ENTREGADO el pedido de ${pedido.cliente.nombre}?`)) return;
-            
-            pedido.estado.entregado = true;
-            pedido.fechaModificacion = firebase.firestore.Timestamp.now();
-            
-            if (isFirebaseConnected) {
-                db.collection('pedidos').doc(pedidoId).update({
-                    'estado.entregado': true,
-                    fechaModificacion: firebase.firestore.Timestamp.now()
-                }).then(() => {
-                    mostrarNotificacion('✅ Pedido marcado como ENTREGADO', 'success');
-                    verificarPedidoCompleto(pedido);
-                }).catch(error => {
-                    console.error('Error actualizando pedido:', error);
-                    mostrarNotificacion('❌ Error actualizando pedido', 'error');
-                });
-            } else {
-                pedido.synced = false;
-                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                mostrarPedidos();
-                mostrarNotificacion('💾 Estado guardado localmente', 'warning');
-                verificarPedidoCompleto(pedido);
-            }
-        }
-
-        function verificarPedidoCompleto(pedido) {
-            if (pedido.estado.pagado && pedido.estado.entregado) {
-                setTimeout(() => {
-                    mostrarNotificacion(`🎉 Pedido de ${pedido.cliente.nombre} completado!`, 'success');
-                    mostrarPedidos(); // Refrescar lista para que desaparezca
-                }, 1000);
-            }
-        }
-
-        function mostrarPedidos() {
-            const container = document.getElementById('pedidos-lista');
-            
-            if (pedidos.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
-                return;
-            }
-            
-            // Ordenar por fecha de entrega (más cercano primero)
-            const pedidosOrdenados = [...pedidos]
-                .filter(pedido => !pedido.estado.pagado || !pedido.estado.entregado) // Solo mostrar pendientes
-                .sort((a, b) => {
-                    const fechaA = new Date(a.fechaEntrega);
-                    const fechaB = new Date(b.fechaEntrega);
-                    return fechaA - fechaB;
-                });
-            
-            if (pedidosOrdenados.length === 0) {
-                container.innerHTML = '<div class="no-items">✅ Todos los pedidos están completos</div>';
-                return;
-            }
-            
-            container.innerHTML = pedidosOrdenados.map(pedido => {
-                const fechaEntrega = new Date(pedido.fechaEntrega);
-                const esHoy = fechaEntrega.toDateString() === new Date().toDateString();
-                const esPasado = fechaEntrega < new Date();
-                
-                let fechaClass = '';
-                if (esPasado) fechaClass = 'color: #dc3545; font-weight: bold;';
-                else if (esHoy) fechaClass = 'color: #ffc107; font-weight: bold;';
-                
-                return `<div class="item-card">
-                    <div class="sync-badge ${pedido.synced ? 'synced' : 'pending'}">
-                        ${pedido.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
-                    <div class="item-header">
-                        <div class="item-title">
-                            ${pedido.cliente.nombre} ${pedido.cliente.apellido}
-                        </div>
-                        <div class="item-actions">
-                            <button class="btn ${pedido.estado.pagado ? 'btn-secondary' : 'btn-warning'} btn-small" 
-                                    onclick="togglePagado('${pedido.id}')" 
-                                    ${pedido.estado.pagado ? 'disabled' : ''}>
-                                ${pedido.estado.pagado ? '✅ PAGADO' : '💰 COBRAR'}
-                            </button>
-                            <button class="btn ${pedido.estado.entregado ? 'btn-secondary' : 'btn-primary'} btn-small" 
-                                    onclick="toggleEntregado('${pedido.id}')"
-                                    ${pedido.estado.entregado ? 'disabled' : ''}>
-                                ${pedido.estado.entregado ? '✅ ENTREGADO' : '🚚 ENTREGAR'}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="item-details">
-                        <strong>📞 Teléfono:</strong> ${pedido.cliente.telefono}<br>
-                        ${pedido.cliente.direccion ? `<strong>📍 Dirección:</strong> ${pedido.cliente.direccion}<br>` : ''}
-                        <span style="${fechaClass}">
-                            <strong>📅 Entrega:</strong> ${fechaEntrega.toLocaleDateString()} - ${pedido.turno.toUpperCase()}
-                            ${esPasado ? ' (VENCIDO)' : esHoy ? ' (HOY)' : ''}
-                        </span><br>
-                        <strong>🛒 Productos:</strong> ${pedido.productos.map(p => `${p.cantidad}x ${p.nombre}`).join(', ')}<br>
-                        <strong>💰 Total:</strong> ${pedido.total.toFixed(2)} | 
-                        <strong>Pagado:</strong> ${pedido.montoPagado.toFixed(2)}
-                        ${pedido.saldoPendiente > 0 ? ` | <span style="color: #dc3545;"><strong>Saldo:</strong> ${pedido.saldoPendiente.toFixed(2)}</span>` : ''}
-                        <br>
-                        <strong>💳 Método:</strong> ${getMetodoPagoDisplay(pedido.metodoPago)}
-                        <br><small><strong>Creado:</strong> ${formatDate(pedido.fechaCreacion)}</small>
-                    </div>
-                </div>`;
-            }).join('');
-        }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Pastrami v2.0 - Sincronización Real</title>
+    <title>Sistema Pastrami v3.0 - LIMPIO</title>
     <style>
         * {
             margin: 0;
@@ -673,90 +41,6 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        /* INDICADOR DE ESTADO */
-        .status-indicator {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            padding: 10px 20px;
-            border-radius: 25px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            backdrop-filter: blur(10px);
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        .status-online { background: #28a745; }
-        .status-offline { background: #dc3545; animation: none; }
-        .status-loading { background: #ffc107; animation: spin 1s linear infinite; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .sync-btn {
-            background: rgba(255,255,255,0.3);
-            border: none;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .sync-btn:hover {
-            background: rgba(255,255,255,0.5);
-        }
-
-        /* ESTADO DE FIREBASE */
-        .firebase-status {
-            margin: 20px 30px;
-            padding: 20px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-
-        .firebase-status.connected {
-            background: #d4edda;
-            color: #155724;
-            border: 2px solid #28a745;
-        }
-
-        .firebase-status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #dc3545;
-        }
-
-        .firebase-status.loading {
-            background: #fff3cd;
-            color: #856404;
-            border: 2px solid #ffc107;
-        }
-
-        /* TABS */
         .tabs {
             display: flex;
             background: #f8f9fa;
@@ -795,7 +79,6 @@
             display: block;
         }
 
-        /* FORMULARIOS */
         .form-row {
             display: flex;
             gap: 15px;
@@ -826,10 +109,9 @@
             transition: border-color 0.3s ease;
         }
 
-        input:focus, select:focus, textarea:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #ff6b6b;
-            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
         }
 
         .btn {
@@ -850,100 +132,11 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
         }
 
         .btn-secondary {
             background: #6c757d;
             color: white;
-        }
-
-        .btn-warning {
-            background: #ffc107;
-            color: #212529;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 14px;
-        }
-
-        /* LISTAS */
-        .items-container {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .item-card {
-            background: white;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-            position: relative;
-        }
-
-        .item-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .item-title {
-            font-size: 1.3em;
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .item-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .item-details {
-            color: #6c757d;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-
-        /* BADGES DE ESTADO */
-        .sync-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .sync-badge.synced {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .sync-badge.pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .sync-badge.error {
-            background: #f8d7da;
-            color: #721c24;
         }
 
         .autocomplete-container {
@@ -973,20 +166,10 @@
             padding: 12px;
             cursor: pointer;
             border-bottom: 1px solid #e9ecef;
-            transition: background-color 0.2s ease;
         }
 
         .suggestion-item:hover {
             background-color: #f8f9fa;
-        }
-
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-
-        .suggestion-item.selected {
-            background-color: #ff6b6b;
-            color: white;
         }
 
         .carrito-container {
@@ -1004,7 +187,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         .carrito-item-info {
@@ -1021,8 +203,6 @@
             width: 60px;
             padding: 5px;
             text-align: center;
-            border: 1px solid #ddd;
-            border-radius: 4px;
         }
 
         .resumen-pedido {
@@ -1039,26 +219,6 @@
             margin-bottom: 8px;
         }
 
-        .resumen-total {
-            border-top: 2px solid rgba(255,255,255,0.3);
-            padding-top: 10px;
-            margin-top: 10px;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-
-        .stock-warning {
-            color: #dc3545;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .stock-ok {
-            color: #28a745;
-            font-size: 12px;
-        }
-
-        /* NOTIFICACIONES */
         .notification {
             position: fixed;
             top: 20px;
@@ -1067,12 +227,10 @@
             color: white;
             padding: 15px 25px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 1000;
             transform: translateX(400px);
             transition: transform 0.3s ease;
             font-weight: 600;
-            max-width: 350px;
         }
 
         .notification.show {
@@ -1083,45 +241,13 @@
             background: #dc3545;
         }
 
-        .notification.warning {
-            background: #ffc107;
-            color: #212529;
-        }
-
         .notification.info {
             background: #007bff;
         }
 
-        /* RESPONSIVE */
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
-            .tabs {
-                flex-direction: column;
-            }
-            
             .form-row {
                 flex-direction: column;
-            }
-            
-            .item-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-
-            .status-indicator {
-                position: relative;
-                top: auto;
-                right: auto;
-                margin-top: 15px;
-                justify-content: center;
-            }
-
-            .tab-content {
-                padding: 20px;
             }
         }
     </style>
@@ -1129,19 +255,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🥪 Sistema Pastrami v2.0</h1>
-            <p>Sincronización real con Firebase v9</p>
-            
-            <div class="status-indicator">
-                <div id="status-dot" class="status-dot status-loading"></div>
-                <span id="status-text">Inicializando...</span>
-                <button id="sync-btn" class="sync-btn" onclick="manualSync()">🔄 Sync</button>
-            </div>
-        </div>
-
-        <!-- Estado de Firebase -->
-        <div id="firebase-status" class="firebase-status loading">
-            🔄 Conectando a Firebase v9...
+            <h1>🥪 Sistema Pastrami v3.0</h1>
+            <p>Versión LIMPIA y FUNCIONAL</p>
         </div>
 
         <div class="tabs">
@@ -1157,7 +272,7 @@
             <form id="productos-form" onsubmit="guardarProducto(event)">
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="producto-nombre">Nombre del Producto <span class="required">*</span>:</label>
+                        <label for="producto-nombre">Nombre <span class="required">*</span>:</label>
                         <input type="text" id="producto-nombre" required>
                     </div>
                     <div class="form-col">
@@ -1168,58 +283,25 @@
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="producto-tipo">Tipo de Producto <span class="required">*</span>:</label>
-                        <select id="producto-tipo" onchange="toggleComponentes()" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="simple">Producto Simple</option>
-                            <option value="compuesto">Producto Compuesto (con componentes)</option>
-                        </select>
-                    </div>
-                    <div class="form-col">
-                        <label for="producto-descripcion">Descripción:</label>
-                        <input type="text" id="producto-descripcion" placeholder="Descripción opcional">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
                         <label for="producto-stock-inicial">Stock Inicial <span class="required">*</span>:</label>
-                        <input type="number" id="producto-stock-inicial" min="0" step="1" required placeholder="Cantidad en inventario">
+                        <input type="number" id="producto-stock-inicial" min="0" required>
                     </div>
                     <div class="form-col">
                         <label for="producto-stock-minimo">Stock Mínimo <span class="required">*</span>:</label>
-                        <input type="number" id="producto-stock-minimo" min="0" step="1" required placeholder="Alerta cuando llegue a">
-                    </div>
-                </div>
-
-                <div id="componentes-section" style="display: none;">
-                    <h3>Componentes del Producto</h3>
-                    <div id="componentes-list">
-                        <p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-col">
-                            <input type="text" id="componente-nombre" placeholder="Nombre del componente">
-                        </div>
-                        <div class="form-col">
-                            <input type="number" id="componente-cantidad" placeholder="Cantidad" min="1">
-                        </div>
-                        <div class="form-col">
-                            <button type="button" class="btn btn-secondary" onclick="agregarComponente()">+ Agregar</button>
-                        </div>
+                        <input type="number" id="producto-stock-minimo" min="0" required>
                     </div>
                 </div>
 
                 <div style="margin-top: 20px;">
                     <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
-                    <button type="button" class="btn btn-secondary" onclick="cancelarProducto()">❌ Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="limpiarFormProducto()">❌ Limpiar</button>
                 </div>
             </form>
 
-            <div class="items-container">
+            <div style="margin-top: 30px;">
                 <h3>Lista de Productos</h3>
                 <div id="productos-lista">
-                    <div class="no-items">Cargando productos...</div>
+                    <p>No hay productos registrados</p>
                 </div>
             </div>
         </div>
@@ -1246,47 +328,21 @@
                         <input type="tel" id="cliente-telefono" required>
                     </div>
                     <div class="form-col">
-                        <label for="cliente-email">Email:</label>
-                        <input type="email" id="cliente-email">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="cliente-direccion">Calle:</label>
-                        <input type="text" id="cliente-direccion" placeholder="Nombre de la calle">
-                    </div>
-                    <div class="form-col">
-                        <label for="cliente-numero">Número:</label>
-                        <input type="text" id="cliente-numero" placeholder="Número de la calle">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="cliente-piso">Piso:</label>
-                        <input type="text" id="cliente-piso" placeholder="Piso (opcional)">
-                    </div>
-                    <div class="form-col">
-                        <label for="cliente-departamento">Departamento:</label>
-                        <input type="text" id="cliente-departamento" placeholder="Depto (opcional)">
-                    </div>
-                    <div class="form-col">
-                        <label for="cliente-ciudad">Ciudad:</label>
-                        <input type="text" id="cliente-ciudad" placeholder="Ciudad">
+                        <label for="cliente-direccion">Dirección:</label>
+                        <input type="text" id="cliente-direccion">
                     </div>
                 </div>
 
                 <div style="margin-top: 20px;">
                     <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
-                    <button type="button" class="btn btn-secondary" onclick="cancelarCliente()">❌ Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="limpiarFormCliente()">❌ Limpiar</button>
                 </div>
             </form>
 
-            <div class="items-container">
+            <div style="margin-top: 30px;">
                 <h3>Lista de Clientes</h3>
                 <div id="clientes-lista">
-                    <div class="no-items">Cargando clientes...</div>
+                    <p>No hay clientes registrados</p>
                 </div>
             </div>
         </div>
@@ -1295,39 +351,36 @@
         <div id="pedidos" class="tab-content">
             <h2>🥪 Gestión de Pedidos</h2>
             
-            <form id="pedidos-form" onsubmit="guardarPedido(event)">
+            <form id="pedidos-form" onsubmit="crearPedido(event)">
                 <!-- CLIENTE -->
                 <div class="form-row">
                     <div class="form-col">
                         <label for="pedido-cliente">Cliente <span class="required">*</span>:</label>
                         <div class="autocomplete-container">
                             <input type="text" id="pedido-cliente" placeholder="Buscar cliente..." 
-                                   oninput="buscarClientes(this.value)" onkeydown="navegarSugerencias(event, 'clientes')" required>
+                                   oninput="buscarClientes(this.value)" required>
                             <div id="clientes-suggestions" class="autocomplete-suggestions"></div>
                         </div>
-                        <input type="hidden" id="cliente-seleccionado-id">
                     </div>
                 </div>
 
                 <!-- PRODUCTOS -->
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="pedido-producto">Agregar Producto:</label>
+                        <label for="pedido-producto">Producto:</label>
                         <div class="autocomplete-container">
                             <input type="text" id="pedido-producto" placeholder="Buscar producto..." 
-                                   oninput="buscarProductos(this.value)" onkeydown="navegarSugerencias(event, 'productos')">
+                                   oninput="buscarProductos(this.value)">
                             <div id="productos-suggestions" class="autocomplete-suggestions"></div>
                         </div>
                     </div>
                     <div class="form-col" style="flex: 0.3;">
                         <label for="pedido-cantidad">Cantidad:</label>
-                        <input type="number" id="pedido-cantidad" min="1" value="1" placeholder="Cant.">
+                        <input type="number" id="pedido-cantidad" min="1" value="1">
                     </div>
                     <div class="form-col" style="flex: 0.3;">
                         <label>&nbsp;</label>
-                        <button type="button" class="btn btn-primary" onclick="agregarProductoAlCarrito()">
-                            ➕ Agregar
-                        </button>
+                        <button type="button" class="btn btn-primary" onclick="agregarAlCarrito()">➕ Agregar</button>
                     </div>
                 </div>
 
@@ -1335,58 +388,7 @@
                 <div class="carrito-container">
                     <h3>🛒 Productos del Pedido</h3>
                     <div id="carrito-items">
-                        <div style="text-align: center; color: #6c757d; padding: 20px;">
-                            No hay productos en el pedido
-                        </div>
-                    </div>
-                </div>
-
-                <!-- DETALLES DEL PEDIDO -->
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="pedido-envio">Costo de Envío:</label>
-                        <input type="number" id="pedido-envio" step="0.01" min="0" value="0" 
-                               oninput="calcularTotal()" placeholder="0.00">
-                    </div>
-                    <div class="form-col">
-                        <label for="pedido-pago-tipo">Opción de Pago <span class="required">*</span>:</label>
-                        <select id="pedido-pago-tipo" required onchange="toggleMontoPagado()">
-                            <option value="">Seleccionar...</option>
-                            <option value="total">Pago Total</option>
-                            <option value="parcial">Pago Parcial</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="pedido-metodo-pago">Pagado con <span class="required">*</span>:</label>
-                        <select id="pedido-metodo-pago" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="efectivo">💵 Efectivo</option>
-                            <option value="transferencia">🏦 Transferencia Bancaria</option>
-                            <option value="mercadopago">💳 MercadoPago</option>
-                        </select>
-                    </div>
-                    <div class="form-col" id="monto-pagado-container" style="display: none;">
-                        <label for="pedido-monto-pagado">Monto Pagado:</label>
-                        <input type="number" id="pedido-monto-pagado" step="0.01" min="0" 
-                               placeholder="Ingrese monto pagado">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="pedido-fecha-entrega">Fecha de Entrega <span class="required">*</span>:</label>
-                        <input type="date" id="pedido-fecha-entrega" required>
-                    </div>
-                    <div class="form-col">
-                        <label for="pedido-turno">Turno Horario <span class="required">*</span>:</label>
-                        <select id="pedido-turno" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="mañana">🌅 Mañana</option>
-                            <option value="tarde">🌆 Tarde</option>
-                        </select>
+                        <p style="text-align: center; color: #6c757d;">No hay productos en el pedido</p>
                     </div>
                 </div>
 
@@ -1394,30 +396,21 @@
                 <div class="resumen-pedido">
                     <h3>💰 Resumen del Pedido</h3>
                     <div class="resumen-linea">
-                        <span>Subtotal Productos:</span>
-                        <span id="subtotal-productos">$0.00</span>
-                    </div>
-                    <div class="resumen-linea">
-                        <span>Costo de Envío:</span>
-                        <span id="costo-envio-display">$0.00</span>
-                    </div>
-                    <div class="resumen-linea resumen-total">
-                        <span>Total de la Compra:</span>
-                        <span id="total-compra">$0.00</span>
+                        <span>Total:</span>
+                        <span id="total-pedido">$0.00</span>
                     </div>
                 </div>
 
                 <div style="margin-top: 20px;">
                     <button type="submit" class="btn btn-primary">💾 Crear Pedido</button>
-                    <button type="button" class="btn btn-secondary" onclick="cancelarPedido()">❌ Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="limpiarFormPedido()">❌ Limpiar</button>
                 </div>
             </form>
 
-            <!-- LISTA DE PEDIDOS -->
-            <div class="items-container">
+            <div style="margin-top: 30px;">
                 <h3>📋 Lista de Pedidos</h3>
                 <div id="pedidos-lista">
-                    <div class="no-items">Cargando pedidos...</div>
+                    <p>No hay pedidos registrados</p>
                 </div>
             </div>
         </div>
@@ -1426,504 +419,80 @@
     <!-- Notificaciones -->
     <div id="notification" class="notification"></div>
 
-    <!-- Firebase v9 SDK - Versión Compatible -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
     <script>
-        // ========================================
-        // 🔥 FIREBASE V9 - CONFIGURACIÓN COMPATIBLE
-        // ========================================
-        
-        // 🔧 CONFIGURACIÓN FIREBASE - ACTUALIZADA
-        const firebaseConfig = {
-            apiKey: "AIzaSyBpX91Usin1H8DRHB7IjHIs3dwd3-9JZww",
-            authDomain: "pastrami-v2.firebaseapp.com",
-            projectId: "pastrami-v2",
-            storageBucket: "pastrami-v2.firebasestorage.app",
-            messagingSenderId: "388841758248",
-            appId: "1:388841758248:web:dc76b4f5fd1383a4db5f1d"
-        };
-
-        // Variables globales
-        let app;
-        let db;
-        let isFirebaseConnected = false;
+        // Variables globales SIMPLES
         let productos = [];
         let clientes = [];
         let pedidos = [];
-        let editandoProductoId = null;
-        let editandoClienteId = null;
-        let editandoPedidoId = null;
-        let componentesTemp = [];
-        let carritoActual = [];
         let clienteSeleccionado = null;
-        let sugerenciasActivas = null;
-        let indiceSugerencia = -1;
+        let productoSeleccionado = null;
+        let carrito = [];
 
         // ========================================
-        // 🚀 INICIALIZACIÓN
-        // ========================================
-        
-        async function inicializarApp() {
-            try {
-                console.log('🚀 Iniciando Sistema Pastrami v2.0...');
-                
-                // Verificar que Firebase esté disponible
-                if (typeof firebase === 'undefined') {
-                    throw new Error('Firebase SDK no cargado');
-                }
-                
-                // Inicializar Firebase
-                app = firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                
-                console.log('✅ Firebase v9 inicializado correctamente');
-                
-                // Probar conexión
-                await testFirebaseConnection();
-                
-                // Configurar listeners en tiempo real
-                if (isFirebaseConnected) {
-                    setupRealtimeListeners();
-                }
-                
-                mostrarNotificacion('🎉 Sistema iniciado correctamente', 'success');
-                
-            } catch (error) {
-                console.error('❌ Error inicializando:', error);
-                handleFirebaseError(error);
-            }
-        }
-
-        async function testFirebaseConnection() {
-            try {
-                updateStatus('loading', 'Probando conexión...');
-                
-                // Hacer una consulta simple para probar conexión
-                const testCollection = db.collection('productos');
-                await testCollection.get();
-                
-                isFirebaseConnected = true;
-                updateStatus('online', 'Conectado');
-                updateFirebaseStatus('connected', '✅ Firebase v9 conectado y funcionando');
-                
-                console.log('✅ Conexión a Firebase confirmada');
-                
-                // Cargar datos
-                await cargarDatosDesdeFirebase();
-                
-            } catch (error) {
-                console.error('❌ Error de conexión:', error);
-                isFirebaseConnected = false;
-                updateStatus('offline', 'Error conexión');
-                updateFirebaseStatus('error', `❌ Error: ${error.message}`);
-                
-                // Cargar datos locales como respaldo
-                cargarDatosLocales();
-            }
-        }
-
-        async function cargarDatosDesdeFirebase() {
-            try {
-                console.log('📥 Cargando datos desde Firebase...');
-                
-                // Cargar productos
-                const productosSnapshot = await db.collection('productos').get();
-                productos = productosSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    synced: true
-                }));
-                
-                // Cargar pedidos
-                const pedidosSnapshot = await db.collection('pedidos').get();
-                pedidos = pedidosSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    synced: true
-                }));
-                
-                // Guardar backup local
-                localStorage.setItem('productos_backup', JSON.stringify(productos));
-                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                
-                // Mostrar datos
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
-                
-                console.log(`✅ Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos`);
-                
-            } catch (error) {
-                console.error('❌ Error cargando desde Firebase:', error);
-                cargarDatosLocales();
-            }
-        }
-
-        function setupRealtimeListeners() {
-            try {
-                console.log('🔄 Configurando listeners en tiempo real...');
-                
-                // Listener para productos
-                db.collection('productos').onSnapshot((snapshot) => {
-                    console.log('📥 Actualización de productos recibida');
-                    
-                    snapshot.docChanges().forEach((change) => {
-                        const producto = { 
-                            id: change.doc.id, 
-                            ...change.doc.data(),
-                            synced: true
-                        };
-                        
-                        if (change.type === 'added') {
-                            const exists = productos.find(p => p.id === producto.id);
-                            if (!exists) {
-                                productos.push(producto);
-                                mostrarNotificacion(`➕ Nuevo producto: ${producto.nombre}`, 'success');
-                            }
-                        } else if (change.type === 'modified') {
-                            const index = productos.findIndex(p => p.id === producto.id);
-                            if (index >= 0) {
-                                productos[index] = producto;
-                            }
-                        } else if (change.type === 'removed') {
-                            productos = productos.filter(p => p.id !== producto.id);
-                            mostrarNotificacion(`🗑️ Producto eliminado: ${producto.nombre}`, 'warning');
-                        }
-                    });
-                    
-                    localStorage.setItem('productos_backup', JSON.stringify(productos));
-                    mostrarProductos();
-                });
-
-                // Listener para clientes
-                db.collection('clientes').onSnapshot((snapshot) => {
-                    console.log('📥 Actualización de clientes recibida');
-                    
-                    snapshot.docChanges().forEach((change) => {
-                        const cliente = { 
-                            id: change.doc.id, 
-                            ...change.doc.data(),
-                            synced: true
-                        };
-                        
-                        if (change.type === 'added') {
-                            const exists = clientes.find(c => c.id === cliente.id);
-                            if (!exists) {
-                                clientes.push(cliente);
-                                mostrarNotificacion(`➕ Nuevo cliente: ${cliente.nombre}`, 'success');
-                            }
-                        } else if (change.type === 'modified') {
-                            const index = clientes.findIndex(c => c.id === cliente.id);
-                            if (index >= 0) {
-                                clientes[index] = cliente;
-                            }
-                        } else if (change.type === 'removed') {
-                            clientes = clientes.filter(c => c.id !== cliente.id);
-                            mostrarNotificacion(`🗑️ Cliente eliminado: ${cliente.nombre}`, 'warning');
-                        }
-                    });
-                    
-                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                    mostrarClientes();
-                });
-                
-                // Listener para pedidos
-                db.collection('pedidos').onSnapshot((snapshot) => {
-                    console.log('📥 Actualización de pedidos recibida');
-                    
-                    snapshot.docChanges().forEach((change) => {
-                        const pedido = { 
-                            id: change.doc.id, 
-                            ...change.doc.data(),
-                            synced: true
-                        };
-                        
-                        if (change.type === 'added') {
-                            const exists = pedidos.find(p => p.id === pedido.id);
-                            if (!exists) {
-                                pedidos.push(pedido);
-                                mostrarNotificacion(`➕ Nuevo pedido recibido`, 'success');
-                            }
-                        } else if (change.type === 'modified') {
-                            const index = pedidos.findIndex(p => p.id === pedido.id);
-                            if (index >= 0) {
-                                pedidos[index] = pedido;
-                            }
-                        } else if (change.type === 'removed') {
-                            pedidos = pedidos.filter(p => p.id !== pedido.id);
-                        }
-                    });
-                    
-                    localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                    mostrarPedidos();
-                });
-                
-                console.log('✅ Listeners en tiempo real configurados');
-                
-            } catch (error) {
-                console.error('❌ Error configurando listeners:', error);
-            }
-        }
-
-        function cargarDatosLocales() {
-            try {
-                productos = JSON.parse(localStorage.getItem('productos_backup') || '[]');
-                clientes = JSON.parse(localStorage.getItem('clientes_backup') || '[]');
-                pedidos = JSON.parse(localStorage.getItem('pedidos_backup') || '[]');
-                
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
-                
-                console.log(`📂 Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos locales`);
-                
-            } catch (error) {
-                console.error('❌ Error cargando datos locales:', error);
-                productos = [];
-                clientes = [];
-                pedidos = [];
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
-            }
-        }
-
-        // ========================================
-        // 🛠️ FUNCIONES DE PRODUCTOS - ARREGLO PRINCIPAL
+        // FUNCIONES DE PRODUCTOS
         // ========================================
         
-        function toggleComponentes() {
-            const tipo = document.getElementById('producto-tipo').value;
-            const section = document.getElementById('componentes-section');
-            
-            if (tipo === 'compuesto') {
-                section.style.display = 'block';
-            } else {
-                section.style.display = 'none';
-                componentesTemp = [];
-                mostrarComponentesTemp();
-            }
-        }
-
-        function agregarComponente() {
-            const nombre = document.getElementById('componente-nombre').value.trim();
-            const cantidad = parseInt(document.getElementById('componente-cantidad').value);
-            
-            if (!nombre || !cantidad || cantidad < 1) {
-                mostrarNotificacion('❌ Ingresa nombre y cantidad válidos para el componente', 'error');
-                return;
-            }
-            
-            componentesTemp.push({ nombre, cantidad });
-            mostrarComponentesTemp();
-            
-            // Limpiar campos
-            document.getElementById('componente-nombre').value = '';
-            document.getElementById('componente-cantidad').value = '';
-        }
-
-        function mostrarComponentesTemp() {
-            const lista = document.getElementById('componentes-list');
-            if (componentesTemp.length === 0) {
-                lista.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>';
-                return;
-            }
-            
-            lista.innerHTML = componentesTemp.map((comp, index) => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #e9ecef; border-radius: 5px; margin-bottom: 5px;">
-                    <span>${comp.cantidad}x ${comp.nombre}</span>
-                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(${index})">❌</button>
-                </div>
-            `).join('');
-        }
-
-        function eliminarComponenteTemp(index) {
-            componentesTemp.splice(index, 1);
-            mostrarComponentesTemp();
-        }
-        
-        // 🔧 FUNCIÓN CORREGIDA - ESTA ERA LA QUE ESTABA CORTADA
         function guardarProducto(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('producto-nombre').value.trim();
             const precio = parseFloat(document.getElementById('producto-precio').value);
-            const tipo = document.getElementById('producto-tipo').value;
-            const descripcion = document.getElementById('producto-descripcion').value.trim();
             const stockInicial = parseInt(document.getElementById('producto-stock-inicial').value);
             const stockMinimo = parseInt(document.getElementById('producto-stock-minimo').value);
             
-            if (!nombre || !precio || !tipo || stockInicial < 0 || stockMinimo < 0) {
-                mostrarNotificacion('❌ Complete los campos obligatorios correctamente', 'error');
-                return;
-            }
-            
-            if (stockMinimo > stockInicial) {
-                mostrarNotificacion('❌ El stock mínimo no puede ser mayor al stock inicial', 'error');
-                return;
-            }
-            
-            if (tipo === 'compuesto' && componentesTemp.length === 0) {
-                mostrarNotificacion('❌ Los productos compuestos deben tener al menos un componente', 'error');
+            if (!nombre || precio <= 0 || stockInicial < 0 || stockMinimo < 0) {
+                mostrarNotificacion('❌ Complete todos los campos correctamente', 'error');
                 return;
             }
             
             const producto = {
-                nombre,
-                precio,
-                tipo,
-                descripcion,
-                stockActual: editandoProductoId ? undefined : stockInicial, // Solo al crear nuevo
-                stockInicial,
-                stockMinimo,
-                componentes: tipo === 'compuesto' ? [...componentesTemp] : [],
-                fechaCreacion: firebase.firestore.Timestamp.now(),
-                fechaModificacion: firebase.firestore.Timestamp.now()
+                id: Date.now().toString(),
+                nombre: nombre,
+                precio: precio,
+                stockActual: stockInicial,
+                stockInicial: stockInicial,
+                stockMinimo: stockMinimo,
+                fechaCreacion: new Date()
             };
             
-            // Si estamos editando, mantener el stock actual y solo actualizar los otros campos
-            if (editandoProductoId) {
-                const productoExistente = productos.find(p => p.id === editandoProductoId);
-                producto.stockActual = productoExistente.stockActual;
-            }
+            productos.push(producto);
+            guardarEnStorage();
+            mostrarProductos();
+            limpiarFormProducto();
             
-            if (isFirebaseConnected) {
-                if (editandoProductoId) {
-                    // Actualizar producto existente
-                    db.collection('productos').doc(editandoProductoId).update({
-                        ...producto,
-                        fechaModificacion: firebase.firestore.Timestamp.now()
-                    }).then(() => {
-                        mostrarNotificacion(`✅ Producto "${nombre}" actualizado`, 'success');
-                        limpiarFormularioProducto();
-                    }).catch(error => {
-                        console.error('Error actualizando producto:', error);
-                        mostrarNotificacion('❌ Error actualizando producto', 'error');
-                    });
-                } else {
-                    // Crear nuevo producto - ESTA PARTE ESTABA CORTADA
-                    db.collection('productos').add(producto).then(() => {
-                        mostrarNotificacion(`✅ Producto "${nombre}" creado con stock inicial de ${stockInicial}`, 'success');
-                        limpiarFormularioProducto();
-                    }).catch(error => {
-                        console.error('Error creando producto:', error);
-                        mostrarNotificacion('❌ Error creando producto', 'error');
-                    });
-                }
-            } else {
-                // Modo offline
-                if (editandoProductoId) {
-                    const index = productos.findIndex(p => p.id === editandoProductoId);
-                    productos[index] = { ...producto, id: editandoProductoId, synced: false };
-                } else {
-                    productos.push({ ...producto, id: Date.now().toString(), synced: false });
-                }
-                
-                localStorage.setItem('productos_backup', JSON.stringify(productos));
-                mostrarProductos();
-                mostrarNotificacion(`💾 Producto "${nombre}" guardado localmente`, 'warning');
-                limpiarFormularioProducto();
-            }
-        }
-
-        function editarProducto(id) {
-            const producto = productos.find(p => p.id === id);
-            if (!producto) return;
-            
-            editandoProductoId = id;
-            componentesTemp = [...(producto.componentes || [])];
-            
-            document.getElementById('producto-nombre').value = producto.nombre;
-            document.getElementById('producto-precio').value = producto.precio;
-            document.getElementById('producto-tipo').value = producto.tipo || 'simple';
-            document.getElementById('producto-descripcion').value = producto.descripcion || '';
-            document.getElementById('producto-stock-inicial').value = producto.stockInicial || 0;
-            document.getElementById('producto-stock-minimo').value = producto.stockMinimo || 0;
-            
-            toggleComponentes();
-            mostrarComponentesTemp();
-            
-            document.getElementById('productos-form').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function eliminarProducto(id) {
-            const producto = productos.find(p => p.id === id);
-            if (!producto) return;
-            
-            if (!confirm(`¿Eliminar "${producto.nombre}"?`)) return;
-            
-            if (isFirebaseConnected) {
-                db.collection('productos').doc(id).delete().then(() => {
-                    mostrarNotificacion('🗑️ Producto eliminado', 'success');
-                }).catch(error => {
-                    console.error('Error eliminando producto:', error);
-                    mostrarNotificacion('❌ Error eliminando producto', 'error');
-                });
-            } else {
-                productos = productos.filter(p => p.id !== id);
-                localStorage.setItem('productos_backup', JSON.stringify(productos));
-                mostrarProductos();
-                mostrarNotificacion('🗑️ Producto eliminado localmente', 'warning');
-            }
-        }
-
-        function cancelarProducto() {
-            limpiarFormularioProducto();
-        }
-
-        function limpiarFormularioProducto() {
-            document.getElementById('productos-form').reset();
-            editandoProductoId = null;
-            componentesTemp = [];
-            mostrarComponentesTemp();
-            toggleComponentes();
+            mostrarNotificacion('✅ Producto guardado: ' + nombre, 'success');
         }
 
         function mostrarProductos() {
             const container = document.getElementById('productos-lista');
             
             if (productos.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay productos registrados</div>';
+                container.innerHTML = '<p>No hay productos registrados</p>';
                 return;
             }
             
-            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let html = '';
+            productos.forEach(producto => {
+                const stock = producto.stockActual || 0;
+                const stockClass = stock <= producto.stockMinimo ? 'color: red' : 'color: green';
+                
+                html += '<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">';
+                html += '<h4>' + producto.nombre + '</h4>';
+                html += '<p>Precio: $' + producto.precio.toFixed(2) + '</p>';
+                html += '<p style="' + stockClass + '">Stock: ' + stock + ' unidades</p>';
+                html += '<p>Stock Mínimo: ' + producto.stockMinimo + '</p>';
+                html += '</div>';
+            });
             
-            container.innerHTML = productosOrdenados.map(producto => `
-                <div class="item-card">
-                    <div class="sync-badge ${producto.synced ? 'synced' : 'pending'}">
-                        ${producto.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
-                    <div class="item-header">
-                        <div class="item-title">${producto.nombre}</div>
-                        <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editarProducto('${producto.id}')">
-                                ✏️ Editar
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="eliminarProducto('${producto.id}')">
-                                🗑️ Eliminar
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="item-details">
-                        <strong>Precio:</strong> ${producto.precio?.toFixed(2)} | 
-                        <strong>Tipo:</strong> ${producto.tipo || 'Simple'}
-                        ${producto.descripcion ? `<br><strong>Descripción:</strong> ${producto.descripcion}` : ''}
-                        ${producto.componentes && producto.componentes.length > 0 ? 
-                            `<br><strong>Componentes:</strong> ${producto.componentes.map(c => `${c.cantidad}x ${c.nombre}`).join(', ')}` : ''}
-                        <br><small><strong>Creado:</strong> ${formatDate(producto.fechaCreacion)}</small>
-                    </div>
-                </div>
-            `).join('');
+            container.innerHTML = html;
+        }
+
+        function limpiarFormProducto() {
+            document.getElementById('productos-form').reset();
         }
 
         // ========================================
-        // 🛠️ FUNCIONES DE CLIENTES
+        // FUNCIONES DE CLIENTES
         // ========================================
         
         function guardarCliente(event) {
@@ -1932,12 +501,7 @@
             const nombre = document.getElementById('cliente-nombre').value.trim();
             const apellido = document.getElementById('cliente-apellido').value.trim();
             const telefono = document.getElementById('cliente-telefono').value.trim();
-            const email = document.getElementById('cliente-email').value.trim();
             const direccion = document.getElementById('cliente-direccion').value.trim();
-            const numero = document.getElementById('cliente-numero').value.trim();
-            const piso = document.getElementById('cliente-piso').value.trim();
-            const departamento = document.getElementById('cliente-departamento').value.trim();
-            const ciudad = document.getElementById('cliente-ciudad').value.trim();
             
             if (!nombre || !apellido || !telefono) {
                 mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
@@ -1945,166 +509,311 @@
             }
             
             const cliente = {
-                nombre,
-                apellido,
-                telefono,
-                email,
-                direccion,
-                numero,
-                piso,
-                departamento,
-                ciudad,
-                fechaCreacion: firebase.firestore.Timestamp.now(),
-                fechaModificacion: firebase.firestore.Timestamp.now()
+                id: Date.now().toString(),
+                nombre: nombre,
+                apellido: apellido,
+                telefono: telefono,
+                direccion: direccion,
+                fechaCreacion: new Date()
             };
             
-            if (isFirebaseConnected) {
-                if (editandoClienteId) {
-                    // Actualizar
-                    db.collection('clientes').doc(editandoClienteId).update({
-                        ...cliente,
-                        fechaModificacion: firebase.firestore.Timestamp.now()
-                    }).then(() => {
-                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" actualizado`, 'success');
-                        limpiarFormularioCliente();
-                    }).catch(error => {
-                        console.error('Error actualizando cliente:', error);
-                        mostrarNotificacion('❌ Error actualizando cliente', 'error');
-                    });
-                } else {
-                    // Crear nuevo
-                    db.collection('clientes').add(cliente).then(() => {
-                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" creado`, 'success');
-                        limpiarFormularioCliente();
-                    }).catch(error => {
-                        console.error('Error creando cliente:', error);
-                        mostrarNotificacion('❌ Error creando cliente', 'error');
-                    });
-                }
-            } else {
-                // Modo offline
-                if (editandoClienteId) {
-                    const index = clientes.findIndex(c => c.id === editandoClienteId);
-                    clientes[index] = { ...cliente, id: editandoClienteId, synced: false };
-                } else {
-                    clientes.push({ ...cliente, id: Date.now().toString(), synced: false });
-                }
-                
-                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                mostrarClientes();
-                mostrarNotificacion(`💾 Cliente "${nombre} ${apellido}" guardado localmente`, 'warning');
-                limpiarFormularioCliente();
-            }
-        }
-
-        function editarCliente(id) {
-            const cliente = clientes.find(c => c.id === id);
-            if (!cliente) return;
+            clientes.push(cliente);
+            guardarEnStorage();
+            mostrarClientes();
+            limpiarFormCliente();
             
-            editandoClienteId = id;
-            
-            document.getElementById('cliente-nombre').value = cliente.nombre;
-            document.getElementById('cliente-apellido').value = cliente.apellido;
-            document.getElementById('cliente-telefono').value = cliente.telefono;
-            document.getElementById('cliente-email').value = cliente.email || '';
-            document.getElementById('cliente-direccion').value = cliente.direccion || '';
-            document.getElementById('cliente-numero').value = cliente.numero || '';
-            document.getElementById('cliente-piso').value = cliente.piso || '';
-            document.getElementById('cliente-departamento').value = cliente.departamento || '';
-            document.getElementById('cliente-ciudad').value = cliente.ciudad || '';
-            
-            document.getElementById('clientes-form').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function eliminarCliente(id) {
-            const cliente = clientes.find(c => c.id === id);
-            if (!cliente) return;
-            
-            if (!confirm(`¿Eliminar "${cliente.nombre} ${cliente.apellido}"?`)) return;
-            
-            if (isFirebaseConnected) {
-                db.collection('clientes').doc(id).delete().then(() => {
-                    mostrarNotificacion('🗑️ Cliente eliminado', 'success');
-                }).catch(error => {
-                    console.error('Error eliminando cliente:', error);
-                    mostrarNotificacion('❌ Error eliminando cliente', 'error');
-                });
-            } else {
-                clientes = clientes.filter(c => c.id !== id);
-                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                mostrarClientes();
-                mostrarNotificacion('🗑️ Cliente eliminado localmente', 'warning');
-            }
-        }
-
-        function cancelarCliente() {
-            limpiarFormularioCliente();
-        }
-
-        function limpiarFormularioCliente() {
-            document.getElementById('clientes-form').reset();
-            editandoClienteId = null;
+            mostrarNotificacion('✅ Cliente guardado: ' + nombre + ' ' + apellido, 'success');
         }
 
         function mostrarClientes() {
             const container = document.getElementById('clientes-lista');
             
             if (clientes.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
+                container.innerHTML = '<p>No hay clientes registrados</p>';
                 return;
             }
             
-            const clientesOrdenados = [...clientes].sort((a, b) => {
-                const apellidoA = a.apellido.toLowerCase();
-                const apellidoB = b.apellido.toLowerCase();
-                if (apellidoA !== apellidoB) {
-                    return apellidoA.localeCompare(apellidoB);
+            let html = '';
+            clientes.forEach(cliente => {
+                html += '<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">';
+                html += '<h4>' + cliente.nombre + ' ' + cliente.apellido + '</h4>';
+                html += '<p>📞 ' + cliente.telefono + '</p>';
+                if (cliente.direccion) {
+                    html += '<p>📍 ' + cliente.direccion + '</p>';
                 }
-                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+                html += '</div>';
             });
             
-            container.innerHTML = clientesOrdenados.map(cliente => {
-                // Construir dirección completa
-                let direccionCompleta = '';
-                if (cliente.direccion || cliente.numero) {
-                    direccionCompleta = `${cliente.direccion || ''} ${cliente.numero || ''}`.trim();
-                    if (cliente.piso) direccionCompleta += `, Piso ${cliente.piso}`;
-                    if (cliente.departamento) direccionCompleta += `, Dto ${cliente.departamento}`;
-                    if (cliente.ciudad) direccionCompleta += `, ${cliente.ciudad}`;
-                }
-                
-                return `
-                <div class="item-card">
-                    <div class="sync-badge ${cliente.synced ? 'synced' : 'pending'}">
-                        ${cliente.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
-                    <div class="item-header">
-                        <div class="item-title">${cliente.nombre} ${cliente.apellido}</div>
-                        <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editarCliente('${cliente.id}')">
-                                ✏️ Editar
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="eliminarCliente('${cliente.id}')">
-                                🗑️ Eliminar
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="item-details">
-                        <strong>Teléfono:</strong> ${cliente.telefono}
-                        ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
-                        <br>
-                        ${direccionCompleta ? `<strong>Dirección:</strong> ${direccionCompleta}<br>` : ''}
-                        <small><strong>Registrado:</strong> ${formatDate(cliente.fechaCreacion)}</small>
-                    </div>
-                </div>
-            `;
-            }).join('');
+            container.innerHTML = html;
+        }
+
+        function limpiarFormCliente() {
+            document.getElementById('clientes-form').reset();
         }
 
         // ========================================
-        // 🛠️ FUNCIONES DE UI
+        // FUNCIONES DE PEDIDOS - VERSION SIMPLE
+        // ========================================
+        
+        function buscarClientes(query) {
+            const container = document.getElementById('clientes-suggestions');
+            
+            if (!query || query.length < 2) {
+                container.classList.remove('show');
+                return;
+            }
+            
+            const clientesFiltrados = clientes.filter(cliente => {
+                const nombreCompleto = cliente.nombre + ' ' + cliente.apellido;
+                return nombreCompleto.toLowerCase().includes(query.toLowerCase()) || 
+                       cliente.telefono.includes(query);
+            });
+            
+            if (clientesFiltrados.length === 0) {
+                container.innerHTML = '<div class="suggestion-item">No se encontraron clientes</div>';
+            } else {
+                let html = '';
+                clientesFiltrados.forEach(cliente => {
+                    html += '<div class="suggestion-item" onclick="seleccionarCliente(\'' + cliente.id + '\')">';
+                    html += '<strong>' + cliente.nombre + ' ' + cliente.apellido + '</strong><br>';
+                    html += '<small>📞 ' + cliente.telefono + '</small>';
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+            }
+            
+            container.classList.add('show');
+        }
+
+        function buscarProductos(query) {
+            const container = document.getElementById('productos-suggestions');
+            
+            if (!query || query.length < 2) {
+                container.classList.remove('show');
+                return;
+            }
+            
+            const productosFiltrados = productos.filter(producto => {
+                return producto.nombre.toLowerCase().includes(query.toLowerCase()) &&
+                       (producto.stockActual || 0) > 0;
+            });
+            
+            if (productosFiltrados.length === 0) {
+                container.innerHTML = '<div class="suggestion-item">No hay productos disponibles</div>';
+            } else {
+                let html = '';
+                productosFiltrados.forEach(producto => {
+                    html += '<div class="suggestion-item" onclick="seleccionarProducto(\'' + producto.id + '\')">';
+                    html += '<strong>' + producto.nombre + '</strong> - $' + producto.precio.toFixed(2) + '<br>';
+                    html += '<small>Stock: ' + (producto.stockActual || 0) + ' unidades</small>';
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+            }
+            
+            container.classList.add('show');
+        }
+
+        function seleccionarCliente(clienteId) {
+            const cliente = clientes.find(c => c.id === clienteId);
+            if (!cliente) return;
+            
+            clienteSeleccionado = cliente;
+            document.getElementById('pedido-cliente').value = cliente.nombre + ' ' + cliente.apellido;
+            document.getElementById('clientes-suggestions').classList.remove('show');
+            
+            console.log('Cliente seleccionado:', cliente.nombre);
+        }
+
+        function seleccionarProducto(productoId) {
+            const producto = productos.find(p => p.id === productoId);
+            if (!producto) return;
+            
+            productoSeleccionado = producto;
+            document.getElementById('pedido-producto').value = producto.nombre;
+            document.getElementById('productos-suggestions').classList.remove('show');
+            
+            document.getElementById('pedido-cantidad').focus();
+            
+            console.log('Producto seleccionado:', producto.nombre, 'Precio:', producto.precio);
+        }
+
+        function agregarAlCarrito() {
+            if (!productoSeleccionado) {
+                mostrarNotificacion('❌ Seleccione un producto primero', 'error');
+                return;
+            }
+            
+            const cantidad = parseInt(document.getElementById('pedido-cantidad').value) || 1;
+            
+            if (cantidad <= 0) {
+                mostrarNotificacion('❌ Cantidad debe ser mayor a 0', 'error');
+                return;
+            }
+            
+            if (cantidad > productoSeleccionado.stockActual) {
+                mostrarNotificacion('❌ Stock insuficiente', 'error');
+                return;
+            }
+            
+            // Verificar si ya está en el carrito
+            const itemExistente = carrito.find(item => item.producto.id === productoSeleccionado.id);
+            
+            if (itemExistente) {
+                itemExistente.cantidad += cantidad;
+            } else {
+                carrito.push({
+                    producto: JSON.parse(JSON.stringify(productoSeleccionado)),
+                    cantidad: cantidad,
+                    subtotal: cantidad * productoSeleccionado.precio
+                });
+            }
+            
+            // Limpiar formulario
+            document.getElementById('pedido-producto').value = '';
+            document.getElementById('pedido-cantidad').value = '1';
+            productoSeleccionado = null;
+            
+            mostrarCarrito();
+            calcularTotal();
+            
+            mostrarNotificacion('✅ Producto agregado al carrito', 'success');
+        }
+
+        function mostrarCarrito() {
+            const container = document.getElementById('carrito-items');
+            
+            if (carrito.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">No hay productos en el pedido</p>';
+                return;
+            }
+            
+            let html = '';
+            carrito.forEach((item, index) => {
+                html += '<div class="carrito-item">';
+                html += '<div class="carrito-item-info">';
+                html += '<strong>' + item.producto.nombre + '</strong><br>';
+                html += '<small>$' + item.producto.precio.toFixed(2) + ' x ' + item.cantidad + ' = $' + (item.producto.precio * item.cantidad).toFixed(2) + '</small>';
+                html += '</div>';
+                html += '<div class="carrito-item-actions">';
+                html += '<input type="number" class="cantidad-input" min="1" value="' + item.cantidad + '" onchange="cambiarCantidad(' + index + ', this.value)">';
+                html += '<button type="button" onclick="eliminarDelCarrito(' + index + ')" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; margin-left: 5px;">🗑️</button>';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function cambiarCantidad(index, nuevaCantidad) {
+            const cantidad = parseInt(nuevaCantidad);
+            if (cantidad <= 0) {
+                eliminarDelCarrito(index);
+                return;
+            }
+            
+            carrito[index].cantidad = cantidad;
+            carrito[index].subtotal = cantidad * carrito[index].producto.precio;
+            
+            mostrarCarrito();
+            calcularTotal();
+        }
+
+        function eliminarDelCarrito(index) {
+            carrito.splice(index, 1);
+            mostrarCarrito();
+            calcularTotal();
+        }
+
+        function calcularTotal() {
+            const total = carrito.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
+            document.getElementById('total-pedido').textContent = '$' + total.toFixed(2);
+        }
+
+        function crearPedido(event) {
+            event.preventDefault();
+            
+            if (!clienteSeleccionado) {
+                mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
+                return;
+            }
+            
+            if (carrito.length === 0) {
+                mostrarNotificacion('❌ Debe agregar productos al carrito', 'error');
+                return;
+            }
+            
+            const total = carrito.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
+            
+            const pedido = {
+                id: Date.now().toString(),
+                cliente: JSON.parse(JSON.stringify(clienteSeleccionado)),
+                productos: JSON.parse(JSON.stringify(carrito)),
+                total: total,
+                fechaCreacion: new Date()
+            };
+            
+            pedidos.push(pedido);
+            
+            // Actualizar stock
+            carrito.forEach(item => {
+                const producto = productos.find(p => p.id === item.producto.id);
+                if (producto) {
+                    producto.stockActual -= item.cantidad;
+                }
+            });
+            
+            guardarEnStorage();
+            mostrarProductos();
+            mostrarPedidos();
+            limpiarFormPedido();
+            
+            mostrarNotificacion('✅ Pedido creado exitosamente', 'success');
+        }
+
+        function mostrarPedidos() {
+            const container = document.getElementById('pedidos-lista');
+            
+            if (pedidos.length === 0) {
+                container.innerHTML = '<p>No hay pedidos registrados</p>';
+                return;
+            }
+            
+            let html = '';
+            pedidos.forEach(pedido => {
+                html += '<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">';
+                html += '<h4>Pedido #' + pedido.id + '</h4>';
+                html += '<p><strong>Cliente:</strong> ' + pedido.cliente.nombre + ' ' + pedido.cliente.apellido + '</p>';
+                html += '<p><strong>Teléfono:</strong> ' + pedido.cliente.telefono + '</p>';
+                html += '<p><strong>Productos:</strong></p>';
+                html += '<ul>';
+                pedido.productos.forEach(item => {
+                    html += '<li>' + item.cantidad + 'x ' + item.producto.nombre + ' - $' + (item.producto.precio * item.cantidad).toFixed(2) + '</li>';
+                });
+                html += '</ul>';
+                html += '<p><strong>Total: $' + pedido.total.toFixed(2) + '</strong></p>';
+                html += '<p><small>Fecha: ' + new Date(pedido.fechaCreacion).toLocaleString() + '</small></p>';
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function limpiarFormPedido() {
+            document.getElementById('pedidos-form').reset();
+            clienteSeleccionado = null;
+            productoSeleccionado = null;
+            carrito = [];
+            
+            mostrarCarrito();
+            calcularTotal();
+            
+            document.getElementById('clientes-suggestions').classList.remove('show');
+            document.getElementById('productos-suggestions').classList.remove('show');
+        }
+
+        // ========================================
+        // FUNCIONES AUXILIARES
         // ========================================
         
         function showTab(tabName, tabElement) {
@@ -2115,159 +824,85 @@
             document.getElementById(tabName).classList.add('active');
         }
 
-        function manualSync() {
-            if (!isFirebaseConnected) {
-                mostrarNotificacion('❌ Firebase no conectado', 'error');
-                return;
-            }
-            
-            updateStatus('loading', 'Sincronizando...');
-            
-            setTimeout(async () => {
-                try {
-                    await testFirebaseConnection();
-                    mostrarNotificacion('🔄 Sincronización manual completada', 'success');
-                } catch (error) {
-                    console.error('Error en sincronización manual:', error);
-                    mostrarNotificacion('❌ Error en sincronización', 'error');
-                    updateStatus('offline', 'Error conexión');
-                }
-            }, 1000);
-        }
-
-        function updateStatus(status, text) {
-            const dot = document.getElementById('status-dot');
-            const textEl = document.getElementById('status-text');
-            
-            dot.className = `status-dot status-${status}`;
-            textEl.textContent = text;
-        }
-
-        function updateFirebaseStatus(type, message) {
-            const statusEl = document.getElementById('firebase-status');
-            statusEl.className = `firebase-status ${type}`;
-            statusEl.textContent = message;
-        }
-
-        function mostrarNotificacion(mensaje, tipo = 'success') {
+        function mostrarNotificacion(mensaje, tipo) {
             const notification = document.getElementById('notification');
             notification.textContent = mensaje;
-            notification.className = `notification ${tipo}`;
+            notification.className = 'notification ' + (tipo || 'success');
             notification.classList.add('show');
             
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, 4000);
+            }, 3000);
         }
 
-        function handleFirebaseError(error) {
-            console.error('🔥 Firebase Error:', error);
-            
-            let mensaje = 'Error de Firebase desconocido';
-            
-            if (error.code === 'permission-denied') {
-                mensaje = 'Sin permisos para acceder a Firebase';
-            } else if (error.code === 'unavailable') {
-                mensaje = 'Firebase temporalmente no disponible';
-            } else if (error.message.includes('SDK no cargado')) {
-                mensaje = 'Firebase SDK no se pudo cargar';
-            } else {
-                mensaje = error.message;
-            }
-            
-            updateFirebaseStatus('error', `❌ ${mensaje}`);
-            updateStatus('offline', 'Error Firebase');
-            
-            cargarDatosLocales();
-            mostrarNotificacion(`❌ ${mensaje}. Usando modo offline.`, 'error');
+        function guardarEnStorage() {
+            localStorage.setItem('productos_pastrami', JSON.stringify(productos));
+            localStorage.setItem('clientes_pastrami', JSON.stringify(clientes));
+            localStorage.setItem('pedidos_pastrami', JSON.stringify(pedidos));
         }
 
-        function formatDate(dateField) {
-            if (!dateField) return 'Sin fecha';
-            
+        function cargarDeStorage() {
             try {
-                if (dateField.toDate) {
-                    // Es un Timestamp de Firebase
-                    return dateField.toDate().toLocaleDateString();
-                } else if (dateField.seconds) {
-                    // Es un timestamp con seconds
-                    return new Date(dateField.seconds * 1000).toLocaleDateString();
-                } else {
-                    // Es una fecha normal
-                    return new Date(dateField).toLocaleDateString();
+                const productosGuardados = localStorage.getItem('productos_pastrami');
+                const clientesGuardados = localStorage.getItem('clientes_pastrami');
+                const pedidosGuardados = localStorage.getItem('pedidos_pastrami');
+                
+                if (productosGuardados) {
+                    productos = JSON.parse(productosGuardados);
+                    mostrarProductos();
                 }
+                
+                if (clientesGuardados) {
+                    clientes = JSON.parse(clientesGuardados);
+                    mostrarClientes();
+                }
+                
+                if (pedidosGuardados) {
+                    pedidos = JSON.parse(pedidosGuardados);
+                    mostrarPedidos();
+                }
+                
+                console.log('Datos cargados:', {
+                    productos: productos.length,
+                    clientes: clientes.length,
+                    pedidos: pedidos.length
+                });
+                
             } catch (error) {
-                return 'Fecha inválida';
+                console.error('Error cargando datos:', error);
             }
         }
 
-        // ========================================
-        // 🚀 INICIO DE LA APLICACIÓN
-        // ========================================
-        
-        // Inicializar cuando se carga la página
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('🎯 Iniciando Sistema Pastrami v2.0...');
-            
-            // Configurar fecha mínima para entrega (hoy)
-            const hoy = new Date().toISOString().split('T')[0];
-            const fechaEntregaInput = document.getElementById('pedido-fecha-entrega');
-            if (fechaEntregaInput) {
-                fechaEntregaInput.min = hoy;
-            }
-            
-            // Cerrar sugerencias al hacer click fuera
-            document.addEventListener('click', (event) => {
-                if (!event.target.closest('.autocomplete-container')) {
-                    document.querySelectorAll('.autocomplete-suggestions').forEach(container => {
-                        container.classList.remove('show');
-                    });
-                    sugerenciasActivas = null;
-                    indiceSugerencia = -1;
-                }
-            });
-            
-            // Verificar que Firebase esté disponible
-            if (typeof firebase !== 'undefined') {
-                console.log('✅ Firebase SDK detectado');
-                inicializarApp();
-            } else {
-                console.error('❌ Firebase SDK no disponible');
-                updateFirebaseStatus('error', '❌ Firebase SDK no cargado');
-                updateStatus('offline', 'SDK Error');
-                cargarDatosLocales();
+        // Cerrar sugerencias al hacer click fuera
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-suggestions').forEach(container => {
+                    container.classList.remove('show');
+                });
             }
         });
 
-        // Debug - Exponer funciones globalmente para testing
-        window.debug = {
-            productos: () => productos,
-            clientes: () => clientes,
-            pedidos: () => pedidos,
-            carrito: () => carritoActual,
-            clienteSeleccionado: () => clienteSeleccionado,
-            firebase: () => ({ app, db, connected: isFirebaseConnected }),
-            clearLocal: () => {
-                localStorage.clear();
-                location.reload();
-            },
-            testConnection: testFirebaseConnection,
-            simularPedido: () => {
-                // Función para testing rápido
-                if (clientes.length > 0 && productos.length > 0) {
-                    seleccionarCliente(clientes[0].id);
-                    window.productoTemporal = productos[0];
-                    document.getElementById('pedido-cantidad').value = '1';
-                    agregarProductoAlCarrito();
-                    console.log('🧪 Pedido de prueba creado');
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Sistema Pastrami v3.0 - LIMPIO iniciado');
+            cargarDeStorage();
+            
+            // Debug para testing
+            window.debug = {
+                productos: () => productos,
+                clientes: () => clientes,
+                pedidos: () => pedidos,
+                carrito: () => carrito,
+                limpiarTodo: () => {
+                    localStorage.clear();
+                    location.reload();
                 }
-            }
-        };
+            };
+            
+            console.log('✅ Sistema listo para usar');
+            console.log('🔧 Para debug: window.debug');
+        });
 
-        console.log('🎯 Sistema Pastrami v2.0 + PEDIDOS cargado - Versión Épica Completa');
-        console.log('🔧 Para debug: window.debug');
-        console.log('🧪 Para testing: window.debug.simularPedido()');
-        
     </script>
 </body>
 </html>
