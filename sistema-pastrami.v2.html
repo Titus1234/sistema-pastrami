@@ -1696,4 +1696,461 @@
                     <div>${producto.nombre}</div>
                     <div>
                         <input type="number" value="${producto.cantidad}" min="1" 
-                               onchange="cambiarC
+                               onchange="cambiarCantidadPedido('${producto.id}', this.value)">
+                    </div>
+                    <div>${producto.precio.toFixed(2)}</div>
+                    <div>
+                        <button class="btn btn-danger btn-small" onclick="eliminarProductoPedido('${producto.id}')">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function cambiarCantidadPedido(productoId, nuevaCantidad) {
+            const producto = productosSeleccionados.find(p => p.id === productoId);
+            if (producto) {
+                producto.cantidad = parseInt(nuevaCantidad) || 1;
+                calcularTotalesPedido();
+            }
+        }
+
+        function eliminarProductoPedido(productoId) {
+            productosSeleccionados = productosSeleccionados.filter(p => p.id !== productoId);
+            mostrarProductosPedido();
+            calcularTotalesPedido();
+        }
+
+        function calcularTotalesPedido() {
+            const subtotal = productosSeleccionados.reduce((total, producto) => 
+                total + (producto.precio * producto.cantidad), 0
+            );
+            
+            const costoEnvio = parseFloat(document.getElementById('pedido-costo-envio').value) || 0;
+            const totalCompra = subtotal + costoEnvio;
+
+            document.getElementById('subtotal-productos').textContent = `${subtotal.toFixed(2)}`;
+            document.getElementById('total-envio').textContent = `${costoEnvio.toFixed(2)}`;
+            document.getElementById('total-compra').textContent = `${totalCompra.toFixed(2)}`;
+        }
+
+        function toggleMontoParcial() {
+            const opcionPago = document.getElementById('pedido-opcion-pago').value;
+            const montoParcialGroup = document.getElementById('monto-parcial-group');
+            
+            if (opcionPago === 'parcial') {
+                montoParcialGroup.style.display = 'block';
+            } else {
+                montoParcialGroup.style.display = 'none';
+            }
+        }
+
+        function guardarPedido(event) {
+            event.preventDefault();
+            
+            // Validaciones
+            if (!clienteSeleccionado) {
+                mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
+                return;
+            }
+
+            if (productosSeleccionados.length === 0) {
+                mostrarNotificacion('❌ Debe agregar al menos un producto', 'error');
+                return;
+            }
+
+            const fechaEntrega = document.getElementById('pedido-fecha-entrega').value;
+            const turno = document.getElementById('pedido-turno').value;
+            const opcionPago = document.getElementById('pedido-opcion-pago').value;
+            const pagadoCon = document.getElementById('pedido-pagado-con').value;
+
+            if (!fechaEntrega || !turno || !opcionPago || !pagadoCon) {
+                mostrarNotificacion('❌ Debe completar todos los campos obligatorios', 'error');
+                return;
+            }
+
+            const costoEnvio = parseFloat(document.getElementById('pedido-costo-envio').value) || 0;
+            const subtotal = productosSeleccionados.reduce((total, producto) => 
+                total + (producto.precio * producto.cantidad), 0
+            );
+            const totalCompra = subtotal + costoEnvio;
+
+            let montoPagado = totalCompra;
+            let saldoPendiente = 0;
+
+            if (opcionPago === 'parcial') {
+                montoPagado = parseFloat(document.getElementById('pedido-monto-parcial').value) || 0;
+                saldoPendiente = totalCompra - montoPagado;
+            }
+
+            const pedido = {
+                cliente: clienteSeleccionado,
+                productos: [...productosSeleccionados],
+                fechaEntrega: fechaEntrega,
+                turno: turno,
+                costoEnvio: costoEnvio,
+                subtotal: subtotal,
+                totalCompra: totalCompra,
+                opcionPago: opcionPago,
+                pagadoCon: pagadoCon,
+                montoPagado: montoPagado,
+                saldoPendiente: saldoPendiente,
+                estadoPago: saldoPendiente > 0 ? 'pendiente' : 'pagado',
+                estadoEntrega: 'pendiente',
+                fechaCreacion: firebase.firestore.Timestamp.now()
+            };
+
+            if (isFirebaseConnected) {
+                if (editandoPedidoId) {
+                    // Actualizar pedido existente
+                    db.collection('pedidos').doc(editandoPedidoId).update({
+                        ...pedido,
+                        fechaModificacion: firebase.firestore.Timestamp.now()
+                    }).then(() => {
+                        mostrarNotificacion('✅ Pedido actualizado', 'success');
+                        limpiarFormularioPedido();
+                    }).catch(error => {
+                        console.error('Error actualizando pedido:', error);
+                        mostrarNotificacion('❌ Error actualizando pedido', 'error');
+                    });
+                } else {
+                    // Crear nuevo pedido
+                    db.collection('pedidos').add(pedido).then(() => {
+                        mostrarNotificacion('✅ Pedido guardado', 'success');
+                        limpiarFormularioPedido();
+                    }).catch(error => {
+                        console.error('Error guardando pedido:', error);
+                        mostrarNotificacion('❌ Error guardando pedido', 'error');
+                    });
+                }
+            } else {
+                // Modo offline
+                if (editandoPedidoId) {
+                    const index = pedidos.findIndex(p => p.id === editandoPedidoId);
+                    pedidos[index] = { ...pedido, id: editandoPedidoId, synced: false };
+                } else {
+                    pedidos.push({ ...pedido, id: Date.now().toString(), synced: false });
+                }
+                
+                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
+                mostrarPedidos();
+                mostrarNotificacion('💾 Pedido guardado localmente', 'warning');
+                limpiarFormularioPedido();
+            }
+        }
+
+        function limpiarFormularioPedido() {
+            document.getElementById('pedidos-form').reset();
+            clienteSeleccionado = null;
+            productosSeleccionados = [];
+            editandoPedidoId = null;
+            
+            mostrarProductosPedido();
+            calcularTotalesPedido();
+            toggleMontoParcial();
+        }
+
+        function cancelarPedido() {
+            limpiarFormularioPedido();
+        }
+
+        function mostrarPedidos() {
+            const container = document.getElementById('pedidos-lista');
+            
+            if (pedidos.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
+                return;
+            }
+
+            // Filtrar pedidos que no están completamente finalizados
+            const pedidosActivos = pedidos.filter(pedido => 
+                pedido.estadoPago !== 'pagado' || pedido.estadoEntrega !== 'entregado'
+            );
+
+            // Ordenar por fecha de entrega (más cercano primero)
+            pedidosActivos.sort((a, b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
+
+            if (pedidosActivos.length === 0) {
+                container.innerHTML = '<div class="no-items">No hay pedidos pendientes</div>';
+                return;
+            }
+
+            container.innerHTML = pedidosActivos.map(pedido => `
+                <div class="pedido-card">
+                    <div class="sync-badge ${pedido.synced ? 'synced' : 'pending'}">
+                        ${pedido.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
+                    <div class="pedido-header">
+                        <h3>${pedido.cliente.nombre} ${pedido.cliente.apellido}</h3>
+                        <div>
+                            <span class="status-badge ${pedido.estadoPago === 'pagado' ? 'status-pagado' : 'status-pendiente'}">
+                                ${pedido.estadoPago === 'pagado' ? 'PAGADO' : 'SALDO PENDIENTE'}
+                            </span>
+                            <span class="status-badge ${pedido.estadoEntrega === 'entregado' ? 'status-entregado' : 'status-pendiente'}">
+                                ${pedido.estadoEntrega === 'entregado' ? 'ENTREGADO' : 'PENDIENTE'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="pedido-info">
+                        <div><strong>Fecha:</strong> ${new Date(pedido.fechaEntrega).toLocaleDateString()}</div>
+                        <div><strong>Turno:</strong> ${pedido.turno}</div>
+                        <div><strong>Total:</strong> ${pedido.totalCompra.toFixed(2)}</div>
+                        <div><strong>Saldo:</strong> ${pedido.saldoPendiente.toFixed(2)}</div>
+                    </div>
+                    
+                    <div class="pedido-actions">
+                        ${pedido.estadoPago !== 'pagado' ? 
+                            `<button class="btn btn-success btn-small" onclick="marcarPagado('${pedido.id}')">
+                                💰 MARCAR PAGADO
+                            </button>` : ''
+                        }
+                        ${pedido.estadoEntrega !== 'entregado' ? 
+                            `<button class="btn btn-warning btn-small" onclick="marcarEntregado('${pedido.id}')">
+                                🚚 MARCAR ENTREGADO
+                            </button>` : ''
+                        }
+                        <button class="btn btn-primary btn-small" onclick="verDetallePedido('${pedido.id}')">
+                            👁️ VER DETALLE
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function marcarPagado(pedidoId) {
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido) return;
+
+            if (isFirebaseConnected) {
+                db.collection('pedidos').doc(pedidoId).update({
+                    estadoPago: 'pagado',
+                    saldoPendiente: 0,
+                    montoPagado: pedido.totalCompra,
+                    fechaModificacion: firebase.firestore.Timestamp.now()
+                }).then(() => {
+                    mostrarNotificacion('✅ Pedido marcado como pagado', 'success');
+                }).catch(error => {
+                    console.error('Error actualizando pedido:', error);
+                    mostrarNotificacion('❌ Error actualizando pedido', 'error');
+                });
+            } else {
+                pedido.estadoPago = 'pagado';
+                pedido.saldoPendiente = 0;
+                pedido.montoPagado = pedido.totalCompra;
+                pedido.synced = false;
+                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
+                mostrarPedidos();
+                mostrarNotificacion('💾 Estado actualizado localmente', 'warning');
+            }
+        }
+
+        function marcarEntregado(pedidoId) {
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido) return;
+
+            if (isFirebaseConnected) {
+                db.collection('pedidos').doc(pedidoId).update({
+                    estadoEntrega: 'entregado',
+                    fechaModificacion: firebase.firestore.Timestamp.now()
+                }).then(() => {
+                    mostrarNotificacion('✅ Pedido marcado como entregado', 'success');
+                }).catch(error => {
+                    console.error('Error actualizando pedido:', error);
+                    mostrarNotificacion('❌ Error actualizando pedido', 'error');
+                });
+            } else {
+                pedido.estadoEntrega = 'entregado';
+                pedido.synced = false;
+                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
+                mostrarPedidos();
+                mostrarNotificacion('💾 Estado actualizado localmente', 'warning');
+            }
+        }
+
+        function verDetallePedido(pedidoId) {
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (!pedido) return;
+
+            const productosDetalle = pedido.productos.map(p => 
+                `${p.nombre} x${p.cantidad} - ${(p.precio * p.cantidad).toFixed(2)}`
+            ).join('\n');
+
+            const detalle = `
+DETALLE DEL PEDIDO
+
+Cliente: ${pedido.cliente.nombre} ${pedido.cliente.apellido}
+Teléfono: ${pedido.cliente.telefono}
+
+Productos:
+${productosDetalle}
+
+Subtotal: ${pedido.subtotal.toFixed(2)}
+Envío: ${pedido.costoEnvio.toFixed(2)}
+Total: ${pedido.totalCompra.toFixed(2)}
+
+Fecha de Entrega: ${new Date(pedido.fechaEntrega).toLocaleDateString()}
+Turno: ${pedido.turno}
+
+Pago: ${pedido.opcionPago} - ${pedido.pagadoCon}
+Monto Pagado: ${pedido.montoPagado.toFixed(2)}
+Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
+            `;
+
+            alert(detalle);
+        }
+
+        // ========================================
+        // 🛠️ FUNCIONES DE UI
+        // ========================================
+        
+        function showTab(tabName, tabElement) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            tabElement.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function updateStatus(status, text) {
+            const dot = document.getElementById('status-dot');
+            const textEl = document.getElementById('status-text');
+            
+            dot.className = `status-dot status-${status}`;
+            textEl.textContent = text;
+        }
+
+        function updateFirebaseStatus(type, message) {
+            const statusEl = document.getElementById('firebase-status');
+            statusEl.className = `firebase-status ${type}`;
+            statusEl.textContent = message;
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = `notification ${tipo}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function handleFirebaseError(error) {
+            console.error('🔥 Firebase Error:', error);
+            
+            let mensaje = 'Error de Firebase desconocido';
+            
+            if (error.code === 'permission-denied') {
+                mensaje = 'Sin permisos para acceder a Firebase';
+            } else if (error.code === 'unavailable') {
+                mensaje = 'Firebase temporalmente no disponible';
+            } else if (error.message.includes('SDK no cargado')) {
+                mensaje = 'Firebase SDK no se pudo cargar';
+            } else {
+                mensaje = error.message;
+            }
+            
+            updateFirebaseStatus('error', `❌ ${mensaje}`);
+            updateStatus('offline', 'Error Firebase');
+            
+            cargarDatosLocales();
+            mostrarNotificacion(`❌ ${mensaje}. Usando modo offline.`, 'error');
+        }
+
+        function formatDate(dateField) {
+            if (!dateField) return 'Sin fecha';
+            
+            try {
+                if (dateField.toDate) {
+                    // Es un Timestamp de Firebase
+                    return dateField.toDate().toLocaleDateString();
+                } else if (dateField.seconds) {
+                    // Es un timestamp con seconds
+                    return new Date(dateField.seconds * 1000).toLocaleDateString();
+                } else {
+                    // Es una fecha normal
+                    return new Date(dateField).toLocaleDateString();
+                }
+            } catch (error) {
+                return 'Fecha inválida';
+            }
+        }
+
+        // ========================================
+        // 🚀 INICIO DE LA APLICACIÓN
+        // ========================================
+        
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎯 Iniciando Sistema Pastrami v2.0...');
+            
+            // Verificar que Firebase esté disponible
+            if (typeof firebase !== 'undefined') {
+                console.log('✅ Firebase SDK detectado');
+                inicializarApp();
+            } else {
+                console.error('❌ Firebase SDK no disponible');
+                updateFirebaseStatus('error', '❌ Firebase SDK no cargado');
+                updateStatus('offline', 'SDK Error');
+                cargarDatosLocales();
+                mostrarNotificacion('⚠️ Iniciando en modo offline', 'warning');
+            }
+        });
+
+        // Debug - Exponer funciones globalmente para testing
+        window.debug = {
+            productos: () => productos,
+            clientes: () => clientes,
+            pedidos: () => pedidos,
+            firebase: () => ({ app, db, connected: isFirebaseConnected }),
+            clearLocal: () => {
+                localStorage.clear();
+                location.reload();
+            },
+            testConnection: testFirebaseConnection,
+            addTestData: () => {
+                // Agregar datos de prueba
+                productos.push({
+                    id: 'test1',
+                    nombre: 'Pastrami Clásico',
+                    precio: 15.50,
+                    stockInicial: 100,
+                    stockActual: 95,
+                    stockMinimo: 10,
+                    tipo: 'simple',
+                    descripcion: 'Delicioso pastrami tradicional',
+                    synced: false
+                });
+                
+                clientes.push({
+                    id: 'test1',
+                    nombre: 'Juan',
+                    apellido: 'Pérez',
+                    telefono: '123456789',
+                    email: 'juan@email.com',
+                    direccion: 'Av. Principal',
+                    numero: '123',
+                    ciudad: 'Buenos Aires',
+                    synced: false
+                });
+                
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                
+                mostrarProductos();
+                mostrarClientes();
+                mostrarNotificacion('✅ Datos de prueba agregados', 'success');
+            }
+        };
+
+        console.log('🎯 Sistema Pastrami v2.0 cargado - Versión Completa');
+        console.log('🔧 Para debug: window.debug');
+        console.log('📦 Para agregar datos de prueba: window.debug.addTestData()');
+        
+    </script>
+</body>
+</html>
