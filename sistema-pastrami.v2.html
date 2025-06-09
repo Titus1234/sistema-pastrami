@@ -868,8 +868,8 @@
         
         async function inicializarApp() {
             try {
-                console.log('🚀 Iniciando Sistema Pastrami v2.0...');
-                updateStatus('loading', 'Inicializando...');
+                console.log('🚀 Iniciando conexión Firebase...');
+                updateStatus('loading', 'Conectando...');
                 
                 // Verificar que Firebase esté disponible
                 if (typeof firebase === 'undefined') {
@@ -891,47 +891,43 @@
                 // Configurar autocompletado de pedidos
                 configurarAutocompletadoPedidos();
                 
-                // Intentar conectar a Firebase (con timeout)
+                // Intentar conectar a Firebase con timeout corto
                 console.log('🔗 Intentando conectar a Firebase...');
                 await testFirebaseConnection();
                 
             } catch (error) {
-                console.error('❌ Error en inicialización:', error);
-                updateStatus('offline', 'Error init');
-                updateFirebaseStatus('error', `❌ ${error.message}`);
+                console.error('❌ Error en inicialización Firebase:', error);
+                updateStatus('offline', 'Modo Offline');
+                updateFirebaseStatus('error', `⚠️ Firebase offline - Sistema funcional`);
                 
-                // Cargar datos locales como plan B
-                cargarDatosLocales();
-                mostrarNotificacion('⚠️ Iniciando en modo offline', 'warning');
+                // El sistema ya está funcionando con datos locales
+                mostrarNotificacion('⚠️ Firebase no disponible, trabajando offline', 'warning');
             }
         }
 
         async function testFirebaseConnection() {
             try {
-                updateStatus('loading', 'Conectando Firebase...');
-                console.log('🔗 Intentando conectar a Firebase...');
+                updateStatus('loading', 'Probando Firebase...');
+                console.log('🔗 Probando conexión Firebase...');
                 
-                // Configurar timeout más corto para móviles
-                const timeoutDuration = window.innerWidth < 768 ? 10000 : 30000; // 10s móvil, 30s desktop
+                // Timeout muy corto para no bloquear
+                const timeoutDuration = 5000; // Solo 5 segundos
                 
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error(`Timeout de conexión (${timeoutDuration/1000}s)`)), timeoutDuration);
+                    setTimeout(() => reject(new Error('Timeout de conexión')), timeoutDuration);
                 });
                 
-                // Probar conexión con timeout
+                // Probar conexión simple
                 const connectionPromise = async () => {
-                    // Verificar que Firebase esté inicializado
                     if (!db) {
                         throw new Error('Base de datos no inicializada');
                     }
                     
-                    console.log('📡 Probando lectura desde Firebase...');
-                    
-                    // Hacer una consulta simple para probar conexión
-                    const testRef = db.collection('_connection_test');
+                    console.log('📡 Probando lectura...');
+                    const testRef = db.collection('productos');
                     const snapshot = await testRef.limit(1).get();
                     
-                    console.log('✅ Consulta exitosa, Firebase conectado');
+                    console.log('✅ Firebase conectado');
                     return snapshot;
                 };
                 
@@ -940,40 +936,22 @@
                 
                 isFirebaseConnected = true;
                 updateStatus('online', 'Conectado');
-                updateFirebaseStatus('connected', '✅ Firebase v9 conectado y sincronizado');
+                updateFirebaseStatus('connected', '✅ Firebase conectado y sincronizado');
                 
-                console.log('🎯 Conexión a Firebase confirmada');
+                console.log('🎯 Conexión confirmada');
                 
-                // Cargar datos
+                // Cargar datos de Firebase
                 await cargarDatosDesdeFirebase();
                 
             } catch (error) {
-                console.error('❌ Error de conexión Firebase:', error);
+                console.log('⚠️ Firebase no disponible:', error.message);
                 isFirebaseConnected = false;
                 
-                let mensajeError = 'Error de conexión';
-                if (error.message.includes('Timeout')) {
-                    mensajeError = 'Timeout - Trabajando offline';
-                    // En móviles, ir directo a offline si hay timeout
-                    updateStatus('offline', 'Modo Offline');
-                    updateFirebaseStatus('error', `⚠️ ${mensajeError} - Sistema funcional`);
-                    mostrarNotificacion(`📱 Modo offline activado`, 'info');
-                } else if (error.code === 'permission-denied') {
-                    mensajeError = 'Sin permisos - Verificar reglas';
-                } else if (error.code === 'unavailable') {
-                    mensajeError = 'Servicio no disponible';
-                } else {
-                    mensajeError = error.message;
-                }
+                updateStatus('offline', 'Modo Offline');
+                updateFirebaseStatus('error', `⚠️ Offline - ${error.message}`);
                 
-                if (!error.message.includes('Timeout')) {
-                    updateStatus('offline', 'Modo Offline');
-                    updateFirebaseStatus('error', `❌ ${mensajeError}`);
-                    mostrarNotificacion(`⚠️ ${mensajeError}. Trabajando offline.`, 'warning');
-                }
-                
-                // Cargar datos locales como respaldo
-                cargarDatosLocales();
+                // No mostrar error como molesto, solo informar
+                console.log('📱 Continuando en modo offline');
             }
         }
 
@@ -2117,45 +2095,52 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
         // 🚀 INICIO DE LA APLICACIÓN
         // ========================================
         
-        // Exponer funciones globalmente para que sean accesibles desde HTML
-        window.manualSync = manualSync;
-        window.showTab = showTab;
-        window.guardarProducto = guardarProducto;
-        window.editarProducto = editarProducto;
-        window.eliminarProducto = eliminarProducto;
-        window.cancelarProducto = cancelarProducto;
-        window.guardarCliente = guardarCliente;
-        window.editarCliente = editarCliente;
-        window.eliminarCliente = eliminarCliente;
-        window.cancelarCliente = cancelarCliente;
-        window.guardarPedido = guardarPedido;
-        window.cancelarPedido = cancelarPedido;
-        window.seleccionarCliente = seleccionarCliente;
-        window.agregarProductoPedido = agregarProductoPedido;
-        window.cambiarCantidadPedido = cambiarCantidadPedido;
-        window.eliminarProductoPedido = eliminarProductoPedido;
-        window.toggleMontoParcial = toggleMontoParcial;
-        window.marcarPagado = marcarPagado;
-        window.marcarEntregado = marcarEntregado;
-        window.verDetallePedido = verDetallePedido;
-        window.toggleComponentes = toggleComponentes;
-        window.agregarComponente = agregarComponente;
-        window.eliminarComponenteTemp = eliminarComponenteTemp;
-        
         // Inicializar cuando se carga la página
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🎯 Iniciando Sistema Pastrami v2.0...');
             
-            // Verificar que Firebase esté disponible
+            // Exponer funciones globalmente PRIMERO
+            window.manualSync = manualSync;
+            window.showTab = showTab;
+            window.guardarProducto = guardarProducto;
+            window.editarProducto = editarProducto;
+            window.eliminarProducto = eliminarProducto;
+            window.cancelarProducto = cancelarProducto;
+            window.guardarCliente = guardarCliente;
+            window.editarCliente = editarCliente;
+            window.eliminarCliente = eliminarCliente;
+            window.cancelarCliente = cancelarCliente;
+            window.guardarPedido = guardarPedido;
+            window.cancelarPedido = cancelarPedido;
+            window.seleccionarCliente = seleccionarCliente;
+            window.agregarProductoPedido = agregarProductoPedido;
+            window.cambiarCantidadPedido = cambiarCantidadPedido;
+            window.eliminarProductoPedido = eliminarProductoPedido;
+            window.toggleMontoParcial = toggleMontoParcial;
+            window.marcarPagado = marcarPagado;
+            window.marcarEntregado = marcarEntregado;
+            window.verDetallePedido = verDetallePedido;
+            window.toggleComponentes = toggleComponentes;
+            window.agregarComponente = agregarComponente;
+            window.eliminarComponenteTemp = eliminarComponenteTemp;
+            
+            console.log('✅ Funciones globales expuestas');
+            
+            // Cargar datos locales inmediatamente para que el sistema funcione
+            cargarDatosLocales();
+            mostrarNotificacion('📱 Sistema iniciado en modo offline', 'info');
+            
+            // Intentar Firebase solo si está disponible
             if (typeof firebase !== 'undefined') {
-                console.log('✅ Firebase SDK detectado');
-                inicializarApp();
+                console.log('✅ Firebase SDK detectado, intentando conexión...');
+                // No bloquear, intentar en background
+                setTimeout(() => {
+                    inicializarApp();
+                }, 1000);
             } else {
-                console.error('❌ Firebase SDK no disponible');
-                updateFirebaseStatus('error', '❌ Firebase SDK no cargado');
-                updateStatus('offline', 'SDK Error');
-                cargarDatosLocales();
-                mostrarNotificacion('⚠️ Iniciando en modo offline', 'warning');
+                console.log('⚠️ Firebase SDK no disponible, modo offline únicamente');
+                updateFirebaseStatus('error', '⚠️ Modo offline - Firebase no disponible');
+                updateStatus('offline', 'Modo Offline');
             }
         });
 
