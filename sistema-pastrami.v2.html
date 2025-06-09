@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Pastrami</title>
+    <title>Sistema Pastrami - CORREGIDO</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -160,6 +160,8 @@
         @media (max-width: 768px) {
             .form-row { flex-direction: column; }
             .item-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            body { padding: 10px; }
+            .tab-content { padding: 20px; }
         }
     </style>
 </head>
@@ -237,7 +239,7 @@
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary">💾 Guardar</button>
+                    <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
                     <button type="button" class="btn btn-secondary" onclick="limpiarFormProducto()">❌ Limpiar</button>
                 </div>
             </form>
@@ -276,7 +278,7 @@
                     </div>
                 </div>
                 <div style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary">💾 Guardar</button>
+                    <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
                     <button type="button" class="btn btn-secondary" onclick="limpiarFormCliente()">❌ Limpiar</button>
                 </div>
             </form>
@@ -390,9 +392,13 @@
             
             const producto = {
                 id: editandoProductoId || Date.now().toString(),
-                nombre, precio, tipo, descripcion,
+                nombre: nombre,
+                precio: precio,
+                tipo: tipo,
+                descripcion: descripcion,
                 stockActual: editandoProductoId ? productos.find(p => p.id === editandoProductoId).stockActual : stockInicial,
-                stockInicial, stockMinimo,
+                stockInicial: stockInicial,
+                stockMinimo: stockMinimo,
                 componentes: tipo === 'compuesto' ? [...componentesTemp] : [],
                 fechaCreacion: new Date()
             };
@@ -433,7 +439,7 @@
                 return;
             }
             
-            componentesTemp.push({ nombre, cantidad });
+            componentesTemp.push({ nombre: nombre, cantidad: cantidad });
             mostrarComponentesTemp();
             
             document.getElementById('componente-nombre').value = '';
@@ -448,7 +454,7 @@
             }
             
             let html = '';
-            componentesTemp.forEach((comp, index) => {
+            componentesTemp.forEach(function(comp, index) {
                 html += '<div class="componente-item">';
                 html += '<span>' + comp.cantidad + 'x ' + comp.nombre + '</span>';
                 html += '<button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(' + index + ')">❌</button>';
@@ -471,7 +477,7 @@
             }
             
             let html = '';
-            productos.forEach(producto => {
+            productos.forEach(function(producto) {
                 const stock = producto.stockActual || 0;
                 const stockClass = stock <= producto.stockMinimo ? 'color: red' : 'color: green';
                 
@@ -479,13 +485,13 @@
                 html += '<div class="item-header">';
                 html += '<div class="item-title">' + producto.nombre + '</div>';
                 html += '<div class="item-actions">';
-                html += '<button class="btn btn-warning btn-small" onclick="editarProducto(\'' + producto.id + '\')">✏️</button>';
-                html += '<button class="btn btn-danger btn-small" onclick="eliminarProducto(\'' + producto.id + '\')">🗑️</button>';
+                html += '<button class="btn btn-warning btn-small" onclick="editarProducto(\'' + producto.id + '\')">✏️ Editar</button>';
+                html += '<button class="btn btn-danger btn-small" onclick="eliminarProducto(\'' + producto.id + '\')">🗑️ Eliminar</button>';
                 html += '</div></div>';
                 html += '<p>Precio: $' + producto.precio.toFixed(2) + ' | Tipo: ' + (producto.tipo || 'Simple') + '</p>';
-                html += '<p style="' + stockClass + '">Stock: ' + stock + ' unidades</p>';
+                html += '<p style="' + stockClass + '">Stock: ' + stock + ' unidades (Mínimo: ' + producto.stockMinimo + ')</p>';
                 if (producto.componentes && producto.componentes.length > 0) {
-                    html += '<p>Componentes: ' + producto.componentes.map(c => c.cantidad + 'x ' + c.nombre).join(', ') + '</p>';
+                    html += '<p>Componentes: ' + producto.componentes.map(function(c) { return c.cantidad + 'x ' + c.nombre; }).join(', ') + '</p>';
                 }
                 html += '</div>';
             });
@@ -494,7 +500,7 @@
         }
 
         function editarProducto(id) {
-            const producto = productos.find(p => p.id === id);
+            const producto = productos.find(function(p) { return p.id === id; });
             if (!producto) return;
             
             editandoProductoId = id;
@@ -514,7 +520,7 @@
         function eliminarProducto(id) {
             if (!confirm('¿Eliminar este producto?')) return;
             
-            productos = productos.filter(p => p.id !== id);
+            productos = productos.filter(function(p) { return p.id !== id; });
             guardarEnStorage();
             mostrarProductos();
             mostrarNotificacion('🗑️ Producto eliminado', 'success');
@@ -544,7 +550,10 @@
             
             const cliente = {
                 id: Date.now().toString(),
-                nombre, apellido, telefono, direccion,
+                nombre: nombre,
+                apellido: apellido,
+                telefono: telefono,
+                direccion: direccion,
                 fechaCreacion: new Date()
             };
             
@@ -564,12 +573,12 @@
             }
             
             let html = '';
-            clientes.forEach(cliente => {
+            clientes.forEach(function(cliente) {
                 html += '<div class="item-card">';
                 html += '<div class="item-header">';
                 html += '<div class="item-title">' + cliente.nombre + ' ' + cliente.apellido + '</div>';
                 html += '<div class="item-actions">';
-                html += '<button class="btn btn-danger btn-small" onclick="eliminarCliente(\'' + cliente.id + '\')">🗑️</button>';
+                html += '<button class="btn btn-danger btn-small" onclick="eliminarCliente(\'' + cliente.id + '\')">🗑️ Eliminar</button>';
                 html += '</div></div>';
                 html += '<p>📞 ' + cliente.telefono + '</p>';
                 if (cliente.direccion) html += '<p>📍 ' + cliente.direccion + '</p>';
@@ -581,7 +590,7 @@
 
         function eliminarCliente(id) {
             if (!confirm('¿Eliminar este cliente?')) return;
-            clientes = clientes.filter(c => c.id !== id);
+            clientes = clientes.filter(function(c) { return c.id !== id; });
             guardarEnStorage();
             mostrarClientes();
             mostrarNotificacion('🗑️ Cliente eliminado', 'success');
@@ -600,7 +609,7 @@
                 return;
             }
             
-            const clientesFiltrados = clientes.filter(cliente => {
+            const clientesFiltrados = clientes.filter(function(cliente) {
                 const nombreCompleto = cliente.nombre + ' ' + cliente.apellido;
                 return nombreCompleto.toLowerCase().includes(query.toLowerCase()) || 
                        cliente.telefono.includes(query);
@@ -610,7 +619,7 @@
             if (clientesFiltrados.length === 0) {
                 html = '<div class="suggestion-item">No se encontraron clientes</div>';
             } else {
-                clientesFiltrados.forEach(cliente => {
+                clientesFiltrados.forEach(function(cliente) {
                     html += '<div class="suggestion-item" onclick="seleccionarCliente(\'' + cliente.id + '\')">';
                     html += '<strong>' + cliente.nombre + ' ' + cliente.apellido + '</strong><br>';
                     html += '<small>📞 ' + cliente.telefono + '</small>';
@@ -630,7 +639,7 @@
                 return;
             }
             
-            const productosFiltrados = productos.filter(producto => {
+            const productosFiltrados = productos.filter(function(producto) {
                 return producto.nombre.toLowerCase().includes(query.toLowerCase()) &&
                        (producto.stockActual || 0) > 0;
             });
@@ -639,7 +648,7 @@
             if (productosFiltrados.length === 0) {
                 html = '<div class="suggestion-item">No hay productos disponibles</div>';
             } else {
-                productosFiltrados.forEach(producto => {
+                productosFiltrados.forEach(function(producto) {
                     html += '<div class="suggestion-item" onclick="seleccionarProducto(\'' + producto.id + '\')">';
                     html += '<strong>' + producto.nombre + '</strong> - $' + producto.precio.toFixed(2) + '<br>';
                     html += '<small>Stock: ' + (producto.stockActual || 0) + ' unidades</small>';
@@ -652,7 +661,7 @@
         }
 
         function seleccionarCliente(clienteId) {
-            const cliente = clientes.find(c => c.id === clienteId);
+            const cliente = clientes.find(function(c) { return c.id === clienteId; });
             if (!cliente) return;
             
             clienteSeleccionado = cliente;
@@ -661,7 +670,7 @@
         }
 
         function seleccionarProducto(productoId) {
-            const producto = productos.find(p => p.id === productoId);
+            const producto = productos.find(function(p) { return p.id === productoId; });
             if (!producto) return;
             
             productoSeleccionado = producto;
@@ -688,7 +697,7 @@
                 return;
             }
             
-            const itemExistente = carrito.find(item => item.producto.id === productoSeleccionado.id);
+            const itemExistente = carrito.find(function(item) { return item.producto.id === productoSeleccionado.id; });
             
             if (itemExistente) {
                 itemExistente.cantidad += cantidad;
@@ -696,275 +705,3 @@
                 carrito.push({
                     producto: JSON.parse(JSON.stringify(productoSeleccionado)),
                     cantidad: cantidad
-                });
-            }
-            
-            document.getElementById('pedido-producto').value = '';
-            document.getElementById('pedido-cantidad').value = '1';
-            productoSeleccionado = null;
-            
-            mostrarCarrito();
-            calcularTotal();
-            mostrarNotificacion('✅ Producto agregado al carrito', 'success');
-        }
-
-        function mostrarCarrito() {
-            const container = document.getElementById('carrito-items');
-            
-            if (carrito.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #6c757d;">No hay productos en el pedido</p>';
-                return;
-            }
-            
-            let html = '';
-            carrito.forEach((item, index) => {
-                html += '<div class="carrito-item">';
-                html += '<div class="carrito-item-info">';
-                html += '<strong>' + item.producto.nombre + '</strong><br>';
-                html += '<small> + item.producto.precio.toFixed(2) + ' x ' + item.cantidad + ' =  + (item.producto.precio * item.cantidad).toFixed(2) + '</small>';
-                html += '</div>';
-                html += '<div class="carrito-item-actions">';
-                html += '<input type="number" class="cantidad-input" min="1" value="' + item.cantidad + '" onchange="cambiarCantidad(' + index + ', this.value)">';
-                html += '<button type="button" onclick="eliminarDelCarrito(' + index + ')" class="btn btn-danger btn-small">🗑️</button>';
-                html += '</div>';
-                html += '</div>';
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function cambiarCantidad(index, nuevaCantidad) {
-            const cantidad = parseInt(nuevaCantidad);
-            if (cantidad <= 0) {
-                eliminarDelCarrito(index);
-                return;
-            }
-            
-            carrito[index].cantidad = cantidad;
-            mostrarCarrito();
-            calcularTotal();
-        }
-
-        function eliminarDelCarrito(index) {
-            carrito.splice(index, 1);
-            mostrarCarrito();
-            calcularTotal();
-        }
-
-        function calcularTotal() {
-            const total = carrito.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
-            document.getElementById('total-pedido').textContent = ' + total.toFixed(2);
-        }
-
-        function crearPedido(event) {
-            event.preventDefault();
-            
-            if (!clienteSeleccionado) {
-                mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
-                return;
-            }
-            
-            if (carrito.length === 0) {
-                mostrarNotificacion('❌ Debe agregar productos al carrito', 'error');
-                return;
-            }
-            
-            const total = carrito.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
-            
-            const pedido = {
-                id: Date.now().toString(),
-                cliente: JSON.parse(JSON.stringify(clienteSeleccionado)),
-                productos: JSON.parse(JSON.stringify(carrito)),
-                total: total,
-                fechaCreacion: new Date()
-            };
-            
-            pedidos.push(pedido);
-            
-            // Actualizar stock
-            carrito.forEach(item => {
-                const producto = productos.find(p => p.id === item.producto.id);
-                if (producto) {
-                    producto.stockActual -= item.cantidad;
-                }
-            });
-            
-            guardarEnStorage();
-            mostrarProductos();
-            mostrarPedidos();
-            limpiarFormPedido();
-            
-            mostrarNotificacion('✅ Pedido creado exitosamente', 'success');
-        }
-
-        function mostrarPedidos() {
-            const container = document.getElementById('pedidos-lista');
-            
-            if (pedidos.length === 0) {
-                container.innerHTML = '<p>No hay pedidos registrados</p>';
-                return;
-            }
-            
-            let html = '';
-            pedidos.forEach(pedido => {
-                html += '<div class="item-card">';
-                html += '<div class="item-header">';
-                html += '<div class="item-title">Pedido #' + pedido.id + '</div>';
-                html += '<div class="item-actions">';
-                html += '<button class="btn btn-danger btn-small" onclick="eliminarPedido(\'' + pedido.id + '\')">🗑️</button>';
-                html += '</div>';
-                html += '</div>';
-                html += '<p><strong>Cliente:</strong> ' + pedido.cliente.nombre + ' ' + pedido.cliente.apellido + '</p>';
-                html += '<p><strong>Teléfono:</strong> ' + pedido.cliente.telefono + '</p>';
-                html += '<p><strong>Productos:</strong></p>';
-                html += '<ul>';
-                pedido.productos.forEach(item => {
-                    html += '<li>' + item.cantidad + 'x ' + item.producto.nombre + ' -  + (item.producto.precio * item.cantidad).toFixed(2) + '</li>';
-                });
-                html += '</ul>';
-                html += '<p><strong>Total:  + pedido.total.toFixed(2) + '</strong></p>';
-                html += '<p><small>Fecha: ' + new Date(pedido.fechaCreacion).toLocaleString() + '</small></p>';
-                html += '</div>';
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function eliminarPedido(id) {
-            if (!confirm('¿Eliminar este pedido?')) return;
-            
-            pedidos = pedidos.filter(p => p.id !== id);
-            guardarEnStorage();
-            mostrarPedidos();
-            mostrarNotificacion('🗑️ Pedido eliminado', 'success');
-        }
-
-        function limpiarFormPedido() {
-            document.getElementById('pedidos-form').reset();
-            clienteSeleccionado = null;
-            productoSeleccionado = null;
-            carrito = [];
-            
-            mostrarCarrito();
-            calcularTotal();
-            
-            document.getElementById('clientes-suggestions').classList.remove('show');
-            document.getElementById('productos-suggestions').classList.remove('show');
-        }
-
-        // AUXILIARES
-        function showTab(tabName, tabElement) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            tabElement.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
-        }
-
-        function mostrarNotificacion(mensaje, tipo) {
-            const notification = document.getElementById('notification');
-            notification.textContent = mensaje;
-            notification.className = 'notification ' + (tipo || 'success');
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        function guardarEnStorage() {
-            localStorage.setItem('productos_pastrami', JSON.stringify(productos));
-            localStorage.setItem('clientes_pastrami', JSON.stringify(clientes));
-            localStorage.setItem('pedidos_pastrami', JSON.stringify(pedidos));
-        }
-
-        function cargarDeStorage() {
-            try {
-                const productosGuardados = localStorage.getItem('productos_pastrami');
-                const clientesGuardados = localStorage.getItem('clientes_pastrami');
-                const pedidosGuardados = localStorage.getItem('pedidos_pastrami');
-                
-                if (productosGuardados) {
-                    productos = JSON.parse(productosGuardados);
-                    mostrarProductos();
-                }
-                
-                if (clientesGuardados) {
-                    clientes = JSON.parse(clientesGuardados);
-                    mostrarClientes();
-                }
-                
-                if (pedidosGuardados) {
-                    pedidos = JSON.parse(pedidosGuardados);
-                    mostrarPedidos();
-                }
-                
-                console.log('Datos cargados:', { productos: productos.length, clientes: clientes.length, pedidos: pedidos.length });
-                
-            } catch (error) {
-                console.error('Error cargando datos:', error);
-            }
-        }
-
-        // Cerrar sugerencias al hacer click fuera
-        document.addEventListener('click', function(event) {
-            if (!event.target.closest('.autocomplete-container')) {
-                document.querySelectorAll('.autocomplete-suggestions').forEach(container => {
-                    container.classList.remove('show');
-                });
-            }
-        });
-
-        // Inicializar la aplicación
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Sistema Pastrami iniciado');
-            cargarDeStorage();
-            
-            // Debug para testing
-            window.debug = {
-                productos: () => productos,
-                clientes: () => clientes,
-                pedidos: () => pedidos,
-                carrito: () => carrito,
-                limpiarTodo: () => {
-                    localStorage.clear();
-                    location.reload();
-                },
-                crearDatosPrueba: () => {
-                    productos.push({
-                        id: '1', nombre: 'Pastrami Clásico', precio: 850, tipo: 'simple',
-                        stockActual: 20, stockInicial: 20, stockMinimo: 5, componentes: [], fechaCreacion: new Date()
-                    });
-                    
-                    productos.push({
-                        id: '2', nombre: 'Combo Pastrami', precio: 1200, tipo: 'compuesto',
-                        stockActual: 10, stockInicial: 10, stockMinimo: 2,
-                        componentes: [{ nombre: 'Pan', cantidad: 1 }, { nombre: 'Pastrami', cantidad: 200 }, { nombre: 'Papas', cantidad: 1 }],
-                        fechaCreacion: new Date()
-                    });
-                    
-                    clientes.push({
-                        id: '1', nombre: 'Juan', apellido: 'Pérez', telefono: '11-1234-5678',
-                        direccion: 'Av. Corrientes 1234', fechaCreacion: new Date()
-                    });
-                    
-                    clientes.push({
-                        id: '2', nombre: 'María', apellido: 'García', telefono: '11-8765-4321',
-                        direccion: 'Av. Santa Fe 5678', fechaCreacion: new Date()
-                    });
-                    
-                    guardarEnStorage();
-                    mostrarProductos();
-                    mostrarClientes();
-                    console.log('✅ Datos de prueba creados');
-                }
-            };
-            
-            console.log('✅ Sistema listo');
-            console.log('🔧 Debug: window.debug');
-            console.log('🧪 Crear datos de prueba: window.debug.crearDatosPrueba()');
-        });
-
-    </script>
-</body>
-</html>
