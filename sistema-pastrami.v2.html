@@ -838,9 +838,9 @@
         // 🔥 FIREBASE V9 - CONFIGURACIÓN COMPATIBLE
         // ========================================
         
-        // 🔧 CONFIGURACIÓN FIREBASE V2 - REAL
+        // 🔧 CONFIGURACIÓN FIREBASE V2 - REAL (API KEY CORREGIDA)
         const firebaseConfig = {
-            apiKey: "AIzaSyBpX91Usin1H8DRHB7IjHIs3dwd3-9JZw",
+            apiKey: "AIzaSyBpX91Usin1H8DRHB7IjHIs3dwd3-9JZw0",
             authDomain: "pastrami-v2.firebaseapp.com",
             projectId: "pastrami-v2",
             storageBucket: "pastrami-v2.firebasestorage.app",
@@ -869,92 +869,145 @@
         async function inicializarApp() {
             try {
                 console.log('🚀 Iniciando Sistema Pastrami v2.0...');
+                updateStatus('loading', 'Inicializando...');
                 
                 // Verificar que Firebase esté disponible
                 if (typeof firebase === 'undefined') {
-                    throw new Error('Firebase SDK no cargado');
+                    throw new Error('Firebase SDK no disponible');
                 }
                 
-                // Inicializar Firebase
-                app = firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
+                console.log('📦 Firebase SDK detectado, inicializando...');
                 
-                console.log('✅ Firebase v9 inicializado correctamente');
-                
-                // Probar conexión
-                await testFirebaseConnection();
-                
-                // Configurar listeners en tiempo real
-                if (isFirebaseConnected) {
-                    setupRealtimeListeners();
+                // Inicializar Firebase con manejo de errores
+                try {
+                    app = firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    console.log('✅ Firebase inicializado correctamente');
+                } catch (initError) {
+                    console.error('❌ Error inicializando Firebase:', initError);
+                    throw new Error(`Error inicialización: ${initError.message}`);
                 }
                 
                 // Configurar autocompletado de pedidos
                 configurarAutocompletadoPedidos();
                 
-                mostrarNotificacion('🎉 Sistema iniciado correctamente', 'success');
+                // Intentar conectar a Firebase (con timeout)
+                console.log('🔗 Intentando conectar a Firebase...');
+                await testFirebaseConnection();
                 
             } catch (error) {
-                console.error('❌ Error inicializando:', error);
-                handleFirebaseError(error);
+                console.error('❌ Error en inicialización:', error);
+                updateStatus('offline', 'Error init');
+                updateFirebaseStatus('error', `❌ ${error.message}`);
+                
+                // Cargar datos locales como plan B
+                cargarDatosLocales();
+                mostrarNotificacion('⚠️ Iniciando en modo offline', 'warning');
             }
         }
 
         async function testFirebaseConnection() {
             try {
-                updateStatus('loading', 'Probando conexión...');
+                updateStatus('loading', 'Conectando Firebase...');
+                console.log('🔗 Intentando conectar a Firebase...');
                 
-                // Hacer una consulta simple para probar conexión
-                const testCollection = db.collection('productos');
-                await testCollection.get();
+                // Configurar timeout para evitar esperas infinitas
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Timeout de conexión (30s)')), 30000);
+                });
+                
+                // Probar conexión con timeout
+                const connectionPromise = async () => {
+                    // Verificar que Firebase esté inicializado
+                    if (!db) {
+                        throw new Error('Base de datos no inicializada');
+                    }
+                    
+                    console.log('📡 Probando lectura desde Firebase...');
+                    
+                    // Hacer una consulta simple para probar conexión
+                    const testRef = db.collection('_connection_test');
+                    const snapshot = await testRef.limit(1).get();
+                    
+                    console.log('✅ Consulta exitosa, Firebase conectado');
+                    return snapshot;
+                };
+                
+                // Ejecutar con timeout
+                await Promise.race([connectionPromise(), timeoutPromise]);
                 
                 isFirebaseConnected = true;
                 updateStatus('online', 'Conectado');
-                updateFirebaseStatus('connected', '✅ Firebase v9 conectado y funcionando');
+                updateFirebaseStatus('connected', '✅ Firebase v9 conectado y sincronizado');
                 
-                console.log('✅ Conexión a Firebase confirmada');
+                console.log('🎯 Conexión a Firebase confirmada');
                 
                 // Cargar datos
                 await cargarDatosDesdeFirebase();
                 
             } catch (error) {
-                console.error('❌ Error de conexión:', error);
+                console.error('❌ Error de conexión Firebase:', error);
                 isFirebaseConnected = false;
-                updateStatus('offline', 'Error conexión');
-                updateFirebaseStatus('error', `❌ Error: ${error.message}`);
+                
+                let mensajeError = 'Error de conexión';
+                if (error.message.includes('Timeout')) {
+                    mensajeError = 'Timeout - Usando modo offline';
+                } else if (error.code === 'permission-denied') {
+                    mensajeError = 'Sin permisos - Verificar reglas';
+                } else if (error.code === 'unavailable') {
+                    mensajeError = 'Servicio no disponible';
+                } else {
+                    mensajeError = error.message;
+                }
+                
+                updateStatus('offline', 'Modo Offline');
+                updateFirebaseStatus('error', `❌ ${mensajeError}`);
                 
                 // Cargar datos locales como respaldo
                 cargarDatosLocales();
+                mostrarNotificacion(`⚠️ ${mensajeError}. Trabajando offline.`, 'warning');
             }
         }
 
         async function cargarDatosDesdeFirebase() {
             try {
                 console.log('📥 Cargando datos desde Firebase...');
+                updateStatus('loading', 'Cargando datos...');
                 
-                // Cargar productos
-                const productosSnapshot = await db.collection('productos').get();
-                productos = productosSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    synced: true
-                }));
+                const timeout = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Timeout cargando datos')), 15000);
+                });
                 
-                // Cargar clientes
-                const clientesSnapshot = await db.collection('clientes').get();
-                clientes = clientesSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    synced: true
-                }));
+                const cargarDatos = async () => {
+                    // Cargar productos
+                    console.log('📦 Cargando productos...');
+                    const productosSnapshot = await db.collection('productos').get();
+                    productos = productosSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        synced: true
+                    }));
+                    
+                    // Cargar clientes
+                    console.log('👥 Cargando clientes...');
+                    const clientesSnapshot = await db.collection('clientes').get();
+                    clientes = clientesSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        synced: true
+                    }));
 
-                // Cargar pedidos
-                const pedidosSnapshot = await db.collection('pedidos').get();
-                pedidos = pedidosSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    synced: true
-                }));
+                    // Cargar pedidos
+                    console.log('🛒 Cargando pedidos...');
+                    const pedidosSnapshot = await db.collection('pedidos').get();
+                    pedidos = pedidosSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        synced: true
+                    }));
+                };
+                
+                await Promise.race([cargarDatos(), timeout]);
                 
                 // Guardar backup local
                 localStorage.setItem('productos_backup', JSON.stringify(productos));
@@ -966,10 +1019,17 @@
                 mostrarClientes();
                 mostrarPedidos();
                 
+                // Configurar listeners solo si la carga fue exitosa
+                setupRealtimeListeners();
+                
+                updateStatus('online', 'Sincronizado');
                 console.log(`✅ Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos`);
+                mostrarNotificacion('🎉 Datos sincronizados correctamente', 'success');
                 
             } catch (error) {
                 console.error('❌ Error cargando desde Firebase:', error);
+                updateStatus('offline', 'Error carga');
+                mostrarNotificacion('⚠️ Error cargando datos, usando backup local', 'warning');
                 cargarDatosLocales();
             }
         }
