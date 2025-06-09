@@ -444,6 +444,17 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="producto-stock-inicial">Stock Inicial <span class="required">*</span>:</label>
+                        <input type="number" id="producto-stock-inicial" min="0" step="1" required placeholder="Cantidad en inventario">
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-stock-minimo">Stock Mínimo <span class="required">*</span>:</label>
+                        <input type="number" id="producto-stock-minimo" min="0" step="1" required placeholder="Alerta cuando llegue a">
+                    </div>
+                </div>
+
                 <div id="componentes-section" style="display: none;">
                     <h3>Componentes del Producto</h3>
                     <div id="componentes-list">
@@ -831,9 +842,16 @@
             const precio = parseFloat(document.getElementById('producto-precio').value);
             const tipo = document.getElementById('producto-tipo').value;
             const descripcion = document.getElementById('producto-descripcion').value.trim();
+            const stockInicial = parseInt(document.getElementById('producto-stock-inicial').value);
+            const stockMinimo = parseInt(document.getElementById('producto-stock-minimo').value);
             
-            if (!nombre || !precio || !tipo) {
-                mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
+            if (!nombre || !precio || !tipo || stockInicial < 0 || stockMinimo < 0) {
+                mostrarNotificacion('❌ Complete los campos obligatorios correctamente', 'error');
+                return;
+            }
+            
+            if (stockMinimo > stockInicial) {
+                mostrarNotificacion('❌ El stock mínimo no puede ser mayor al stock inicial', 'error');
                 return;
             }
             
@@ -847,10 +865,19 @@
                 precio,
                 tipo,
                 descripcion,
+                stockActual: editandoProductoId ? undefined : stockInicial, // Solo al crear nuevo
+                stockInicial,
+                stockMinimo,
                 componentes: tipo === 'compuesto' ? [...componentesTemp] : [],
                 fechaCreacion: firebase.firestore.Timestamp.now(),
                 fechaModificacion: firebase.firestore.Timestamp.now()
             };
+            
+            // Si estamos editando, mantener el stock actual y solo actualizar los otros campos
+            if (editandoProductoId) {
+                const productoExistente = productos.find(p => p.id === editandoProductoId);
+                producto.stockActual = productoExistente.stockActual;
+            }
             
             if (isFirebaseConnected) {
                 if (editandoProductoId) {
@@ -868,7 +895,7 @@
                 } else {
                     // Crear nuevo producto - ESTA PARTE ESTABA CORTADA
                     db.collection('productos').add(producto).then(() => {
-                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
+                        mostrarNotificacion(`✅ Producto "${nombre}" creado con stock inicial de ${stockInicial}`, 'success');
                         limpiarFormularioProducto();
                     }).catch(error => {
                         console.error('Error creando producto:', error);
@@ -902,6 +929,8 @@
             document.getElementById('producto-precio').value = producto.precio;
             document.getElementById('producto-tipo').value = producto.tipo || 'simple';
             document.getElementById('producto-descripcion').value = producto.descripcion || '';
+            document.getElementById('producto-stock-inicial').value = producto.stockInicial || 0;
+            document.getElementById('producto-stock-minimo').value = producto.stockMinimo || 0;
             
             toggleComponentes();
             mostrarComponentesTemp();
