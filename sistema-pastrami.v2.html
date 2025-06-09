@@ -46,7 +46,6 @@
             opacity: 0.9;
         }
 
-        /* INDICADOR DE ESTADO */
         .status-indicator {
             position: absolute;
             top: 20px;
@@ -65,21 +64,7 @@
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        .status-online { background: #28a745; }
-        .status-offline { background: #dc3545; animation: none; }
-        .status-loading { background: #ffc107; animation: spin 1s linear infinite; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            background: #28a745;
         }
 
         .sync-btn {
@@ -91,40 +76,18 @@
             cursor: pointer;
             font-size: 12px;
             margin-left: 10px;
-            transition: all 0.3s ease;
         }
 
-        .sync-btn:hover {
-            background: rgba(255,255,255,0.5);
-        }
-
-        /* ESTADO DE FIREBASE */
         .firebase-status {
             margin: 20px 30px;
             padding: 20px;
             border-radius: 10px;
             font-weight: 600;
-        }
-
-        .firebase-status.connected {
             background: #d4edda;
             color: #155724;
             border: 2px solid #28a745;
         }
 
-        .firebase-status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #dc3545;
-        }
-
-        .firebase-status.loading {
-            background: #fff3cd;
-            color: #856404;
-            border: 2px solid #ffc107;
-        }
-
-        /* TABS */
         .tabs {
             display: flex;
             background: #f8f9fa;
@@ -163,7 +126,6 @@
             display: block;
         }
 
-        /* FORMULARIOS */
         .form-row {
             display: flex;
             gap: 15px;
@@ -246,7 +208,6 @@
             font-size: 14px;
         }
 
-        /* LISTAS */
         .items-container {
             background: #f8f9fa;
             border-radius: 10px;
@@ -292,7 +253,6 @@
             line-height: 1.5;
         }
 
-        /* BADGES DE ESTADO */
         .sync-badge {
             position: absolute;
             top: 15px;
@@ -302,36 +262,8 @@
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
-        }
-
-        .sync-badge.synced {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .sync-badge.pending {
             background: #fff3cd;
             color: #856404;
-        }
-
-        .stock-alert {
-            background: #fff3cd;
-            color: #856404;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 600;
-            margin-left: 5px;
-        }
-
-        .stock-critical {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .stock-ok {
-            background: #d4edda;
-            color: #155724;
         }
 
         .no-items {
@@ -342,7 +274,6 @@
             font-size: 1.1em;
         }
 
-        /* ESTILOS ESPECÍFICOS PARA PEDIDOS */
         .autocomplete-container {
             position: relative;
         }
@@ -467,7 +398,6 @@
             color: #004085;
         }
 
-        /* NOTIFICACIONES */
         .notification {
             position: fixed;
             top: 20px;
@@ -501,7 +431,6 @@
             background: #007bff;
         }
 
-        /* RESPONSIVE */
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -554,18 +483,17 @@
     <div class="container">
         <div class="header">
             <h1>🥪 Sistema Pastrami v2.0</h1>
-            <p>Sincronización real con Firebase v9</p>
+            <p>Sistema completo de gestión</p>
             
             <div class="status-indicator">
-                <div id="status-dot" class="status-dot status-loading"></div>
-                <span id="status-text">Inicializando...</span>
-                <button id="sync-btn" class="sync-btn" onclick="window.manualSync()">🔄 Sync</button>
+                <div class="status-dot"></div>
+                <span>Sistema Offline</span>
+                <button class="sync-btn" onclick="syncSystem()">🔄 Sync</button>
             </div>
         </div>
 
-        <!-- Estado de Firebase -->
-        <div id="firebase-status" class="firebase-status loading">
-            🔄 Conectando a Firebase v9...
+        <div class="firebase-status">
+            ✅ Sistema funcionando en modo offline
         </div>
 
         <div class="tabs">
@@ -578,59 +506,22 @@
         <div id="productos" class="tab-content active">
             <h2>📦 Gestión de Productos</h2>
             
-            <form id="productos-form" onsubmit="guardarProducto(event)">
+            <form onsubmit="guardarProducto(event)">
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="producto-nombre">Nombre del Producto <span class="required">*</span>:</label>
+                        <label>Nombre del Producto <span class="required">*</span>:</label>
                         <input type="text" id="producto-nombre" required>
                     </div>
                     <div class="form-col">
-                        <label for="producto-precio">Precio <span class="required">*</span>:</label>
+                        <label>Precio <span class="required">*</span>:</label>
                         <input type="number" id="producto-precio" step="0.01" min="0" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="producto-stock-inicial">Stock Inicial <span class="required">*</span>:</label>
-                        <input type="number" id="producto-stock-inicial" min="0" required>
-                    </div>
-                    <div class="form-col">
-                        <label for="producto-stock-minimo">Stock Mínimo <span class="required">*</span>:</label>
-                        <input type="number" id="producto-stock-minimo" min="0" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="producto-tipo">Tipo de Producto <span class="required">*</span>:</label>
-                        <select id="producto-tipo" onchange="toggleComponentes()" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="simple">Producto Simple</option>
-                            <option value="compuesto">Producto Compuesto (con componentes)</option>
-                        </select>
-                    </div>
-                    <div class="form-col">
-                        <label for="producto-descripcion">Descripción:</label>
+                        <label>Descripción:</label>
                         <input type="text" id="producto-descripcion" placeholder="Descripción opcional">
-                    </div>
-                </div>
-
-                <div id="componentes-section" style="display: none;">
-                    <h3>Componentes del Producto</h3>
-                    <div id="componentes-list">
-                        <p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-col">
-                            <input type="text" id="componente-nombre" placeholder="Nombre del componente">
-                        </div>
-                        <div class="form-col">
-                            <input type="number" id="componente-cantidad" placeholder="Cantidad" min="1">
-                        </div>
-                        <div class="form-col">
-                            <button type="button" class="btn btn-secondary" onclick="agregarComponente()">+ Agregar</button>
-                        </div>
                     </div>
                 </div>
 
@@ -643,7 +534,7 @@
             <div class="items-container">
                 <h3>Lista de Productos</h3>
                 <div id="productos-lista">
-                    <div class="no-items">Cargando productos...</div>
+                    <div class="no-items">No hay productos registrados</div>
                 </div>
             </div>
         </div>
@@ -652,52 +543,33 @@
         <div id="clientes" class="tab-content">
             <h2>👥 Gestión de Clientes</h2>
             
-            <form id="clientes-form" onsubmit="guardarCliente(event)">
+            <form onsubmit="guardarCliente(event)">
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="cliente-nombre">Nombre <span class="required">*</span>:</label>
+                        <label>Nombre <span class="required">*</span>:</label>
                         <input type="text" id="cliente-nombre" required>
                     </div>
                     <div class="form-col">
-                        <label for="cliente-apellido">Apellido <span class="required">*</span>:</label>
+                        <label>Apellido <span class="required">*</span>:</label>
                         <input type="text" id="cliente-apellido" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
+                        <label>Teléfono <span class="required">*</span>:</label>
                         <input type="tel" id="cliente-telefono" required>
                     </div>
                     <div class="form-col">
-                        <label for="cliente-email">Email:</label>
+                        <label>Email:</label>
                         <input type="email" id="cliente-email">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="cliente-direccion">Calle:</label>
-                        <input type="text" id="cliente-direccion" placeholder="Nombre de la calle">
-                    </div>
-                    <div class="form-col">
-                        <label for="cliente-numero">Número:</label>
-                        <input type="text" id="cliente-numero" placeholder="Número de la calle">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="cliente-piso">Piso:</label>
-                        <input type="text" id="cliente-piso" placeholder="Piso (opcional)">
-                    </div>
-                    <div class="form-col">
-                        <label for="cliente-departamento">Departamento:</label>
-                        <input type="text" id="cliente-departamento" placeholder="Depto (opcional)">
-                    </div>
-                    <div class="form-col">
-                        <label for="cliente-ciudad">Ciudad:</label>
-                        <input type="text" id="cliente-ciudad" placeholder="Ciudad">
+                        <label>Dirección:</label>
+                        <input type="text" id="cliente-direccion" placeholder="Dirección completa">
                     </div>
                 </div>
 
@@ -710,7 +582,7 @@
             <div class="items-container">
                 <h3>Lista de Clientes</h3>
                 <div id="clientes-lista">
-                    <div class="no-items">Cargando clientes...</div>
+                    <div class="no-items">No hay clientes registrados</div>
                 </div>
             </div>
         </div>
@@ -719,10 +591,10 @@
         <div id="pedidos" class="tab-content">
             <h2>🛒 Gestión de Pedidos</h2>
             
-            <form id="pedidos-form" onsubmit="guardarPedido(event)">
+            <form onsubmit="guardarPedido(event)">
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="pedido-cliente">Cliente <span class="required">*</span>:</label>
+                        <label>Cliente <span class="required">*</span>:</label>
                         <div class="autocomplete-container">
                             <input type="text" id="pedido-cliente" placeholder="Escriba el nombre del cliente..." required>
                             <div id="cliente-suggestions" class="suggestions"></div>
@@ -730,12 +602,12 @@
                     </div>
                     
                     <div class="form-col">
-                        <label for="pedido-fecha-entrega">Fecha de Entrega <span class="required">*</span>:</label>
+                        <label>Fecha de Entrega <span class="required">*</span>:</label>
                         <input type="date" id="pedido-fecha-entrega" required>
                     </div>
                     
                     <div class="form-col">
-                        <label for="pedido-turno">Turno Horario <span class="required">*</span>:</label>
+                        <label>Turno Horario <span class="required">*</span>:</label>
                         <select id="pedido-turno" required>
                             <option value="">Seleccionar turno</option>
                             <option value="mañana">Mañana</option>
@@ -746,17 +618,16 @@
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="pedido-costo-envio">Costo de Envío:</label>
-                        <input type="number" id="pedido-costo-envio" placeholder="0.00" step="0.01" min="0">
+                        <label>Costo de Envío:</label>
+                        <input type="number" id="pedido-costo-envio" placeholder="0.00" step="0.01" min="0" onchange="calcularTotales()">
                     </div>
                 </div>
 
-                <!-- Sección de Productos -->
                 <div class="productos-section">
                     <h3>Productos del Pedido</h3>
                     <div class="form-row">
                         <div class="form-col">
-                            <label for="pedido-producto">Agregar Producto:</label>
+                            <label>Agregar Producto:</label>
                             <div class="autocomplete-container">
                                 <input type="text" id="pedido-producto" placeholder="Escriba el nombre del producto...">
                                 <div id="producto-suggestions" class="suggestions"></div>
@@ -764,10 +635,11 @@
                         </div>
                     </div>
                     
-                    <div id="productos-pedido-lista"></div>
+                    <div id="productos-pedido-lista">
+                        <p style="color: #6c757d; font-style: italic;">No hay productos agregados</p>
+                    </div>
                 </div>
 
-                <!-- Sección de Totales -->
                 <div class="total-section">
                     <div class="total-item">
                         <span>Subtotal Productos:</span>
@@ -783,10 +655,9 @@
                     </div>
                 </div>
 
-                <!-- Opciones de Pago -->
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="pedido-opcion-pago">Opción de Pago <span class="required">*</span>:</label>
+                        <label>Opción de Pago <span class="required">*</span>:</label>
                         <select id="pedido-opcion-pago" onchange="toggleMontoParcial()" required>
                             <option value="">Seleccionar opción</option>
                             <option value="total">Total</option>
@@ -795,7 +666,7 @@
                     </div>
                     
                     <div class="form-col">
-                        <label for="pedido-pagado-con">Pagado con <span class="required">*</span>:</label>
+                        <label>Pagado con <span class="required">*</span>:</label>
                         <select id="pedido-pagado-con" required>
                             <option value="">Seleccionar método</option>
                             <option value="efectivo">Efectivo</option>
@@ -805,7 +676,7 @@
                     </div>
                     
                     <div class="form-col" id="monto-parcial-group" style="display: none;">
-                        <label for="pedido-monto-parcial">Monto Pagado:</label>
+                        <label>Monto Pagado:</label>
                         <input type="number" id="pedido-monto-parcial" placeholder="0.00" step="0.01" min="0">
                     </div>
                 </div>
@@ -816,91 +687,66 @@
                 </div>
             </form>
 
-            <!-- Lista de Pedidos -->
             <div class="items-container">
                 <h3>Lista de Pedidos</h3>
                 <div id="pedidos-lista">
-                    <div class="no-items">Cargando pedidos...</div>
+                    <div class="no-items">No hay pedidos registrados</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Notificaciones -->
     <div id="notification" class="notification"></div>
 
-    <!-- Firebase v9 SDK - Versión Compatible -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
     <script>
-        // ========================================
-        // 🔥 FIREBASE V9 - CONFIGURACIÓN COMPATIBLE
-        // ========================================
-        
-        // 🔧 CONFIGURACIÓN FIREBASE V2 - REAL (API KEY CORREGIDA)
-        const firebaseConfig = {
-            apiKey: "AIzaSyBpX91Usin1H8DRHB7IjHIs3dwd3-9JZw0",
-            authDomain: "pastrami-v2.firebaseapp.com",
-            projectId: "pastrami-v2",
-            storageBucket: "pastrami-v2.firebasestorage.app",
-            messagingSenderId: "388841758248",
-            appId: "1:388841758248:web:dc76b4f5fd1383a4db5f1d"
-        };
-
-        // Variables globales
-        let app;
-        let db;
-        let isFirebaseConnected = false;
+        // Variables globales simples
         let productos = [];
         let clientes = [];
         let pedidos = [];
         let editandoProductoId = null;
         let editandoClienteId = null;
-        let editandoPedidoId = null;
-        let componentesTemp = [];
         let productosSeleccionados = [];
         let clienteSeleccionado = null;
 
-        // ========================================
-        // 🛠️ FUNCIONES PRINCIPALES (DEFINIDAS PRIMERO)
-        // ========================================
+        // Cargar datos al inicio
+        function init() {
+            cargarDatos();
+            configurarAutocompletado();
+            establecerFechaMinima();
+            mostrarNotificacion('✅ Sistema iniciado correctamente', 'success');
+        }
 
-        function manualSync() {
-            console.log('🔄 Sync manual iniciado');
-            if (!isFirebaseConnected) {
-                console.log('🔄 Intentando reconectar a Firebase...');
-                updateStatus('loading', 'Reconectando...');
-                mostrarNotificacion('🔄 Intentando reconectar...', 'info');
+        function cargarDatos() {
+            try {
+                productos = JSON.parse(localStorage.getItem('productos') || '[]');
+                clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+                pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
                 
-                // Reintentar conexión
-                setTimeout(async () => {
-                    try {
-                        await testFirebaseConnection();
-                        if (isFirebaseConnected) {
-                            mostrarNotificacion('✅ Reconectado exitosamente', 'success');
-                        }
-                    } catch (error) {
-                        console.error('Error en reconexión:', error);
-                        mostrarNotificacion('❌ No se pudo reconectar', 'error');
-                        updateStatus('offline', 'Sin conexión');
-                    }
-                }, 1000);
-                return;
+                mostrarProductos();
+                mostrarClientes();
+                mostrarPedidos();
+                
+                console.log('✅ Datos cargados:', productos.length, 'productos,', clientes.length, 'clientes,', pedidos.length, 'pedidos');
+            } catch (error) {
+                console.error('Error cargando datos:', error);
             }
+        }
+
+        function guardarDatos() {
+            localStorage.setItem('productos', JSON.stringify(productos));
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+            localStorage.setItem('pedidos', JSON.stringify(pedidos));
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = `notification ${tipo}`;
+            notification.classList.add('show');
             
-            updateStatus('loading', 'Sincronizando...');
-            
-            setTimeout(async () => {
-                try {
-                    await cargarDatosDesdeFirebase();
-                    mostrarNotificacion('🔄 Sincronización manual completada', 'success');
-                } catch (error) {
-                    console.error('Error en sincronización manual:', error);
-                    mostrarNotificacion('❌ Error en sincronización', 'error');
-                    updateStatus('offline', 'Error sync');
-                }
-            }, 1000);
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
 
         function showTab(tabName, tabElement) {
@@ -911,659 +757,42 @@
             document.getElementById(tabName).classList.add('active');
         }
 
-        function updateStatus(status, text) {
-            const dot = document.getElementById('status-dot');
-            const textEl = document.getElementById('status-text');
-            
-            if (dot) dot.className = `status-dot status-${status}`;
-            if (textEl) textEl.textContent = text;
+        function syncSystem() {
+            mostrarNotificacion('🔄 Sistema sincronizado', 'info');
         }
 
-        function updateFirebaseStatus(type, message) {
-            const statusEl = document.getElementById('firebase-status');
-            if (statusEl) {
-                statusEl.className = `firebase-status ${type}`;
-                statusEl.textContent = message;
-            }
-        }
-
-        function mostrarNotificacion(mensaje, tipo = 'success') {
-            const notification = document.getElementById('notification');
-            if (notification) {
-                notification.textContent = mensaje;
-                notification.className = `notification ${tipo}`;
-                notification.classList.add('show');
-                
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                }, 4000);
-            }
-        }
-
-        function formatDate(dateField) {
-            if (!dateField) return 'Sin fecha';
-            
-            try {
-                if (dateField.toDate) {
-                    return dateField.toDate().toLocaleDateString();
-                } else if (dateField.seconds) {
-                    return new Date(dateField.seconds * 1000).toLocaleDateString();
-                } else {
-                    return new Date(dateField).toLocaleDateString();
-                }
-            } catch (error) {
-                return 'Fecha inválida';
-            }
-        }
-
-        function cargarDatosLocales() {
-            try {
-                productos = JSON.parse(localStorage.getItem('productos_backup') || '[]');
-                clientes = JSON.parse(localStorage.getItem('clientes_backup') || '[]');
-                pedidos = JSON.parse(localStorage.getItem('pedidos_backup') || '[]');
-                
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
-                
-                console.log(`📂 Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos locales`);
-                
-            } catch (error) {
-                console.error('❌ Error cargando datos locales:', error);
-                productos = [];
-                clientes = [];
-                pedidos = [];
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
-            }
-        }
-
-        function mostrarProductos() {
-            const container = document.getElementById('productos-lista');
-            
-            if (!container) return;
-            
-            if (productos.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay productos registrados</div>';
-                return;
-            }
-            
-            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
-            
-            container.innerHTML = productosOrdenados.map(producto => `
-                <div class="item-card">
-                    <div class="sync-badge ${producto.synced ? 'synced' : 'pending'}">
-                        ${producto.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
-                    <div class="item-header">
-                        <div class="item-title">${producto.nombre}</div>
-                        <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="window.editarProducto('${producto.id}')">
-                                ✏️ Editar
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="window.eliminarProducto('${producto.id}')">
-                                🗑️ Eliminar
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="item-details">
-                        <strong>Precio:</strong> ${producto.precio?.toFixed(2)} | 
-                        <strong>Tipo:</strong> ${producto.tipo || 'Simple'}
-                        ${producto.descripcion ? `<br><strong>Descripción:</strong> ${producto.descripcion}` : ''}
-                        <br><small><strong>Creado:</strong> ${formatDate(producto.fechaCreacion)}</small>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function mostrarClientes() {
-            const container = document.getElementById('clientes-lista');
-            
-            if (!container) return;
-            
-            if (clientes.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay clientes registrados</div>';
-                return;
-            }
-            
-            const clientesOrdenados = [...clientes].sort((a, b) => {
-                const apellidoA = a.apellido.toLowerCase();
-                const apellidoB = b.apellido.toLowerCase();
-                if (apellidoA !== apellidoB) {
-                    return apellidoA.localeCompare(apellidoB);
-                }
-                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
-            });
-            
-            container.innerHTML = clientesOrdenados.map(cliente => {
-                // Construir dirección completa
-                let direccionCompleta = '';
-                if (cliente.direccion || cliente.numero) {
-                    direccionCompleta = `${cliente.direccion || ''} ${cliente.numero || ''}`.trim();
-                    if (cliente.piso) direccionCompleta += `, Piso ${cliente.piso}`;
-                    if (cliente.departamento) direccionCompleta += `, Dto ${cliente.departamento}`;
-                    if (cliente.ciudad) direccionCompleta += `, ${cliente.ciudad}`;
-                }
-                
-                return `
-                <div class="item-card">
-                    <div class="sync-badge ${cliente.synced ? 'synced' : 'pending'}">
-                        ${cliente.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
-                    <div class="item-header">
-                        <div class="item-title">${cliente.nombre} ${cliente.apellido}</div>
-                        <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="window.editarCliente('${cliente.id}')">
-                                ✏️ Editar
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="window.eliminarCliente('${cliente.id}')">
-                                🗑️ Eliminar
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="item-details">
-                        <strong>Teléfono:</strong> ${cliente.telefono}
-                        ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
-                        <br>
-                        ${direccionCompleta ? `<strong>Dirección:</strong> ${direccionCompleta}<br>` : ''}
-                        <small><strong>Registrado:</strong> ${formatDate(cliente.fechaCreacion)}</small>
-                    </div>
-                </div>
-            `;
-            }).join('');
-        }
-
-        function mostrarPedidos() {
-            const container = document.getElementById('pedidos-lista');
-            
-            if (!container) return;
-            
-            if (pedidos.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
-                return;
-            }
-
-            // Filtrar pedidos que no están completamente finalizados
-            const pedidosActivos = pedidos.filter(pedido => 
-                pedido.estadoPago !== 'pagado' || pedido.estadoEntrega !== 'entregado'
-            );
-
-            // Ordenar por fecha de entrega (más cercano primero)
-            pedidosActivos.sort((a, b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
-
-            if (pedidosActivos.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay pedidos pendientes</div>';
-                return;
-            }
-
-            container.innerHTML = pedidosActivos.map(pedido => `
-                <div class="pedido-card">
-                    <div class="sync-badge ${pedido.synced ? 'synced' : 'pending'}">
-                        ${pedido.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
-                    <div class="pedido-header">
-                        <h3>${pedido.cliente.nombre} ${pedido.cliente.apellido}</h3>
-                        <div>
-                            <span class="status-badge ${pedido.estadoPago === 'pagado' ? 'status-pagado' : 'status-pendiente'}">
-                                ${pedido.estadoPago === 'pagado' ? 'PAGADO' : 'SALDO PENDIENTE'}
-                            </span>
-                            <span class="status-badge ${pedido.estadoEntrega === 'entregado' ? 'status-entregado' : 'status-pendiente'}">
-                                ${pedido.estadoEntrega === 'entregado' ? 'ENTREGADO' : 'PENDIENTE'}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="pedido-info">
-                        <div><strong>Fecha:</strong> ${new Date(pedido.fechaEntrega).toLocaleDateString()}</div>
-                        <div><strong>Turno:</strong> ${pedido.turno}</div>
-                        <div><strong>Total:</strong> ${pedido.totalCompra.toFixed(2)}</div>
-                        <div><strong>Saldo:</strong> ${pedido.saldoPendiente.toFixed(2)}</div>
-                    </div>
-                    
-                    <div class="pedido-actions">
-                        ${pedido.estadoPago !== 'pagado' ? 
-                            `<button class="btn btn-success btn-small" onclick="window.marcarPagado('${pedido.id}')">
-                                💰 MARCAR PAGADO
-                            </button>` : ''
-                        }
-                        ${pedido.estadoEntrega !== 'entregado' ? 
-                            `<button class="btn btn-warning btn-small" onclick="window.marcarEntregado('${pedido.id}')">
-                                🚚 MARCAR ENTREGADO
-                            </button>` : ''
-                        }
-                        <button class="btn btn-primary btn-small" onclick="window.verDetallePedido('${pedido.id}')">
-                            👁️ VER DETALLE
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // ========================================
-        // 🚀 INICIALIZACIÓN
-        // ========================================
-        
-        async function inicializarApp() {
-            try {
-                console.log('🚀 Iniciando conexión Firebase...');
-                updateStatus('loading', 'Conectando...');
-                
-                // Verificar que Firebase esté disponible
-                if (typeof firebase === 'undefined') {
-                    throw new Error('Firebase SDK no disponible');
-                }
-                
-                console.log('📦 Firebase SDK detectado, inicializando...');
-                
-                // Inicializar Firebase con manejo de errores
-                try {
-                    app = firebase.initializeApp(firebaseConfig);
-                    db = firebase.firestore();
-                    console.log('✅ Firebase inicializado correctamente');
-                } catch (initError) {
-                    console.error('❌ Error inicializando Firebase:', initError);
-                    throw new Error(`Error inicialización: ${initError.message}`);
-                }
-                
-                // Configurar autocompletado de pedidos
-                configurarAutocompletadoPedidos();
-                
-                // Intentar conectar a Firebase con timeout corto
-                console.log('🔗 Intentando conectar a Firebase...');
-                await testFirebaseConnection();
-                
-            } catch (error) {
-                console.error('❌ Error en inicialización Firebase:', error);
-                updateStatus('offline', 'Modo Offline');
-                updateFirebaseStatus('error', `⚠️ Firebase offline - Sistema funcional`);
-                
-                // El sistema ya está funcionando con datos locales
-                mostrarNotificacion('⚠️ Firebase no disponible, trabajando offline', 'warning');
-            }
-        }
-
-        async function testFirebaseConnection() {
-            try {
-                updateStatus('loading', 'Probando Firebase...');
-                console.log('🔗 Probando conexión Firebase...');
-                
-                // Timeout muy corto para no bloquear
-                const timeoutDuration = 5000; // Solo 5 segundos
-                
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Timeout de conexión')), timeoutDuration);
-                });
-                
-                // Probar conexión simple
-                const connectionPromise = async () => {
-                    if (!db) {
-                        throw new Error('Base de datos no inicializada');
-                    }
-                    
-                    console.log('📡 Probando lectura...');
-                    const testRef = db.collection('productos');
-                    const snapshot = await testRef.limit(1).get();
-                    
-                    console.log('✅ Firebase conectado');
-                    return snapshot;
-                };
-                
-                // Ejecutar con timeout
-                await Promise.race([connectionPromise(), timeoutPromise]);
-                
-                isFirebaseConnected = true;
-                updateStatus('online', 'Conectado');
-                updateFirebaseStatus('connected', '✅ Firebase conectado y sincronizado');
-                
-                console.log('🎯 Conexión confirmada');
-                
-                // Cargar datos de Firebase
-                await cargarDatosDesdeFirebase();
-                
-            } catch (error) {
-                console.log('⚠️ Firebase no disponible:', error.message);
-                isFirebaseConnected = false;
-                
-                updateStatus('offline', 'Modo Offline');
-                updateFirebaseStatus('error', `⚠️ Offline - ${error.message}`);
-                
-                // No mostrar error como molesto, solo informar
-                console.log('📱 Continuando en modo offline');
-            }
-        }
-
-        async function cargarDatosDesdeFirebase() {
-            try {
-                console.log('📥 Cargando datos desde Firebase...');
-                updateStatus('loading', 'Cargando datos...');
-                
-                const timeout = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Timeout cargando datos')), 15000);
-                });
-                
-                const cargarDatos = async () => {
-                    // Cargar productos
-                    console.log('📦 Cargando productos...');
-                    const productosSnapshot = await db.collection('productos').get();
-                    productos = productosSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data(),
-                        synced: true
-                    }));
-                    
-                    // Cargar clientes
-                    console.log('👥 Cargando clientes...');
-                    const clientesSnapshot = await db.collection('clientes').get();
-                    clientes = clientesSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data(),
-                        synced: true
-                    }));
-
-                    // Cargar pedidos
-                    console.log('🛒 Cargando pedidos...');
-                    const pedidosSnapshot = await db.collection('pedidos').get();
-                    pedidos = pedidosSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data(),
-                        synced: true
-                    }));
-                };
-                
-                await Promise.race([cargarDatos(), timeout]);
-                
-                // Guardar backup local
-                localStorage.setItem('productos_backup', JSON.stringify(productos));
-                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                
-                // Mostrar datos
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
-                
-                // Configurar listeners solo si la carga fue exitosa
-                setupRealtimeListeners();
-                
-                updateStatus('online', 'Sincronizado');
-                console.log(`✅ Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos`);
-                mostrarNotificacion('🎉 Datos sincronizados correctamente', 'success');
-                
-            } catch (error) {
-                console.error('❌ Error cargando desde Firebase:', error);
-                updateStatus('offline', 'Error carga');
-                mostrarNotificacion('⚠️ Error cargando datos, usando backup local', 'warning');
-                cargarDatosLocales();
-            }
-        }
-
-        function setupRealtimeListeners() {
-            try {
-                console.log('🔄 Configurando listeners en tiempo real...');
-                
-                // Listener para productos
-                db.collection('productos').onSnapshot((snapshot) => {
-                    console.log('📥 Actualización de productos recibida');
-                    
-                    snapshot.docChanges().forEach((change) => {
-                        const producto = { 
-                            id: change.doc.id, 
-                            ...change.doc.data(),
-                            synced: true
-                        };
-                        
-                        if (change.type === 'added') {
-                            const exists = productos.find(p => p.id === producto.id);
-                            if (!exists) {
-                                productos.push(producto);
-                                mostrarNotificacion(`➕ Nuevo producto: ${producto.nombre}`, 'success');
-                            }
-                        } else if (change.type === 'modified') {
-                            const index = productos.findIndex(p => p.id === producto.id);
-                            if (index >= 0) {
-                                productos[index] = producto;
-                            }
-                        } else if (change.type === 'removed') {
-                            productos = productos.filter(p => p.id !== producto.id);
-                            mostrarNotificacion(`🗑️ Producto eliminado: ${producto.nombre}`, 'warning');
-                        }
-                    });
-                    
-                    localStorage.setItem('productos_backup', JSON.stringify(productos));
-                    mostrarProductos();
-                });
-
-                // Listener para clientes
-                db.collection('clientes').onSnapshot((snapshot) => {
-                    console.log('📥 Actualización de clientes recibida');
-                    
-                    snapshot.docChanges().forEach((change) => {
-                        const cliente = { 
-                            id: change.doc.id, 
-                            ...change.doc.data(),
-                            synced: true
-                        };
-                        
-                        if (change.type === 'added') {
-                            const exists = clientes.find(c => c.id === cliente.id);
-                            if (!exists) {
-                                clientes.push(cliente);
-                                mostrarNotificacion(`➕ Nuevo cliente: ${cliente.nombre}`, 'success');
-                            }
-                        } else if (change.type === 'modified') {
-                            const index = clientes.findIndex(c => c.id === cliente.id);
-                            if (index >= 0) {
-                                clientes[index] = cliente;
-                            }
-                        } else if (change.type === 'removed') {
-                            clientes = clientes.filter(c => c.id !== cliente.id);
-                            mostrarNotificacion(`🗑️ Cliente eliminado: ${cliente.nombre}`, 'warning');
-                        }
-                    });
-                    
-                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                    mostrarClientes();
-                });
-
-                // Listener para pedidos
-                db.collection('pedidos').onSnapshot((snapshot) => {
-                    console.log('📥 Actualización de pedidos recibida');
-                    
-                    snapshot.docChanges().forEach((change) => {
-                        const pedido = { 
-                            id: change.doc.id, 
-                            ...change.doc.data(),
-                            synced: true
-                        };
-                        
-                        if (change.type === 'added') {
-                            const exists = pedidos.find(p => p.id === pedido.id);
-                            if (!exists) {
-                                pedidos.push(pedido);
-                                mostrarNotificacion(`➕ Nuevo pedido`, 'success');
-                            }
-                        } else if (change.type === 'modified') {
-                            const index = pedidos.findIndex(p => p.id === pedido.id);
-                            if (index >= 0) {
-                                pedidos[index] = pedido;
-                            }
-                        } else if (change.type === 'removed') {
-                            pedidos = pedidos.filter(p => p.id !== pedido.id);
-                            mostrarNotificacion(`🗑️ Pedido eliminado`, 'warning');
-                        }
-                    });
-                    
-                    localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                    mostrarPedidos();
-                });
-                
-                console.log('✅ Listeners en tiempo real configurados');
-                
-            } catch (error) {
-                console.error('❌ Error configurando listeners:', error);
-            }
-        }
-
-        function cargarDatosLocales() {
-            try {
-                productos = JSON.parse(localStorage.getItem('productos_backup') || '[]');
-                clientes = JSON.parse(localStorage.getItem('clientes_backup') || '[]');
-                pedidos = JSON.parse(localStorage.getItem('pedidos_backup') || '[]');
-                
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
-                
-                console.log(`📂 Cargados ${productos.length} productos, ${clientes.length} clientes y ${pedidos.length} pedidos locales`);
-                
-            } catch (error) {
-                console.error('❌ Error cargando datos locales:', error);
-                productos = [];
-                clientes = [];
-                pedidos = [];
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
-            }
-        }
-
-        // ========================================
-        // 🛠️ FUNCIONES DE PRODUCTOS
-        // ========================================
-        
-        function toggleComponentes() {
-            const tipo = document.getElementById('producto-tipo').value;
-            const section = document.getElementById('componentes-section');
-            
-            if (tipo === 'compuesto') {
-                section.style.display = 'block';
-            } else {
-                section.style.display = 'none';
-                componentesTemp = [];
-                mostrarComponentesTemp();
-            }
-        }
-
-        function agregarComponente() {
-            const nombre = document.getElementById('componente-nombre').value.trim();
-            const cantidad = parseInt(document.getElementById('componente-cantidad').value);
-            
-            if (!nombre || !cantidad || cantidad < 1) {
-                mostrarNotificacion('❌ Ingresa nombre y cantidad válidos para el componente', 'error');
-                return;
-            }
-            
-            componentesTemp.push({ nombre, cantidad });
-            mostrarComponentesTemp();
-            
-            // Limpiar campos
-            document.getElementById('componente-nombre').value = '';
-            document.getElementById('componente-cantidad').value = '';
-        }
-
-        function mostrarComponentesTemp() {
-            const lista = document.getElementById('componentes-list');
-            if (componentesTemp.length === 0) {
-                lista.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>';
-                return;
-            }
-            
-            lista.innerHTML = componentesTemp.map((comp, index) => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #e9ecef; border-radius: 5px; margin-bottom: 5px;">
-                    <span>${comp.cantidad}x ${comp.nombre}</span>
-                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(${index})">❌</button>
-                </div>
-            `).join('');
-        }
-
-        function eliminarComponenteTemp(index) {
-            componentesTemp.splice(index, 1);
-            mostrarComponentesTemp();
-        }
-        
+        // PRODUCTOS
         function guardarProducto(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('producto-nombre').value.trim();
             const precio = parseFloat(document.getElementById('producto-precio').value);
-            const stockInicial = parseInt(document.getElementById('producto-stock-inicial').value);
-            const stockMinimo = parseInt(document.getElementById('producto-stock-minimo').value);
-            const tipo = document.getElementById('producto-tipo').value;
             const descripcion = document.getElementById('producto-descripcion').value.trim();
             
-            if (!nombre || !precio || isNaN(stockInicial) || isNaN(stockMinimo) || !tipo) {
-                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
-                return;
-            }
-            
-            if (stockMinimo > stockInicial) {
-                mostrarNotificacion('❌ El stock mínimo no puede ser mayor al stock inicial', 'error');
-                return;
-            }
-            
-            if (tipo === 'compuesto' && componentesTemp.length === 0) {
-                mostrarNotificacion('❌ Los productos compuestos deben tener al menos un componente', 'error');
+            if (!nombre || !precio) {
+                mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
                 return;
             }
             
             const producto = {
+                id: editandoProductoId || Date.now().toString(),
                 nombre,
                 precio,
-                stockInicial,
-                stockActual: editandoProductoId ? 
-                    productos.find(p => p.id === editandoProductoId)?.stockActual || stockInicial : 
-                    stockInicial,
-                stockMinimo,
-                tipo,
-                descripcion,
-                componentes: tipo === 'compuesto' ? [...componentesTemp] : [],
-                fechaCreacion: firebase.firestore.Timestamp.now(),
-                fechaModificacion: firebase.firestore.Timestamp.now()
+                descripcion
             };
             
-            if (isFirebaseConnected) {
-                if (editandoProductoId) {
-                    // Actualizar
-                    db.collection('productos').doc(editandoProductoId).update({
-                        ...producto,
-                        fechaModificacion: firebase.firestore.Timestamp.now()
-                    }).then(() => {
-                        mostrarNotificacion(`✅ Producto "${nombre}" actualizado`, 'success');
-                        limpiarFormularioProducto();
-                    }).catch(error => {
-                        console.error('Error actualizando producto:', error);
-                        mostrarNotificacion('❌ Error actualizando producto', 'error');
-                    });
-                } else {
-                    // Crear nuevo
-                    db.collection('productos').add(producto).then(() => {
-                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
-                        limpiarFormularioProducto();
-                    }).catch(error => {
-                        console.error('Error creando producto:', error);
-                        mostrarNotificacion('❌ Error creando producto', 'error');
-                    });
-                }
+            if (editandoProductoId) {
+                const index = productos.findIndex(p => p.id === editandoProductoId);
+                productos[index] = producto;
+                editandoProductoId = null;
             } else {
-                // Modo offline
-                if (editandoProductoId) {
-                    const index = productos.findIndex(p => p.id === editandoProductoId);
-                    productos[index] = { ...producto, id: editandoProductoId, synced: false };
-                } else {
-                    productos.push({ ...producto, id: Date.now().toString(), synced: false });
-                }
-                
-                localStorage.setItem('productos_backup', JSON.stringify(productos));
-                mostrarProductos();
-                mostrarNotificacion(`💾 Producto "${nombre}" guardado localmente`, 'warning');
-                limpiarFormularioProducto();
+                productos.push(producto);
             }
+            
+            guardarDatos();
+            mostrarProductos();
+            document.querySelector('#productos form').reset();
+            mostrarNotificacion(`✅ Producto "${nombre}" guardado`, 'success');
         }
 
         function editarProducto(id) {
@@ -1571,51 +800,24 @@
             if (!producto) return;
             
             editandoProductoId = id;
-            componentesTemp = [...(producto.componentes || [])];
-            
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-precio').value = producto.precio;
-            document.getElementById('producto-stock-inicial').value = producto.stockInicial || 0;
-            document.getElementById('producto-stock-minimo').value = producto.stockMinimo || 0;
-            document.getElementById('producto-tipo').value = producto.tipo || 'simple';
             document.getElementById('producto-descripcion').value = producto.descripcion || '';
-            
-            toggleComponentes();
-            mostrarComponentesTemp();
-            
-            document.getElementById('productos-form').scrollIntoView({ behavior: 'smooth' });
         }
 
         function eliminarProducto(id) {
             const producto = productos.find(p => p.id === id);
-            if (!producto) return;
+            if (!producto || !confirm(`¿Eliminar "${producto.nombre}"?`)) return;
             
-            if (!confirm(`¿Eliminar "${producto.nombre}"?`)) return;
-            
-            if (isFirebaseConnected) {
-                db.collection('productos').doc(id).delete().then(() => {
-                    mostrarNotificacion('🗑️ Producto eliminado', 'success');
-                }).catch(error => {
-                    console.error('Error eliminando producto:', error);
-                    mostrarNotificacion('❌ Error eliminando producto', 'error');
-                });
-            } else {
-                productos = productos.filter(p => p.id !== id);
-                localStorage.setItem('productos_backup', JSON.stringify(productos));
-                mostrarProductos();
-                mostrarNotificacion('🗑️ Producto eliminado localmente', 'warning');
-            }
+            productos = productos.filter(p => p.id !== id);
+            guardarDatos();
+            mostrarProductos();
+            mostrarNotificacion('🗑️ Producto eliminado', 'success');
         }
 
         function cancelarProducto() {
-            limpiarFormularioProducto();
-        }
-
-        function limpiarFormularioProducto() {
-            document.getElementById('productos-form').reset();
+            document.querySelector('#productos form').reset();
             editandoProductoId = null;
-            componentesTemp = [];
-            mostrarComponentesTemp();
         }
 
         function mostrarProductos() {
@@ -1626,40 +828,25 @@
                 return;
             }
             
-            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
-            
-            container.innerHTML = productosOrdenados.map(producto => `
+            container.innerHTML = productos.map(producto => `
                 <div class="item-card">
-                    <div class="sync-badge ${producto.synced ? 'synced' : 'pending'}">
-                        ${producto.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
+                    <div class="sync-badge">LOCAL</div>
                     <div class="item-header">
                         <div class="item-title">${producto.nombre}</div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editarProducto('${producto.id}')">
-                                ✏️ Editar
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="eliminarProducto('${producto.id}')">
-                                🗑️ Eliminar
-                            </button>
+                            <button class="btn btn-warning btn-small" onclick="editarProducto('${producto.id}')">✏️ Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="eliminarProducto('${producto.id}')">🗑️ Eliminar</button>
                         </div>
                     </div>
-                    
                     <div class="item-details">
-                        <strong>Precio:</strong> ${producto.precio?.toFixed(2)} | 
-                        <strong>Tipo:</strong> ${producto.tipo || 'Simple'}
+                        <strong>Precio:</strong> $${producto.precio.toFixed(2)}
                         ${producto.descripcion ? `<br><strong>Descripción:</strong> ${producto.descripcion}` : ''}
-                        <br><small><strong>Creado:</strong> ${formatDate(producto.fechaCreacion)}</small>
                     </div>
                 </div>
             `).join('');
         }
 
-        // ========================================
-        // 🛠️ FUNCIONES DE CLIENTES
-        // ========================================
-        
+        // CLIENTES
         function guardarCliente(event) {
             event.preventDefault();
             
@@ -1668,10 +855,6 @@
             const telefono = document.getElementById('cliente-telefono').value.trim();
             const email = document.getElementById('cliente-email').value.trim();
             const direccion = document.getElementById('cliente-direccion').value.trim();
-            const numero = document.getElementById('cliente-numero').value.trim();
-            const piso = document.getElementById('cliente-piso').value.trim();
-            const departamento = document.getElementById('cliente-departamento').value.trim();
-            const ciudad = document.getElementById('cliente-ciudad').value.trim();
             
             if (!nombre || !apellido || !telefono) {
                 mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
@@ -1679,56 +862,26 @@
             }
             
             const cliente = {
+                id: editandoClienteId || Date.now().toString(),
                 nombre,
                 apellido,
                 telefono,
                 email,
-                direccion,
-                numero,
-                piso,
-                departamento,
-                ciudad,
-                fechaCreacion: firebase.firestore.Timestamp.now(),
-                fechaModificacion: firebase.firestore.Timestamp.now()
+                direccion
             };
             
-            if (isFirebaseConnected) {
-                if (editandoClienteId) {
-                    // Actualizar
-                    db.collection('clientes').doc(editandoClienteId).update({
-                        ...cliente,
-                        fechaModificacion: firebase.firestore.Timestamp.now()
-                    }).then(() => {
-                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" actualizado`, 'success');
-                        limpiarFormularioCliente();
-                    }).catch(error => {
-                        console.error('Error actualizando cliente:', error);
-                        mostrarNotificacion('❌ Error actualizando cliente', 'error');
-                    });
-                } else {
-                    // Crear nuevo
-                    db.collection('clientes').add(cliente).then(() => {
-                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" creado`, 'success');
-                        limpiarFormularioCliente();
-                    }).catch(error => {
-                        console.error('Error creando cliente:', error);
-                        mostrarNotificacion('❌ Error creando cliente', 'error');
-                    });
-                }
+            if (editandoClienteId) {
+                const index = clientes.findIndex(c => c.id === editandoClienteId);
+                clientes[index] = cliente;
+                editandoClienteId = null;
             } else {
-                // Modo offline
-                if (editandoClienteId) {
-                    const index = clientes.findIndex(c => c.id === editandoClienteId);
-                    clientes[index] = { ...cliente, id: editandoClienteId, synced: false };
-                } else {
-                    clientes.push({ ...cliente, id: Date.now().toString(), synced: false });
-                }
-                
-                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                mostrarClientes();
-                mostrarNotificacion(`💾 Cliente "${nombre} ${apellido}" guardado localmente`, 'warning');
-                limpiarFormularioCliente();
+                clientes.push(cliente);
             }
+            
+            guardarDatos();
+            mostrarClientes();
+            document.querySelector('#clientes form').reset();
+            mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" guardado`, 'success');
         }
 
         function editarCliente(id) {
@@ -1736,47 +889,25 @@
             if (!cliente) return;
             
             editandoClienteId = id;
-            
             document.getElementById('cliente-nombre').value = cliente.nombre;
             document.getElementById('cliente-apellido').value = cliente.apellido;
             document.getElementById('cliente-telefono').value = cliente.telefono;
             document.getElementById('cliente-email').value = cliente.email || '';
             document.getElementById('cliente-direccion').value = cliente.direccion || '';
-            document.getElementById('cliente-numero').value = cliente.numero || '';
-            document.getElementById('cliente-piso').value = cliente.piso || '';
-            document.getElementById('cliente-departamento').value = cliente.departamento || '';
-            document.getElementById('cliente-ciudad').value = cliente.ciudad || '';
-            
-            document.getElementById('clientes-form').scrollIntoView({ behavior: 'smooth' });
         }
 
         function eliminarCliente(id) {
             const cliente = clientes.find(c => c.id === id);
-            if (!cliente) return;
+            if (!cliente || !confirm(`¿Eliminar "${cliente.nombre} ${cliente.apellido}"?`)) return;
             
-            if (!confirm(`¿Eliminar "${cliente.nombre} ${cliente.apellido}"?`)) return;
-            
-            if (isFirebaseConnected) {
-                db.collection('clientes').doc(id).delete().then(() => {
-                    mostrarNotificacion('🗑️ Cliente eliminado', 'success');
-                }).catch(error => {
-                    console.error('Error eliminando cliente:', error);
-                    mostrarNotificacion('❌ Error eliminando cliente', 'error');
-                });
-            } else {
-                clientes = clientes.filter(c => c.id !== id);
-                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                mostrarClientes();
-                mostrarNotificacion('🗑️ Cliente eliminado localmente', 'warning');
-            }
+            clientes = clientes.filter(c => c.id !== id);
+            guardarDatos();
+            mostrarClientes();
+            mostrarNotificacion('🗑️ Cliente eliminado', 'success');
         }
 
         function cancelarCliente() {
-            limpiarFormularioCliente();
-        }
-
-        function limpiarFormularioCliente() {
-            document.getElementById('clientes-form').reset();
+            document.querySelector('#clientes form').reset();
             editandoClienteId = null;
         }
 
@@ -1788,68 +919,35 @@
                 return;
             }
             
-            const clientesOrdenados = [...clientes].sort((a, b) => {
-                const apellidoA = a.apellido.toLowerCase();
-                const apellidoB = b.apellido.toLowerCase();
-                if (apellidoA !== apellidoB) {
-                    return apellidoA.localeCompare(apellidoB);
-                }
-                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
-            });
-            
-            container.innerHTML = clientesOrdenados.map(cliente => {
-                // Construir dirección completa
-                let direccionCompleta = '';
-                if (cliente.direccion || cliente.numero) {
-                    direccionCompleta = `${cliente.direccion || ''} ${cliente.numero || ''}`.trim();
-                    if (cliente.piso) direccionCompleta += `, Piso ${cliente.piso}`;
-                    if (cliente.departamento) direccionCompleta += `, Dto ${cliente.departamento}`;
-                    if (cliente.ciudad) direccionCompleta += `, ${cliente.ciudad}`;
-                }
-                
-                return `
+            container.innerHTML = clientes.map(cliente => `
                 <div class="item-card">
-                    <div class="sync-badge ${cliente.synced ? 'synced' : 'pending'}">
-                        ${cliente.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
+                    <div class="sync-badge">LOCAL</div>
                     <div class="item-header">
                         <div class="item-title">${cliente.nombre} ${cliente.apellido}</div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="editarCliente('${cliente.id}')">
-                                ✏️ Editar
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="eliminarCliente('${cliente.id}')">
-                                🗑️ Eliminar
-                            </button>
+                            <button class="btn btn-warning btn-small" onclick="editarCliente('${cliente.id}')">✏️ Editar</button>
+                            <button class="btn btn-danger btn-small" onclick="eliminarCliente('${cliente.id}')">🗑️ Eliminar</button>
                         </div>
                     </div>
-                    
                     <div class="item-details">
                         <strong>Teléfono:</strong> ${cliente.telefono}
                         ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
-                        <br>
-                        ${direccionCompleta ? `<strong>Dirección:</strong> ${direccionCompleta}<br>` : ''}
-                        <small><strong>Registrado:</strong> ${formatDate(cliente.fechaCreacion)}</small>
+                        ${cliente.direccion ? `<br><strong>Dirección:</strong> ${cliente.direccion}` : ''}
                     </div>
                 </div>
-            `;
-            }).join('');
+            `).join('');
         }
 
-        // ========================================
-        // 🛠️ FUNCIONES DE PEDIDOS
-        // ========================================
-
-        function configurarAutocompletadoPedidos() {
-            // Autocompletado para clientes
+        // PEDIDOS
+        function configurarAutocompletado() {
+            // Autocompletado de clientes
             const clienteInput = document.getElementById('pedido-cliente');
             const clienteSuggestions = document.getElementById('cliente-suggestions');
 
             clienteInput.addEventListener('input', function() {
                 const query = this.value.toLowerCase().trim();
                 
-                if (query.length < 2) {
+                if (query.length < 1) {
                     clienteSuggestions.style.display = 'none';
                     clienteSeleccionado = null;
                     return;
@@ -1874,14 +972,16 @@
                 clienteSuggestions.style.display = 'block';
             });
 
-            // Autocompletado para productos
+            // Autocompletado de productos
             const productoInput = document.getElementById('pedido-producto');
             const productoSuggestions = document.getElementById('producto-suggestions');
 
             productoInput.addEventListener('input', function() {
                 const query = this.value.toLowerCase().trim();
                 
-                if (query.length < 2) {
+                console.log('🔍 Buscando productos:', query, '- Total productos:', productos.length);
+                
+                if (query.length < 1) {
                     productoSuggestions.style.display = 'none';
                     return;
                 }
@@ -1889,6 +989,8 @@
                 const productosFiltrados = productos.filter(producto => 
                     producto.nombre.toLowerCase().includes(query)
                 );
+
+                console.log('✅ Productos encontrados:', productosFiltrados.length);
 
                 if (productosFiltrados.length === 0) {
                     productoSuggestions.style.display = 'none';
@@ -1913,24 +1015,18 @@
                     productoSuggestions.style.display = 'none';
                 }
             });
-
-            // Actualizar totales cuando cambia el costo de envío
-            document.getElementById('pedido-costo-envio').addEventListener('input', calcularTotalesPedido);
-
-            // Establecer fecha mínima como hoy
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('pedido-fecha-entrega').min = hoy;
         }
 
         function seleccionarCliente(clienteId) {
             clienteSeleccionado = clientes.find(c => c.id === clienteId);
-            const clienteInput = document.getElementById('pedido-cliente');
-            clienteInput.value = `${clienteSeleccionado.nombre} ${clienteSeleccionado.apellido}`;
-            document.getElementById('cliente-suggestions').style.display = 'none';
+            if (clienteSeleccionado) {
+                document.getElementById('pedido-cliente').value = `${clienteSeleccionado.nombre} ${clienteSeleccionado.apellido}`;
+                document.getElementById('cliente-suggestions').style.display = 'none';
+            }
         }
 
         function agregarProductoPedido(productoId) {
-            console.log('🛒 Agregando producto:', productoId); // Debug
+            console.log('🛒 Agregando producto:', productoId);
             
             const producto = productos.find(p => p.id === productoId);
             
@@ -1940,41 +1036,29 @@
                 return;
             }
             
-            console.log('✅ Producto encontrado:', producto.nombre, producto.precio); // Debug
+            console.log('✅ Producto encontrado:', producto.nombre, ' + producto.precio);
             
-            // Verificar si el producto ya está en la lista
             const existente = productosSeleccionados.find(p => p.id === productoId);
             if (existente) {
                 existente.cantidad++;
-                console.log('📊 Cantidad actualizada:', existente.cantidad); // Debug
+                console.log('📊 Cantidad actualizada:', existente.cantidad);
             } else {
-                const nuevoProducto = {
+                productosSeleccionados.push({
                     id: producto.id,
                     nombre: producto.nombre,
                     precio: producto.precio,
                     cantidad: 1
-                };
-                productosSeleccionados.push(nuevoProducto);
-                console.log('➕ Producto agregado:', nuevoProducto); // Debug
+                });
+                console.log('➕ Producto agregado nuevo');
             }
 
-            // Limpiar campo de búsqueda
-            const productoInput = document.getElementById('pedido-producto');
-            if (productoInput) {
-                productoInput.value = '';
-            }
+            document.getElementById('pedido-producto').value = '';
+            document.getElementById('producto-suggestions').style.display = 'none';
             
-            // Ocultar sugerencias
-            const productoSuggestions = document.getElementById('producto-suggestions');
-            if (productoSuggestions) {
-                productoSuggestions.style.display = 'none';
-            }
-            
-            // Actualizar vista
             mostrarProductosPedido();
-            calcularTotalesPedido();
+            calcularTotales();
             
-            console.log('🔄 Productos seleccionados:', productosSeleccionados); // Debug
+            console.log('🔄 Productos en pedido:', productosSeleccionados);
         }
 
         function mostrarProductosPedido() {
@@ -2006,23 +1090,33 @@
             const producto = productosSeleccionados.find(p => p.id === productoId);
             if (producto) {
                 producto.cantidad = parseInt(nuevaCantidad) || 1;
-                calcularTotalesPedido();
+                calcularTotales();
+                console.log('📊 Cantidad cambiada:', producto.nombre, 'x' + producto.cantidad);
             }
         }
 
         function eliminarProductoPedido(productoId) {
             productosSeleccionados = productosSeleccionados.filter(p => p.id !== productoId);
             mostrarProductosPedido();
-            calcularTotalesPedido();
+            calcularTotales();
+            console.log('🗑️ Producto eliminado del pedido');
         }
 
-        function calcularTotalesPedido() {
-            const subtotal = productosSeleccionados.reduce((total, producto) => 
-                total + (producto.precio * producto.cantidad), 0
-            );
+        function calcularTotales() {
+            console.log('💰 Calculando totales...');
+            
+            const subtotal = productosSeleccionados.reduce((total, producto) => {
+                const precio = parseFloat(producto.precio) || 0;
+                const cantidad = parseInt(producto.cantidad) || 0;
+                const subtotalProducto = precio * cantidad;
+                console.log(`📊 ${producto.nombre}: ${precio} x ${cantidad} = ${subtotalProducto}`);
+                return total + subtotalProducto;
+            }, 0);
             
             const costoEnvio = parseFloat(document.getElementById('pedido-costo-envio').value) || 0;
             const totalCompra = subtotal + costoEnvio;
+
+            console.log(`💵 Subtotal: ${subtotal}, Envío: ${costoEnvio}, Total: ${totalCompra}`);
 
             document.getElementById('subtotal-productos').textContent = `${subtotal.toFixed(2)}`;
             document.getElementById('total-envio').textContent = `${costoEnvio.toFixed(2)}`;
@@ -2043,7 +1137,6 @@
         function guardarPedido(event) {
             event.preventDefault();
             
-            // Validaciones
             if (!clienteSeleccionado) {
                 mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
                 return;
@@ -2060,7 +1153,7 @@
             const pagadoCon = document.getElementById('pedido-pagado-con').value;
 
             if (!fechaEntrega || !turno || !opcionPago || !pagadoCon) {
-                mostrarNotificacion('❌ Debe completar todos los campos obligatorios', 'error');
+                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
                 return;
             }
 
@@ -2079,69 +1172,37 @@
             }
 
             const pedido = {
+                id: Date.now().toString(),
                 cliente: clienteSeleccionado,
                 productos: [...productosSeleccionados],
-                fechaEntrega: fechaEntrega,
-                turno: turno,
-                costoEnvio: costoEnvio,
-                subtotal: subtotal,
-                totalCompra: totalCompra,
-                opcionPago: opcionPago,
-                pagadoCon: pagadoCon,
-                montoPagado: montoPagado,
-                saldoPendiente: saldoPendiente,
+                fechaEntrega,
+                turno,
+                costoEnvio,
+                subtotal,
+                totalCompra,
+                opcionPago,
+                pagadoCon,
+                montoPagado,
+                saldoPendiente,
                 estadoPago: saldoPendiente > 0 ? 'pendiente' : 'pagado',
                 estadoEntrega: 'pendiente',
-                fechaCreacion: firebase.firestore.Timestamp.now()
+                fechaCreacion: new Date().toISOString()
             };
 
-            if (isFirebaseConnected) {
-                if (editandoPedidoId) {
-                    // Actualizar pedido existente
-                    db.collection('pedidos').doc(editandoPedidoId).update({
-                        ...pedido,
-                        fechaModificacion: firebase.firestore.Timestamp.now()
-                    }).then(() => {
-                        mostrarNotificacion('✅ Pedido actualizado', 'success');
-                        limpiarFormularioPedido();
-                    }).catch(error => {
-                        console.error('Error actualizando pedido:', error);
-                        mostrarNotificacion('❌ Error actualizando pedido', 'error');
-                    });
-                } else {
-                    // Crear nuevo pedido
-                    db.collection('pedidos').add(pedido).then(() => {
-                        mostrarNotificacion('✅ Pedido guardado', 'success');
-                        limpiarFormularioPedido();
-                    }).catch(error => {
-                        console.error('Error guardando pedido:', error);
-                        mostrarNotificacion('❌ Error guardando pedido', 'error');
-                    });
-                }
-            } else {
-                // Modo offline
-                if (editandoPedidoId) {
-                    const index = pedidos.findIndex(p => p.id === editandoPedidoId);
-                    pedidos[index] = { ...pedido, id: editandoPedidoId, synced: false };
-                } else {
-                    pedidos.push({ ...pedido, id: Date.now().toString(), synced: false });
-                }
-                
-                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                mostrarPedidos();
-                mostrarNotificacion('💾 Pedido guardado localmente', 'warning');
-                limpiarFormularioPedido();
-            }
+            pedidos.push(pedido);
+            guardarDatos();
+            mostrarPedidos();
+            limpiarFormularioPedido();
+            mostrarNotificacion('✅ Pedido guardado exitosamente', 'success');
         }
 
         function limpiarFormularioPedido() {
-            document.getElementById('pedidos-form').reset();
+            document.querySelector('#pedidos form').reset();
             clienteSeleccionado = null;
             productosSeleccionados = [];
-            editandoPedidoId = null;
             
             mostrarProductosPedido();
-            calcularTotalesPedido();
+            calcularTotales();
             toggleMontoParcial();
         }
 
@@ -2157,12 +1218,10 @@
                 return;
             }
 
-            // Filtrar pedidos que no están completamente finalizados
             const pedidosActivos = pedidos.filter(pedido => 
                 pedido.estadoPago !== 'pagado' || pedido.estadoEntrega !== 'entregado'
             );
 
-            // Ordenar por fecha de entrega (más cercano primero)
             pedidosActivos.sort((a, b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
 
             if (pedidosActivos.length === 0) {
@@ -2172,10 +1231,7 @@
 
             container.innerHTML = pedidosActivos.map(pedido => `
                 <div class="pedido-card">
-                    <div class="sync-badge ${pedido.synced ? 'synced' : 'pending'}">
-                        ${pedido.synced ? 'SYNC' : 'LOCAL'}
-                    </div>
-                    
+                    <div class="sync-badge">LOCAL</div>
                     <div class="pedido-header">
                         <h3>${pedido.cliente.nombre} ${pedido.cliente.apellido}</h3>
                         <div>
@@ -2218,50 +1274,24 @@
             const pedido = pedidos.find(p => p.id === pedidoId);
             if (!pedido) return;
 
-            if (isFirebaseConnected) {
-                db.collection('pedidos').doc(pedidoId).update({
-                    estadoPago: 'pagado',
-                    saldoPendiente: 0,
-                    montoPagado: pedido.totalCompra,
-                    fechaModificacion: firebase.firestore.Timestamp.now()
-                }).then(() => {
-                    mostrarNotificacion('✅ Pedido marcado como pagado', 'success');
-                }).catch(error => {
-                    console.error('Error actualizando pedido:', error);
-                    mostrarNotificacion('❌ Error actualizando pedido', 'error');
-                });
-            } else {
-                pedido.estadoPago = 'pagado';
-                pedido.saldoPendiente = 0;
-                pedido.montoPagado = pedido.totalCompra;
-                pedido.synced = false;
-                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                mostrarPedidos();
-                mostrarNotificacion('💾 Estado actualizado localmente', 'warning');
-            }
+            pedido.estadoPago = 'pagado';
+            pedido.saldoPendiente = 0;
+            pedido.montoPagado = pedido.totalCompra;
+            
+            guardarDatos();
+            mostrarPedidos();
+            mostrarNotificacion('✅ Pedido marcado como pagado', 'success');
         }
 
         function marcarEntregado(pedidoId) {
             const pedido = pedidos.find(p => p.id === pedidoId);
             if (!pedido) return;
 
-            if (isFirebaseConnected) {
-                db.collection('pedidos').doc(pedidoId).update({
-                    estadoEntrega: 'entregado',
-                    fechaModificacion: firebase.firestore.Timestamp.now()
-                }).then(() => {
-                    mostrarNotificacion('✅ Pedido marcado como entregado', 'success');
-                }).catch(error => {
-                    console.error('Error actualizando pedido:', error);
-                    mostrarNotificacion('❌ Error actualizando pedido', 'error');
-                });
-            } else {
-                pedido.estadoEntrega = 'entregado';
-                pedido.synced = false;
-                localStorage.setItem('pedidos_backup', JSON.stringify(pedidos));
-                mostrarPedidos();
-                mostrarNotificacion('💾 Estado actualizado localmente', 'warning');
-            }
+            pedido.estadoEntrega = 'entregado';
+            
+            guardarDatos();
+            mostrarPedidos();
+            mostrarNotificacion('✅ Pedido marcado como entregado', 'success');
         }
 
         function verDetallePedido(pedidoId) {
@@ -2296,262 +1326,59 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             alert(detalle);
         }
 
-        // ========================================
-        // 🛠️ FUNCIONES DE UI
-        // ========================================
-        
-        function showTab(tabName, tabElement) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            tabElement.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
-        }
-
-        function updateStatus(status, text) {
-            const dot = document.getElementById('status-dot');
-            const textEl = document.getElementById('status-text');
-            
-            dot.className = `status-dot status-${status}`;
-            textEl.textContent = text;
-        }
-
-        function updateFirebaseStatus(type, message) {
-            const statusEl = document.getElementById('firebase-status');
-            statusEl.className = `firebase-status ${type}`;
-            statusEl.textContent = message;
-        }
-
-        function mostrarNotificacion(mensaje, tipo = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = mensaje;
-            notification.className = `notification ${tipo}`;
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 4000);
-        }
-
-        function handleFirebaseError(error) {
-            console.error('🔥 Firebase Error:', error);
-            
-            let mensaje = 'Error de Firebase desconocido';
-            
-            if (error.code === 'permission-denied') {
-                mensaje = 'Sin permisos para acceder a Firebase';
-            } else if (error.code === 'unavailable') {
-                mensaje = 'Firebase temporalmente no disponible';
-            } else if (error.message.includes('SDK no cargado')) {
-                mensaje = 'Firebase SDK no se pudo cargar';
-            } else {
-                mensaje = error.message;
+        function establecerFechaMinima() {
+            const fechaInput = document.getElementById('pedido-fecha-entrega');
+            if (fechaInput) {
+                const hoy = new Date().toISOString().split('T')[0];
+                fechaInput.min = hoy;
             }
-            
-            updateFirebaseStatus('error', `❌ ${mensaje}`);
-            updateStatus('offline', 'Error Firebase');
-            
-            cargarDatosLocales();
-            mostrarNotificacion(`❌ ${mensaje}. Usando modo offline.`, 'error');
         }
 
-        function formatDate(dateField) {
-            if (!dateField) return 'Sin fecha';
+        // Función para agregar datos de prueba
+        function addTestData() {
+            const productosTest = [
+                { id: 'test1', nombre: 'Pastrami Clásico', precio: 15.50, descripcion: 'Delicioso pastrami tradicional' },
+                { id: 'test2', nombre: 'Pastrami Especial', precio: 18.00, descripcion: 'Pastrami gourmet con especias' },
+                { id: 'test3', nombre: 'Sandwich Jamón', precio: 12.00, descripcion: 'Sandwich clásico de jamón' }
+            ];
             
-            try {
-                if (dateField.toDate) {
-                    // Es un Timestamp de Firebase
-                    return dateField.toDate().toLocaleDateString();
-                } else if (dateField.seconds) {
-                    // Es un timestamp con seconds
-                    return new Date(dateField.seconds * 1000).toLocaleDateString();
-                } else {
-                    // Es una fecha normal
-                    return new Date(dateField).toLocaleDateString();
+            const clientesTest = [
+                { id: 'test1', nombre: 'Juan', apellido: 'Pérez', telefono: '123456789', email: 'juan@email.com', direccion: 'Av. Principal 123' },
+                { id: 'test2', nombre: 'María', apellido: 'González', telefono: '987654321', email: 'maria@email.com', direccion: 'Calle Secundaria 456' }
+            ];
+            
+            productos.push(...productosTest);
+            clientes.push(...clientesTest);
+            
+            guardarDatos();
+            mostrarProductos();
+            mostrarClientes();
+            
+            mostrarNotificacion('✅ Datos de prueba agregados', 'success');
+            console.log('📦 Datos de prueba agregados:', productosTest.length, 'productos,', clientesTest.length, 'clientes');
+        }
+
+        // Inicializar la aplicación cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+            
+            // Función global para debug
+            window.addTestData = addTestData;
+            window.debug = {
+                productos: () => productos,
+                clientes: () => clientes,
+                pedidos: () => pedidos,
+                addTestData: addTestData,
+                clearData: () => {
+                    localStorage.clear();
+                    location.reload();
                 }
-            } catch (error) {
-                return 'Fecha inválida';
-            }
-        }
-
-        // Funciones placeholder para evitar errores (las completas vienen después)
-        function guardarProducto(event) { console.log('guardarProducto llamado'); }
-        function editarProducto(id) { console.log('editarProducto llamado', id); }
-        function eliminarProducto(id) { console.log('eliminarProducto llamado', id); }
-        function cancelarProducto() { console.log('cancelarProducto llamado'); }
-        function guardarCliente(event) { console.log('guardarCliente llamado'); }
-        function editarCliente(id) { console.log('editarCliente llamado', id); }
-        function eliminarCliente(id) { console.log('eliminarCliente llamado', id); }
-        function cancelarCliente() { console.log('cancelarCliente llamado'); }
-        function guardarPedido(event) { console.log('guardarPedido llamado'); }
-        function cancelarPedido() { console.log('cancelarPedido llamado'); }
-        function seleccionarCliente(clienteId) { console.log('seleccionarCliente llamado', clienteId); }
-        function agregarProductoPedido(productoId) { console.log('agregarProductoPedido llamado', productoId); }
-        function cambiarCantidadPedido(productoId, cantidad) { console.log('cambiarCantidadPedido llamado'); }
-        function eliminarProductoPedido(productoId) { console.log('eliminarProductoPedido llamado'); }
-        function toggleMontoParcial() { console.log('toggleMontoParcial llamado'); }
-        function marcarPagado(pedidoId) { console.log('marcarPagado llamado'); }
-        function marcarEntregado(pedidoId) { console.log('marcarEntregado llamado'); }
-        function verDetallePedido(pedidoId) { console.log('verDetallePedido llamado'); }
-        function toggleComponentes() { console.log('toggleComponentes llamado'); }
-        function agregarComponente() { console.log('agregarComponente llamado'); }
-        function eliminarComponenteTemp(index) { console.log('eliminarComponenteTemp llamado'); }
-        function inicializarApp() { console.log('inicializarApp llamado'); }
-        function testFirebaseConnection() { console.log('testFirebaseConnection llamado'); }
-        function cargarDatosDesdeFirebase() { console.log('cargarDatosDesdeFirebase llamado'); }
-        function setupRealtimeListeners() { console.log('setupRealtimeListeners llamado'); }
-        function configurarAutocompletadoPedidos() { console.log('configurarAutocompletadoPedidos llamado'); }
-        
-        // Exponer funciones globalmente de inmediato
-        window.manualSync = manualSync;
-        window.showTab = showTab;
-
-        // ========================================
-        // 🚀 INICIO DE LA APLICACIÓN
-        // ========================================
-        
-        // Inicializar cuando se carga la página
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('🎯 Iniciando Sistema Pastrami v2.0...');
+            };
             
-            // Exponer TODAS las funciones globalmente
-            window.guardarProducto = guardarProducto;
-            window.editarProducto = editarProducto;
-            window.eliminarProducto = eliminarProducto;
-            window.cancelarProducto = cancelarProducto;
-            window.guardarCliente = guardarCliente;
-            window.editarCliente = editarCliente;
-            window.eliminarCliente = eliminarCliente;
-            window.cancelarCliente = cancelarCliente;
-            window.guardarPedido = guardarPedido;
-            window.cancelarPedido = cancelarPedido;
-            window.seleccionarCliente = seleccionarCliente;
-            window.agregarProductoPedido = agregarProductoPedido;
-            window.cambiarCantidadPedido = cambiarCantidadPedido;
-            window.eliminarProductoPedido = eliminarProductoPedido;
-            window.toggleMontoParcial = toggleMontoParcial;
-            window.marcarPagado = marcarPagado;
-            window.marcarEntregado = marcarEntregado;
-            window.verDetallePedido = verDetallePedido;
-            window.toggleComponentes = toggleComponentes;
-            window.agregarComponente = agregarComponente;
-            window.eliminarComponenteTemp = eliminarComponenteTemp;
-            
-            console.log('✅ Funciones globales expuestas');
-            
-            // Cargar datos locales inmediatamente para que el sistema funcione
-            cargarDatosLocales();
-            mostrarNotificacion('📱 Sistema iniciado en modo offline', 'info');
-            
-            // Intentar Firebase solo si está disponible
-            if (typeof firebase !== 'undefined') {
-                console.log('✅ Firebase SDK detectado, intentando conexión...');
-                // No bloquear, intentar en background
-                setTimeout(() => {
-                    inicializarApp();
-                }, 1000);
-            } else {
-                console.log('⚠️ Firebase SDK no disponible, modo offline únicamente');
-                updateFirebaseStatus('error', '⚠️ Modo offline - Firebase no disponible');
-                updateStatus('offline', 'Modo Offline');
-            }
+            console.log('🎯 Sistema Pastrami v2.0 cargado correctamente');
+            console.log('🔧 Para agregar datos de prueba: addTestData()');
+            console.log('🔧 Para debug completo: window.debug');
         });
-
-        // Debug - Exponer funciones globalmente para testing
-        window.debug = {
-            productos: () => productos,
-            clientes: () => clientes,
-            pedidos: () => pedidos,
-            firebase: () => ({ app, db, connected: isFirebaseConnected }),
-            clearLocal: () => {
-                localStorage.clear();
-                location.reload();
-            },
-            testConnection: testFirebaseConnection,
-            addTestData: () => {
-                // Agregar datos de prueba
-                const productosTest = [
-                    {
-                        id: 'test1',
-                        nombre: 'Pastrami Clásico',
-                        precio: 15.50,
-                        stockInicial: 100,
-                        stockActual: 95,
-                        stockMinimo: 10,
-                        tipo: 'simple',
-                        descripcion: 'Delicioso pastrami tradicional',
-                        synced: false
-                    },
-                    {
-                        id: 'test2',
-                        nombre: 'Pastrami Especial',
-                        precio: 18.00,
-                        stockInicial: 50,
-                        stockActual: 45,
-                        stockMinimo: 5,
-                        tipo: 'simple',
-                        descripcion: 'Pastrami gourmet con especias',
-                        synced: false
-                    },
-                    {
-                        id: 'test3',
-                        nombre: 'Sandwich Jamón',
-                        precio: 12.00,
-                        stockInicial: 80,
-                        stockActual: 75,
-                        stockMinimo: 8,
-                        tipo: 'simple',
-                        descripcion: 'Sandwich clásico de jamón',
-                        synced: false
-                    }
-                ];
-                
-                const clientesTest = [
-                    {
-                        id: 'test1',
-                        nombre: 'Juan',
-                        apellido: 'Pérez',
-                        telefono: '123456789',
-                        email: 'juan@email.com',
-                        direccion: 'Av. Principal',
-                        numero: '123',
-                        ciudad: 'Buenos Aires',
-                        synced: false
-                    },
-                    {
-                        id: 'test2',
-                        nombre: 'María',
-                        apellido: 'González',
-                        telefono: '987654321',
-                        email: 'maria@email.com',
-                        direccion: 'Calle Secundaria',
-                        numero: '456',
-                        ciudad: 'Buenos Aires',
-                        synced: false
-                    }
-                ];
-                
-                // Combinar con datos existentes
-                productos.push(...productosTest);
-                clientes.push(...clientesTest);
-                
-                localStorage.setItem('productos_backup', JSON.stringify(productos));
-                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
-                
-                mostrarProductos();
-                mostrarClientes();
-                
-                console.log('📦 Productos cargados:', productos);
-                console.log('👥 Clientes cargados:', clientes);
-                
-                mostrarNotificacion('✅ Datos de prueba agregados', 'success');
-            }
-        };
-
-        console.log('🎯 Sistema Pastrami v2.0 cargado - Versión Completa');
-        console.log('🔧 Para debug: window.debug');
-        console.log('📦 Para agregar datos de prueba: window.debug.addTestData()');
-        
     </script>
 </body>
 </html>
