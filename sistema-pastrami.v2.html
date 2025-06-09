@@ -32,6 +32,7 @@
             color: white;
             text-align: center;
             padding: 30px;
+            position: relative;
         }
 
         .header h1 {
@@ -42,6 +43,16 @@
         .header p {
             font-size: 1.1em;
             opacity: 0.9;
+        }
+
+        .sync-status {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
         }
 
         .tabs {
@@ -229,6 +240,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="sync-status" id="sync-status">🔄 Conectando...</div>
             <h1>🥪 Sistema Pastrami</h1>
             <p>Gestión completa de productos, clientes y pedidos</p>
         </div>
@@ -421,28 +433,115 @@
         </div>
     </div>
 
-    <script>
-        // Variables globales para almacenar datos
-        let productos = [];
-        let clientes = [];
-        let pedidos = [];
-        let componentes = [];
-        let productosPedido = [];
-        let editandoProducto = null;
-        let editandoCliente = null;
-        let editandoPedido = null;
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getDatabase, ref, set, onValue, push, remove } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
 
+        // Configuración Firebase - CAMBIAR POR TUS DATOS
+        const firebaseConfig = {
+            apiKey: "AIzaSyBYourAPIKeyHere",
+            authDomain: "your-project.firebaseapp.com",
+            databaseURL: "https://your-project-default-rtdb.firebaseio.com/",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Variables globales
+        window.productos = [];
+        window.clientes = [];
+        window.pedidos = [];
+        window.componentes = [];
+        window.productosPedido = [];
+        window.editandoProducto = null;
+        window.editandoCliente = null;
+        window.editandoPedido = null;
+        window.firebaseDb = database;
+
+        // Referencias Firebase
+        const productosRef = ref(database, 'productos');
+        const clientesRef = ref(database, 'clientes');
+        const pedidosRef = ref(database, 'pedidos');
+
+        // Escuchar cambios en Firebase
+        onValue(productosRef, (snapshot) => {
+            const data = snapshot.val();
+            window.productos = data ? Object.keys(data).map(key => ({...data[key], firebaseKey: key})) : [];
+            mostrarProductos();
+            actualizarSelectProductos();
+        });
+
+        onValue(clientesRef, (snapshot) => {
+            const data = snapshot.val();
+            window.clientes = data ? Object.keys(data).map(key => ({...data[key], firebaseKey: key})) : [];
+            mostrarClientes();
+            actualizarSelectClientes();
+        });
+
+        onValue(pedidosRef, (snapshot) => {
+            const data = snapshot.val();
+            window.pedidos = data ? Object.keys(data).map(key => ({...data[key], firebaseKey: key})) : [];
+            mostrarPedidos();
+        });
+
+        // Funciones Firebase globales
+        window.guardarEnFirebase = async (coleccion, datos, firebaseKey = null) => {
+            try {
+                document.getElementById('sync-status').innerHTML = '🔄 Sincronizando...';
+                
+                if (firebaseKey) {
+                    await set(ref(database, `${coleccion}/${firebaseKey}`), datos);
+                } else {
+                    await push(ref(database, coleccion), datos);
+                }
+                
+                document.getElementById('sync-status').innerHTML = '✅ Sincronizado';
+                setTimeout(() => {
+                    document.getElementById('sync-status').innerHTML = '🟢 Conectado';
+                }, 2000);
+            } catch (error) {
+                console.error('Error Firebase:', error);
+                document.getElementById('sync-status').innerHTML = '❌ Error';
+                alert('Error de sincronización. Revisa tu conexión.');
+            }
+        };
+
+        window.eliminarDeFirebase = async (coleccion, firebaseKey) => {
+            try {
+                document.getElementById('sync-status').innerHTML = '🔄 Sincronizando...';
+                await remove(ref(database, `${coleccion}/${firebaseKey}`));
+                document.getElementById('sync-status').innerHTML = '✅ Sincronizado';
+                setTimeout(() => {
+                    document.getElementById('sync-status').innerHTML = '🟢 Conectado';
+                }, 2000);
+            } catch (error) {
+                console.error('Error Firebase:', error);
+                document.getElementById('sync-status').innerHTML = '❌ Error';
+                alert('Error de sincronización. Revisa tu conexión.');
+            }
+        };
+
+        // Marcar como conectado
+        setTimeout(() => {
+            document.getElementById('sync-status').innerHTML = '🟢 Conectado';
+        }, 2000);
+    </script>
+
+    <script>
         // Función para cambiar entre pestañas
         function showTab(tabName, element) {
-            // Ocultar todas las pestañas
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(tab => tab.classList.remove('active'));
             
-            // Remover clase active de todos los botones
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             
-            // Mostrar la pestaña seleccionada
             document.getElementById(tabName).classList.add('active');
             element.classList.add('active');
         }
@@ -505,7 +604,7 @@
         }
 
         // Función para guardar producto
-        function guardarProducto(event) {
+        async function guardarProducto(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('producto-nombre').value.trim();
@@ -538,17 +637,14 @@
             };
             
             if (editandoProducto) {
-                const index = productos.findIndex(p => p.id === editandoProducto.id);
-                productos[index] = producto;
+                await guardarEnFirebase('productos', producto, editandoProducto.firebaseKey);
                 alert('Producto actualizado correctamente');
             } else {
-                productos.push(producto);
+                await guardarEnFirebase('productos', producto);
                 alert('Producto guardado correctamente');
             }
             
             limpiarFormProducto();
-            mostrarProductos();
-            actualizarSelectProductos();
         }
 
         // Función para mostrar lista de productos
@@ -563,7 +659,7 @@
             let html = '';
             productos.forEach(producto => {
                 const alertaStock = producto.stockActual <= producto.stockMinimo ? 'style="background-color: #ffe6e6;"' : '';
-                const componentesHtml = producto.componentes.length > 0 ? 
+                const componentesHtml = producto.componentes && producto.componentes.length > 0 ? 
                     `<br><small>Componentes: ${producto.componentes.map(c => c.nombre + ' (' + c.cantidad + ')').join(', ')}</small>` : '';
                 
                 html += `
@@ -578,8 +674,8 @@
                             ${producto.stockActual <= producto.stockMinimo ? '<p style="color: red; font-weight: bold;">⚠️ Stock bajo</p>' : ''}
                         </div>
                         <div class="item-actions">
-                            <button onclick="editarProducto(${producto.id})" class="btn-edit">✏️</button>
-                            <button onclick="eliminarProducto(${producto.id})" class="btn-delete">🗑️</button>
+                            <button onclick="editarProducto('${producto.firebaseKey}')" class="btn-edit">✏️</button>
+                            <button onclick="eliminarProducto('${producto.firebaseKey}')" class="btn-delete">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -589,8 +685,8 @@
         }
 
         // Función para editar producto
-        function editarProducto(id) {
-            const producto = productos.find(p => p.id === id);
+        function editarProducto(firebaseKey) {
+            const producto = productos.find(p => p.firebaseKey === firebaseKey);
             if (!producto) return;
             
             editandoProducto = producto;
@@ -598,21 +694,19 @@
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-precio').value = producto.precio;
             document.getElementById('producto-tipo').value = producto.tipo;
-            document.getElementById('producto-descripcion').value = producto.descripcion;
+            document.getElementById('producto-descripcion').value = producto.descripcion || '';
             document.getElementById('producto-stock-inicial').value = producto.stockInicial;
             document.getElementById('producto-stock-minimo').value = producto.stockMinimo;
             
-            componentes = [...producto.componentes];
+            componentes = producto.componentes ? [...producto.componentes] : [];
             toggleComponentes();
             actualizarListaComponentes();
         }
 
         // Función para eliminar producto
-        function eliminarProducto(id) {
+        async function eliminarProducto(firebaseKey) {
             if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-                productos = productos.filter(p => p.id !== id);
-                mostrarProductos();
-                actualizarSelectProductos();
+                await eliminarDeFirebase('productos', firebaseKey);
                 alert('Producto eliminado correctamente');
             }
         }
@@ -623,12 +717,12 @@
             select.innerHTML = '<option value="">Seleccionar producto...</option>';
             
             productos.forEach(producto => {
-                select.innerHTML += `<option value="${producto.id}">${producto.nombre} - $${producto.precio.toFixed(2)}</option>`;
+                select.innerHTML += `<option value="${producto.firebaseKey}">${producto.nombre} - $${producto.precio.toFixed(2)}</option>`;
             });
         }
 
         // Función para guardar cliente
-        function guardarCliente(event) {
+        async function guardarCliente(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('cliente-nombre').value.trim();
@@ -650,17 +744,14 @@
             };
             
             if (editandoCliente) {
-                const index = clientes.findIndex(c => c.id === editandoCliente.id);
-                clientes[index] = cliente;
+                await guardarEnFirebase('clientes', cliente, editandoCliente.firebaseKey);
                 alert('Cliente actualizado correctamente');
             } else {
-                clientes.push(cliente);
+                await guardarEnFirebase('clientes', cliente);
                 alert('Cliente guardado correctamente');
             }
             
             limpiarFormCliente();
-            mostrarClientes();
-            actualizarSelectClientes();
         }
 
         // Función para mostrar lista de clientes
@@ -683,8 +774,8 @@
                             ${cliente.direccion ? `<p><strong>Dirección:</strong> ${cliente.direccion}</p>` : ''}
                         </div>
                         <div class="item-actions">
-                            <button onclick="editarCliente(${cliente.id})" class="btn-edit">✏️</button>
-                            <button onclick="eliminarCliente(${cliente.id})" class="btn-delete">🗑️</button>
+                            <button onclick="editarCliente('${cliente.firebaseKey}')" class="btn-edit">✏️</button>
+                            <button onclick="eliminarCliente('${cliente.firebaseKey}')" class="btn-delete">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -694,24 +785,22 @@
         }
 
         // Función para editar cliente
-        function editarCliente(id) {
-            const cliente = clientes.find(c => c.id === id);
+        function editarCliente(firebaseKey) {
+            const cliente = clientes.find(c => c.firebaseKey === firebaseKey);
             if (!cliente) return;
             
             editandoCliente = cliente;
             
             document.getElementById('cliente-nombre').value = cliente.nombre;
             document.getElementById('cliente-telefono').value = cliente.telefono;
-            document.getElementById('cliente-email').value = cliente.email;
-            document.getElementById('cliente-direccion').value = cliente.direccion;
+            document.getElementById('cliente-email').value = cliente.email || '';
+            document.getElementById('cliente-direccion').value = cliente.direccion || '';
         }
 
         // Función para eliminar cliente
-        function eliminarCliente(id) {
+        async function eliminarCliente(firebaseKey) {
             if (confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
-                clientes = clientes.filter(c => c.id !== id);
-                mostrarClientes();
-                actualizarSelectClientes();
+                await eliminarDeFirebase('clientes', firebaseKey);
                 alert('Cliente eliminado correctamente');
             }
         }
@@ -722,21 +811,21 @@
             select.innerHTML = '<option value="">Seleccionar cliente...</option>';
             
             clientes.forEach(cliente => {
-                select.innerHTML += `<option value="${cliente.id}">${cliente.nombre}</option>`;
+                select.innerHTML += `<option value="${cliente.firebaseKey}">${cliente.nombre}</option>`;
             });
         }
 
         // Función para agregar producto al pedido
         function agregarProductoPedido() {
-            const productoId = document.getElementById('pedido-producto').value;
+            const productoKey = document.getElementById('pedido-producto').value;
             const cantidad = parseInt(document.getElementById('pedido-cantidad').value);
             
-            if (!productoId || !cantidad || cantidad <= 0) {
+            if (!productoKey || !cantidad || cantidad <= 0) {
                 alert('Por favor, selecciona un producto y una cantidad válida');
                 return;
             }
             
-            const producto = productos.find(p => p.id == productoId);
+            const producto = productos.find(p => p.firebaseKey === productoKey);
             if (!producto) {
                 alert('Producto no encontrado');
                 return;
@@ -747,11 +836,12 @@
                 return;
             }
             
-            const productoExistente = productosPedido.find(p => p.id == productoId);
+            const productoExistente = productosPedido.find(p => p.firebaseKey === productoKey);
             if (productoExistente) {
                 productoExistente.cantidad += cantidad;
             } else {
                 productosPedido.push({
+                    firebaseKey: producto.firebaseKey,
                     id: producto.id,
                     nombre: producto.nombre,
                     precio: producto.precio,
@@ -782,13 +872,13 @@
                 
                 html += `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee;">
-                        <span>${producto.nombre} x${producto.cantidad} = $${subtotal.toFixed(2)}</span>
+                        <span>${producto.nombre} x${producto.cantidad} = ${subtotal.toFixed(2)}</span>
                         <button type="button" onclick="eliminarProductoPedido(${index})" style="background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">×</button>
                     </div>
                 `;
             });
             
-            html += `<div style="margin-top: 10px; font-weight: bold; text-align: right;">Total: $${total.toFixed(2)}</div>`;
+            html += `<div style="margin-top: 10px; font-weight: bold; text-align: right;">Total: ${total.toFixed(2)}</div>`;
             lista.innerHTML = html;
         }
 
@@ -799,15 +889,15 @@
         }
 
         // Función para guardar pedido
-        function guardarPedido(event) {
+        async function guardarPedido(event) {
             event.preventDefault();
             
-            const clienteId = document.getElementById('pedido-cliente').value;
+            const clienteKey = document.getElementById('pedido-cliente').value;
             const fecha = document.getElementById('pedido-fecha').value;
             const estado = document.getElementById('pedido-estado').value;
             const notas = document.getElementById('pedido-notas').value.trim();
             
-            if (!clienteId || !fecha || !estado) {
+            if (!clienteKey || !fecha || !estado) {
                 alert('Por favor, completa todos los campos obligatorios');
                 return;
             }
@@ -817,25 +907,26 @@
                 return;
             }
             
-            const cliente = clientes.find(c => c.id == clienteId);
+            const cliente = clientes.find(c => c.firebaseKey === clienteKey);
             let total = 0;
             
             // Calcular total y actualizar stock
-            productosPedido.forEach(prodPedido => {
+            for (let prodPedido of productosPedido) {
                 total += prodPedido.precio * prodPedido.cantidad;
                 
                 if (!editandoPedido) {
                     // Solo reducir stock si es un pedido nuevo
-                    const producto = productos.find(p => p.id == prodPedido.id);
+                    const producto = productos.find(p => p.firebaseKey === prodPedido.firebaseKey);
                     if (producto) {
                         producto.stockActual -= prodPedido.cantidad;
+                        await guardarEnFirebase('productos', producto, producto.firebaseKey);
                     }
                 }
-            });
+            }
             
             const pedido = {
                 id: editandoPedido ? editandoPedido.id : Date.now(),
-                clienteId: parseInt(clienteId),
+                clienteKey: clienteKey,
                 clienteNombre: cliente.nombre,
                 fecha,
                 estado,
@@ -845,17 +936,14 @@
             };
             
             if (editandoPedido) {
-                const index = pedidos.findIndex(p => p.id === editandoPedido.id);
-                pedidos[index] = pedido;
+                await guardarEnFirebase('pedidos', pedido, editandoPedido.firebaseKey);
                 alert('Pedido actualizado correctamente');
             } else {
-                pedidos.push(pedido);
+                await guardarEnFirebase('pedidos', pedido);
                 alert('Pedido guardado correctamente');
             }
             
             limpiarFormPedido();
-            mostrarPedidos();
-            mostrarProductos();
         }
 
         // Función para mostrar lista de pedidos
@@ -892,8 +980,8 @@
                             ${pedido.notas ? `<p><strong>Notas:</strong> ${pedido.notas}</p>` : ''}
                         </div>
                         <div class="item-actions">
-                            <button onclick="editarPedido(${pedido.id})" class="btn-edit">✏️</button>
-                            <button onclick="eliminarPedido(${pedido.id})" class="btn-delete">🗑️</button>
+                            <button onclick="editarPedido('${pedido.firebaseKey}')" class="btn-edit">✏️</button>
+                            <button onclick="eliminarPedido('${pedido.firebaseKey}')" class="btn-delete">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -903,26 +991,25 @@
         }
 
         // Función para editar pedido
-        function editarPedido(id) {
-            const pedido = pedidos.find(p => p.id === id);
+        function editarPedido(firebaseKey) {
+            const pedido = pedidos.find(p => p.firebaseKey === firebaseKey);
             if (!pedido) return;
             
             editandoPedido = pedido;
             
-            document.getElementById('pedido-cliente').value = pedido.clienteId;
+            document.getElementById('pedido-cliente').value = pedido.clienteKey;
             document.getElementById('pedido-fecha').value = pedido.fecha;
             document.getElementById('pedido-estado').value = pedido.estado;
-            document.getElementById('pedido-notas').value = pedido.notas;
+            document.getElementById('pedido-notas').value = pedido.notas || '';
             
-            productosPedido = [...pedido.productos];
+            productosPedido = pedido.productos ? [...pedido.productos] : [];
             actualizarListaProductosPedido();
         }
 
         // Función para eliminar pedido
-        function eliminarPedido(id) {
+        async function eliminarPedido(firebaseKey) {
             if (confirm('¿Estás seguro de que quieres eliminar este pedido?')) {
-                pedidos = pedidos.filter(p => p.id !== id);
-                mostrarPedidos();
+                await eliminarDeFirebase('pedidos', firebaseKey);
                 alert('Pedido eliminado correctamente');
             }
         }
@@ -953,11 +1040,6 @@
             // Establecer fecha actual por defecto
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('pedido-fecha').value = today;
-            
-            // Mostrar listas vacías inicialmente
-            mostrarProductos();
-            mostrarClientes();
-            mostrarPedidos();
         });
     </script>
 </body>
