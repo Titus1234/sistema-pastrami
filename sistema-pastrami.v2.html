@@ -46,6 +46,7 @@
             opacity: 0.9;
         }
 
+        /* INDICADOR DE ESTADO */
         .status-indicator {
             position: absolute;
             top: 20px;
@@ -64,7 +65,21 @@
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online { background: #28a745; }
+        .status-offline { background: #dc3545; animation: none; }
+        .status-loading { background: #ffc107; animation: spin 1s linear infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .sync-btn {
@@ -76,18 +91,40 @@
             cursor: pointer;
             font-size: 12px;
             margin-left: 10px;
+            transition: all 0.3s ease;
         }
 
+        .sync-btn:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* ESTADO DE FIREBASE */
         .firebase-status {
             margin: 20px 30px;
             padding: 20px;
             border-radius: 10px;
             font-weight: 600;
+        }
+
+        .firebase-status.connected {
             background: #d4edda;
             color: #155724;
             border: 2px solid #28a745;
         }
 
+        .firebase-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .firebase-status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        /* TABS */
         .tabs {
             display: flex;
             background: #f8f9fa;
@@ -126,6 +163,7 @@
             display: block;
         }
 
+        /* FORMULARIOS */
         .form-row {
             display: flex;
             gap: 15px;
@@ -198,16 +236,12 @@
             color: white;
         }
 
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
         .btn-small {
             padding: 6px 12px;
             font-size: 14px;
         }
 
+        /* LISTAS */
         .items-container {
             background: #f8f9fa;
             border-radius: 10px;
@@ -253,6 +287,7 @@
             line-height: 1.5;
         }
 
+        /* BADGES DE ESTADO */
         .sync-badge {
             position: absolute;
             top: 15px;
@@ -262,8 +297,36 @@
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
+        }
+
+        .sync-badge.synced {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sync-badge.pending {
             background: #fff3cd;
             color: #856404;
+        }
+
+        .stock-alert {
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .stock-critical {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .stock-ok {
+            background: #d4edda;
+            color: #155724;
         }
 
         .no-items {
@@ -274,130 +337,7 @@
             font-size: 1.1em;
         }
 
-        .autocomplete-container {
-            position: relative;
-        }
-
-        .suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #ddd;
-            border-top: none;
-            border-radius: 0 0 8px 8px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-        }
-
-        .suggestion-item {
-            padding: 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-
-        .suggestion-item:hover {
-            background: #f0f0f0;
-        }
-
-        .productos-section {
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        .producto-item {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 15px;
-            align-items: center;
-            padding: 15px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            background: white;
-        }
-
-        .total-section {
-            background: #e8f4f8;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border-left: 5px solid #17a2b8;
-        }
-
-        .total-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 18px;
-        }
-
-        .total-final {
-            font-weight: bold;
-            font-size: 24px;
-            color: #17a2b8;
-            border-top: 2px solid #17a2b8;
-            padding-top: 10px;
-        }
-
-        .pedido-card {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .pedido-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .pedido-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .pedido-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .status-pendiente {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-pagado {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-entregado {
-            background: #cce5ff;
-            color: #004085;
-        }
-
+        /* NOTIFICACIONES */
         .notification {
             position: fixed;
             top: 20px;
@@ -431,6 +371,7 @@
             background: #007bff;
         }
 
+        /* RESPONSIVE */
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -461,21 +402,6 @@
             .tab-content {
                 padding: 20px;
             }
-
-            .producto-item {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
-            .pedido-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .pedido-actions {
-                width: 100%;
-            }
         }
     </style>
 </head>
@@ -483,69 +409,95 @@
     <div class="container">
         <div class="header">
             <h1>🥪 Sistema Pastrami v2.0</h1>
-            <p>Sistema completo de gestión</p>
+            <p>Sincronización real con Firebase v9</p>
             
             <div class="status-indicator">
-                <div class="status-dot"></div>
-                <span>Sistema Offline</span>
-                <button class="sync-btn" onclick="window.syncSystem()">🔄 Sync</button>
+                <div id="status-dot" class="status-dot status-loading"></div>
+                <span id="status-text">Inicializando...</span>
+                <button id="sync-btn" class="sync-btn" onclick="manualSync()">🔄 Sync</button>
             </div>
         </div>
 
-        <div class="firebase-status">
-            ✅ Sistema funcionando en modo offline
+        <!-- Estado de Firebase -->
+        <div id="firebase-status" class="firebase-status loading">
+            🔄 Conectando a Firebase v9...
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="window.showTab('productos', this)">📦 Productos</button>
-            <button class="tab" onclick="window.showTab('clientes', this)">👥 Clientes</button>
-            <button class="tab" onclick="window.showTab('pedidos', this)">🛒 Pedidos</button>
+            <button class="tab active" onclick="showTab('productos', this)">📦 Productos</button>
+            <button class="tab" onclick="showTab('clientes', this)">👥 Clientes</button>
         </div>
 
         <!-- TAB PRODUCTOS -->
         <div id="productos" class="tab-content active">
             <h2>📦 Gestión de Productos</h2>
             
-            <form onsubmit="window.guardarProducto(event)">
+            <form id="productos-form" onsubmit="guardarProducto(event)">
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Nombre del Producto <span class="required">*</span>:</label>
+                        <label for="producto-nombre">Nombre del Producto <span class="required">*</span>:</label>
                         <input type="text" id="producto-nombre" required>
                     </div>
                     <div class="form-col">
-                        <label>Precio <span class="required">*</span>:</label>
+                        <label for="producto-precio">Precio <span class="required">*</span>:</label>
                         <input type="number" id="producto-precio" step="0.01" min="0" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Stock Inicial <span class="required">*</span>:</label>
+                        <label for="producto-stock-inicial">Stock Inicial <span class="required">*</span>:</label>
                         <input type="number" id="producto-stock-inicial" min="0" required>
                     </div>
                     <div class="form-col">
-                        <label>Stock Mínimo <span class="required">*</span>:</label>
+                        <label for="producto-stock-minimo">Stock Mínimo <span class="required">*</span>:</label>
                         <input type="number" id="producto-stock-minimo" min="0" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Descripción:</label>
+                        <label for="producto-tipo">Tipo de Producto <span class="required">*</span>:</label>
+                        <select id="producto-tipo" onchange="toggleComponentes()" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="simple">Producto Simple</option>
+                            <option value="compuesto">Producto Compuesto (con componentes)</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label for="producto-descripcion">Descripción:</label>
                         <input type="text" id="producto-descripcion" placeholder="Descripción opcional">
+                    </div>
+                </div>
+
+                <div id="componentes-section" style="display: none;">
+                    <h3>Componentes del Producto</h3>
+                    <div id="componentes-list">
+                        <p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <input type="text" id="componente-nombre" placeholder="Nombre del componente">
+                        </div>
+                        <div class="form-col">
+                            <input type="number" id="componente-cantidad" placeholder="Cantidad" min="1">
+                        </div>
+                        <div class="form-col">
+                            <button type="button" class="btn btn-secondary" onclick="agregarComponente()">+ Agregar</button>
+                        </div>
                     </div>
                 </div>
 
                 <div style="margin-top: 20px;">
                     <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
-                    <button type="button" class="btn btn-secondary" onclick="window.cancelarProducto()">❌ Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelarProducto()">❌ Cancelar</button>
                 </div>
             </form>
 
             <div class="items-container">
                 <h3>Lista de Productos</h3>
                 <div id="productos-lista">
-                    <div class="no-items">No hay productos registrados</div>
+                    <div class="no-items">Cargando productos...</div>
                 </div>
             </div>
         </div>
@@ -554,240 +506,349 @@
         <div id="clientes" class="tab-content">
             <h2>👥 Gestión de Clientes</h2>
             
-            <form onsubmit="window.guardarCliente(event)">
+            <form id="clientes-form" onsubmit="guardarCliente(event)">
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Nombre <span class="required">*</span>:</label>
+                        <label for="cliente-nombre">Nombre <span class="required">*</span>:</label>
                         <input type="text" id="cliente-nombre" required>
                     </div>
                     <div class="form-col">
-                        <label>Apellido <span class="required">*</span>:</label>
+                        <label for="cliente-apellido">Apellido <span class="required">*</span>:</label>
                         <input type="text" id="cliente-apellido" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Teléfono <span class="required">*</span>:</label>
+                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
                         <input type="tel" id="cliente-telefono" required>
                     </div>
                     <div class="form-col">
-                        <label>Email:</label>
+                        <label for="cliente-email">Email:</label>
                         <input type="email" id="cliente-email">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label>Dirección:</label>
-                        <input type="text" id="cliente-direccion" placeholder="Dirección completa">
+                        <label for="cliente-direccion">Calle:</label>
+                        <input type="text" id="cliente-direccion" placeholder="Nombre de la calle">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-numero">Número:</label>
+                        <input type="text" id="cliente-numero" placeholder="Número de la calle">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-piso">Piso:</label>
+                        <input type="text" id="cliente-piso" placeholder="Piso (opcional)">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-departamento">Departamento:</label>
+                        <input type="text" id="cliente-departamento" placeholder="Depto (opcional)">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-ciudad">Ciudad:</label>
+                        <input type="text" id="cliente-ciudad" placeholder="Ciudad">
                     </div>
                 </div>
 
                 <div style="margin-top: 20px;">
                     <button type="submit" class="btn btn-primary">💾 Guardar Cliente</button>
-                    <button type="button" class="btn btn-secondary" onclick="window.cancelarCliente()">❌ Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelarCliente()">❌ Cancelar</button>
                 </div>
             </form>
 
             <div class="items-container">
                 <h3>Lista de Clientes</h3>
                 <div id="clientes-lista">
-                    <div class="no-items">No hay clientes registrados</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB PEDIDOS -->
-        <div id="pedidos" class="tab-content">
-            <h2>🛒 Gestión de Pedidos</h2>
-            
-            <form onsubmit="window.guardarPedido(event)">
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Cliente <span class="required">*</span>:</label>
-                        <div class="autocomplete-container">
-                            <input type="text" id="pedido-cliente" placeholder="Escriba el nombre del cliente..." required>
-                            <div id="cliente-suggestions" class="suggestions"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-col">
-                        <label>Fecha de Entrega <span class="required">*</span>:</label>
-                        <input type="date" id="pedido-fecha-entrega" required>
-                    </div>
-                    
-                    <div class="form-col">
-                        <label>Turno Horario <span class="required">*</span>:</label>
-                        <select id="pedido-turno" required>
-                            <option value="">Seleccionar turno</option>
-                            <option value="mañana">Mañana</option>
-                            <option value="tarde">Tarde</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Costo de Envío:</label>
-                        <input type="number" id="pedido-costo-envio" placeholder="0.00" step="0.01" min="0" onchange="window.calcularTotales()">
-                    </div>
-                </div>
-
-                <div class="productos-section">
-                    <h3>Productos del Pedido</h3>
-                    <div class="form-row">
-                        <div class="form-col">
-                            <label>Agregar Producto:</label>
-                            <div class="autocomplete-container">
-                                <input type="text" id="pedido-producto" placeholder="Escriba el nombre del producto...">
-                                <div id="producto-suggestions" class="suggestions"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="productos-pedido-lista">
-                        <p style="color: #6c757d; font-style: italic;">No hay productos agregados</p>
-                    </div>
-                </div>
-
-                <div class="total-section">
-                    <div class="total-item">
-                        <span>Subtotal Productos:</span>
-                        <span id="subtotal-productos">$0.00</span>
-                    </div>
-                    <div class="total-item">
-                        <span>Costo de Envío:</span>
-                        <span id="total-envio">$0.00</span>
-                    </div>
-                    <div class="total-item total-final">
-                        <span>Total de la Compra:</span>
-                        <span id="total-compra">$0.00</span>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label>Opción de Pago <span class="required">*</span>:</label>
-                        <select id="pedido-opcion-pago" onchange="window.toggleMontoParcial()" required>
-                            <option value="">Seleccionar opción</option>
-                            <option value="total">Total</option>
-                            <option value="parcial">Parcial</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-col">
-                        <label>Pagado con <span class="required">*</span>:</label>
-                        <select id="pedido-pagado-con" required>
-                            <option value="">Seleccionar método</option>
-                            <option value="efectivo">Efectivo</option>
-                            <option value="transferencia">Transferencia Bancaria</option>
-                            <option value="mercadopago">MercadoPago</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-col" id="monto-parcial-group" style="display: none;">
-                        <label>Monto Pagado:</label>
-                        <input type="number" id="pedido-monto-parcial" placeholder="0.00" step="0.01" min="0">
-                    </div>
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary">💾 Guardar Pedido</button>
-                    <button type="button" class="btn btn-secondary" onclick="window.cancelarPedido()">❌ Cancelar</button>
-                </div>
-            </form>
-
-            <div class="items-container">
-                <h3>Lista de Pedidos</h3>
-                <div id="pedidos-lista">
-                    <div class="no-items">No hay pedidos registrados</div>
+                    <div class="no-items">Cargando clientes...</div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Notificaciones -->
     <div id="notification" class="notification"></div>
 
+    <!-- Firebase v9 SDK - Versión Compatible -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
     <script>
-        // Variables globales simples
+        // ========================================
+        // 🔥 FIREBASE V9 - CONFIGURACIÓN COMPATIBLE
+        // ========================================
+        
+        // 🔧 CONFIGURACIÓN FIREBASE V2 - REAL
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpX91Usin1H8DRHB7IjHIs3dwd3-9JZw",
+            authDomain: "pastrami-v2.firebaseapp.com",
+            projectId: "pastrami-v2",
+            storageBucket: "pastrami-v2.firebasestorage.app",
+            messagingSenderId: "388841758248",
+            appId: "1:388841758248:web:dc76b4f5fd1383a4db5f1d"
+        };
+
+        // Variables globales
+        let app;
+        let db;
+        let isFirebaseConnected = false;
         let productos = [];
         let clientes = [];
-        let pedidos = [];
         let editandoProductoId = null;
         let editandoClienteId = null;
-        let productosSeleccionados = [];
-        let clienteSeleccionado = null;
+        let componentesTemp = [];
 
-        // EXPONER FUNCIONES GLOBALMENTE DESDE EL INICIO
-        window.showTab = showTab;
-        window.syncSystem = syncSystem;
-        window.guardarProducto = guardarProducto;
-        window.editarProducto = editarProducto;
-        window.eliminarProducto = eliminarProducto;
-        window.cancelarProducto = cancelarProducto;
-        window.guardarCliente = guardarCliente;
-        window.editarCliente = editarCliente;
-        window.eliminarCliente = eliminarCliente;
-        window.cancelarCliente = cancelarCliente;
-        window.guardarPedido = guardarPedido;
-        window.cancelarPedido = cancelarPedido;
-        window.seleccionarCliente = seleccionarCliente;
-        window.agregarProductoPedido = agregarProductoPedido;
-        window.cambiarCantidadPedido = cambiarCantidadPedido;
-        window.eliminarProductoPedido = eliminarProductoPedido;
-        window.calcularTotales = calcularTotales;
-        window.toggleMontoParcial = toggleMontoParcial;
-        window.marcarPagado = marcarPagado;
-        window.marcarEntregado = marcarEntregado;
-        window.verDetallePedido = verDetallePedido;
-
-        function syncSystem() {
-            mostrarNotificacion('🔄 Sistema sincronizado', 'info');
-        }
-
-        function showTab(tabName, tabElement) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            tabElement.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
-        }
-
-        function mostrarNotificacion(mensaje, tipo = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = mensaje;
-            notification.className = `notification ${tipo}`;
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        function cargarDatos() {
+        // ========================================
+        // 🚀 INICIALIZACIÓN
+        // ========================================
+        
+        async function inicializarApp() {
             try {
-                productos = JSON.parse(localStorage.getItem('productos') || '[]');
-                clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
-                pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+                console.log('🚀 Iniciando Sistema Pastrami v2.0...');
                 
-                mostrarProductos();
-                mostrarClientes();
-                mostrarPedidos();
+                // Verificar que Firebase esté disponible
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK no cargado');
+                }
                 
-                console.log('✅ Datos cargados:', productos.length, 'productos,', clientes.length, 'clientes,', pedidos.length, 'pedidos');
+                // Inicializar Firebase
+                app = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                console.log('✅ Firebase v9 inicializado correctamente');
+                
+                // Probar conexión
+                await testFirebaseConnection();
+                
+                // Configurar listeners en tiempo real
+                if (isFirebaseConnected) {
+                    setupRealtimeListeners();
+                }
+                
+                mostrarNotificacion('🎉 Sistema iniciado correctamente', 'success');
+                
             } catch (error) {
-                console.error('Error cargando datos:', error);
+                console.error('❌ Error inicializando:', error);
+                handleFirebaseError(error);
             }
         }
 
-        function guardarDatos() {
-            localStorage.setItem('productos', JSON.stringify(productos));
-            localStorage.setItem('clientes', JSON.stringify(clientes));
-            localStorage.setItem('pedidos', JSON.stringify(pedidos));
+        async function testFirebaseConnection() {
+            try {
+                updateStatus('loading', 'Probando conexión...');
+                
+                // Hacer una consulta simple para probar conexión
+                const testCollection = db.collection('productos');
+                await testCollection.get();
+                
+                isFirebaseConnected = true;
+                updateStatus('online', 'Conectado');
+                updateFirebaseStatus('connected', '✅ Firebase v9 conectado y funcionando');
+                
+                console.log('✅ Conexión a Firebase confirmada');
+                
+                // Cargar datos
+                await cargarDatosDesdeFirebase();
+                
+            } catch (error) {
+                console.error('❌ Error de conexión:', error);
+                isFirebaseConnected = false;
+                updateStatus('offline', 'Error conexión');
+                updateFirebaseStatus('error', `❌ Error: ${error.message}`);
+                
+                // Cargar datos locales como respaldo
+                cargarDatosLocales();
+            }
         }
 
-        // PRODUCTOS
+        async function cargarDatosDesdeFirebase() {
+            try {
+                console.log('📥 Cargando datos desde Firebase...');
+                
+                // Cargar productos
+                const productosSnapshot = await db.collection('productos').get();
+                productos = productosSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    synced: true
+                }));
+                
+                // Cargar clientes
+                const clientesSnapshot = await db.collection('clientes').get();
+                clientes = clientesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    synced: true
+                }));
+                
+                // Guardar backup local
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                
+                // Mostrar datos
+                mostrarProductos();
+                mostrarClientes();
+                
+                console.log(`✅ Cargados ${productos.length} productos y ${clientes.length} clientes`);
+                
+            } catch (error) {
+                console.error('❌ Error cargando desde Firebase:', error);
+                cargarDatosLocales();
+            }
+        }
+
+        function setupRealtimeListeners() {
+            try {
+                console.log('🔄 Configurando listeners en tiempo real...');
+                
+                // Listener para productos
+                db.collection('productos').onSnapshot((snapshot) => {
+                    console.log('📥 Actualización de productos recibida');
+                    
+                    snapshot.docChanges().forEach((change) => {
+                        const producto = { 
+                            id: change.doc.id, 
+                            ...change.doc.data(),
+                            synced: true
+                        };
+                        
+                        if (change.type === 'added') {
+                            const exists = productos.find(p => p.id === producto.id);
+                            if (!exists) {
+                                productos.push(producto);
+                                mostrarNotificacion(`➕ Nuevo producto: ${producto.nombre}`, 'success');
+                            }
+                        } else if (change.type === 'modified') {
+                            const index = productos.findIndex(p => p.id === producto.id);
+                            if (index >= 0) {
+                                productos[index] = producto;
+                            }
+                        } else if (change.type === 'removed') {
+                            productos = productos.filter(p => p.id !== producto.id);
+                            mostrarNotificacion(`🗑️ Producto eliminado: ${producto.nombre}`, 'warning');
+                        }
+                    });
+                    
+                    localStorage.setItem('productos_backup', JSON.stringify(productos));
+                    mostrarProductos();
+                });
+
+                // Listener para clientes
+                db.collection('clientes').onSnapshot((snapshot) => {
+                    console.log('📥 Actualización de clientes recibida');
+                    
+                    snapshot.docChanges().forEach((change) => {
+                        const cliente = { 
+                            id: change.doc.id, 
+                            ...change.doc.data(),
+                            synced: true
+                        };
+                        
+                        if (change.type === 'added') {
+                            const exists = clientes.find(c => c.id === cliente.id);
+                            if (!exists) {
+                                clientes.push(cliente);
+                                mostrarNotificacion(`➕ Nuevo cliente: ${cliente.nombre}`, 'success');
+                            }
+                        } else if (change.type === 'modified') {
+                            const index = clientes.findIndex(c => c.id === cliente.id);
+                            if (index >= 0) {
+                                clientes[index] = cliente;
+                            }
+                        } else if (change.type === 'removed') {
+                            clientes = clientes.filter(c => c.id !== cliente.id);
+                            mostrarNotificacion(`🗑️ Cliente eliminado: ${cliente.nombre}`, 'warning');
+                        }
+                    });
+                    
+                    localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                    mostrarClientes();
+                });
+                
+                console.log('✅ Listeners en tiempo real configurados');
+                
+            } catch (error) {
+                console.error('❌ Error configurando listeners:', error);
+            }
+        }
+
+        function cargarDatosLocales() {
+            try {
+                productos = JSON.parse(localStorage.getItem('productos_backup') || '[]');
+                clientes = JSON.parse(localStorage.getItem('clientes_backup') || '[]');
+                
+                mostrarProductos();
+                mostrarClientes();
+                
+                console.log(`📂 Cargados ${productos.length} productos y ${clientes.length} clientes locales`);
+                
+            } catch (error) {
+                console.error('❌ Error cargando datos locales:', error);
+                productos = [];
+                clientes = [];
+                mostrarProductos();
+                mostrarClientes();
+            }
+        }
+
+        // ========================================
+        // 🛠️ FUNCIONES DE PRODUCTOS
+        // ========================================
+        
+        function toggleComponentes() {
+            const tipo = document.getElementById('producto-tipo').value;
+            const section = document.getElementById('componentes-section');
+            
+            if (tipo === 'compuesto') {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+                componentesTemp = [];
+                mostrarComponentesTemp();
+            }
+        }
+
+        function agregarComponente() {
+            const nombre = document.getElementById('componente-nombre').value.trim();
+            const cantidad = parseInt(document.getElementById('componente-cantidad').value);
+            
+            if (!nombre || !cantidad || cantidad < 1) {
+                mostrarNotificacion('❌ Ingresa nombre y cantidad válidos para el componente', 'error');
+                return;
+            }
+            
+            componentesTemp.push({ nombre, cantidad });
+            mostrarComponentesTemp();
+            
+            // Limpiar campos
+            document.getElementById('componente-nombre').value = '';
+            document.getElementById('componente-cantidad').value = '';
+        }
+
+        function mostrarComponentesTemp() {
+            const lista = document.getElementById('componentes-list');
+            if (componentesTemp.length === 0) {
+                lista.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay componentes agregados</p>';
+                return;
+            }
+            
+            lista.innerHTML = componentesTemp.map((comp, index) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #e9ecef; border-radius: 5px; margin-bottom: 5px;">
+                    <span>${comp.cantidad}x ${comp.nombre}</span>
+                    <button type="button" class="btn btn-danger btn-small" onclick="eliminarComponenteTemp(${index})">❌</button>
+                </div>
+            `).join('');
+        }
+
+        function eliminarComponenteTemp(index) {
+            componentesTemp.splice(index, 1);
+            mostrarComponentesTemp();
+        }
+        
         function guardarProducto(event) {
             event.preventDefault();
             
@@ -795,35 +856,76 @@
             const precio = parseFloat(document.getElementById('producto-precio').value);
             const stockInicial = parseInt(document.getElementById('producto-stock-inicial').value);
             const stockMinimo = parseInt(document.getElementById('producto-stock-minimo').value);
+            const tipo = document.getElementById('producto-tipo').value;
             const descripcion = document.getElementById('producto-descripcion').value.trim();
             
-            if (!nombre || !precio || isNaN(stockInicial) || isNaN(stockMinimo)) {
+            if (!nombre || !precio || isNaN(stockInicial) || isNaN(stockMinimo) || !tipo) {
                 mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
                 return;
             }
             
+            if (stockMinimo > stockInicial) {
+                mostrarNotificacion('❌ El stock mínimo no puede ser mayor al stock inicial', 'error');
+                return;
+            }
+            
+            if (tipo === 'compuesto' && componentesTemp.length === 0) {
+                mostrarNotificacion('❌ Los productos compuestos deben tener al menos un componente', 'error');
+                return;
+            }
+            
             const producto = {
-                id: editandoProductoId || Date.now().toString(),
                 nombre,
                 precio,
                 stockInicial,
-                stockActual: stockInicial,
+                stockActual: editandoProductoId ? 
+                    productos.find(p => p.id === editandoProductoId)?.stockActual || stockInicial : 
+                    stockInicial,
                 stockMinimo,
-                descripcion
+                tipo,
+                descripcion,
+                componentes: tipo === 'compuesto' ? [...componentesTemp] : [],
+                fechaCreacion: firebase.firestore.Timestamp.now(),
+                fechaModificacion: firebase.firestore.Timestamp.now()
             };
             
-            if (editandoProductoId) {
-                const index = productos.findIndex(p => p.id === editandoProductoId);
-                productos[index] = producto;
-                editandoProductoId = null;
+            if (isFirebaseConnected) {
+                if (editandoProductoId) {
+                    // Actualizar
+                    db.collection('productos').doc(editandoProductoId).update({
+                        ...producto,
+                        fechaModificacion: firebase.firestore.Timestamp.now()
+                    }).then(() => {
+                        mostrarNotificacion(`✅ Producto "${nombre}" actualizado`, 'success');
+                        limpiarFormularioProducto();
+                    }).catch(error => {
+                        console.error('Error actualizando producto:', error);
+                        mostrarNotificacion('❌ Error actualizando producto', 'error');
+                    });
+                } else {
+                    // Crear nuevo
+                    db.collection('productos').add(producto).then(() => {
+                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
+                        limpiarFormularioProducto();
+                    }).catch(error => {
+                        console.error('Error creando producto:', error);
+                        mostrarNotificacion('❌ Error creando producto', 'error');
+                    });
+                }
             } else {
-                productos.push(producto);
+                // Modo offline
+                if (editandoProductoId) {
+                    const index = productos.findIndex(p => p.id === editandoProductoId);
+                    productos[index] = { ...producto, id: editandoProductoId, synced: false };
+                } else {
+                    productos.push({ ...producto, id: Date.now().toString(), synced: false });
+                }
+                
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                mostrarProductos();
+                mostrarNotificacion(`💾 Producto "${nombre}" guardado localmente`, 'warning');
+                limpiarFormularioProducto();
             }
-            
-            guardarDatos();
-            mostrarProductos();
-            document.querySelector('#productos form').reset();
-            mostrarNotificacion(`✅ Producto "${nombre}" guardado`, 'success');
         }
 
         function editarProducto(id) {
@@ -831,25 +933,48 @@
             if (!producto) return;
             
             editandoProductoId = id;
+            componentesTemp = [...(producto.componentes || [])];
+            
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-precio').value = producto.precio;
             document.getElementById('producto-stock-inicial').value = producto.stockInicial || 0;
             document.getElementById('producto-stock-minimo').value = producto.stockMinimo || 0;
+            document.getElementById('producto-tipo').value = producto.tipo || 'simple';
             document.getElementById('producto-descripcion').value = producto.descripcion || '';
+            
+            toggleComponentes();
+            mostrarComponentesTemp();
+            
+            document.getElementById('productos-form').scrollIntoView({ behavior: 'smooth' });
         }
 
         function eliminarProducto(id) {
             const producto = productos.find(p => p.id === id);
-            if (!producto || !confirm(`¿Eliminar "${producto.nombre}"?`)) return;
+            if (!producto) return;
             
-            productos = productos.filter(p => p.id !== id);
-            guardarDatos();
-            mostrarProductos();
-            mostrarNotificacion('🗑️ Producto eliminado', 'success');
+            if (!confirm(`¿Eliminar "${producto.nombre}"?`)) return;
+            
+            if (isFirebaseConnected) {
+                db.collection('productos').doc(id).delete().then(() => {
+                    mostrarNotificacion('🗑️ Producto eliminado', 'success');
+                }).catch(error => {
+                    console.error('Error eliminando producto:', error);
+                    mostrarNotificacion('❌ Error eliminando producto', 'error');
+                });
+            } else {
+                productos = productos.filter(p => p.id !== id);
+                localStorage.setItem('productos_backup', JSON.stringify(productos));
+                mostrarProductos();
+                mostrarNotificacion('🗑️ Producto eliminado localmente', 'warning');
+            }
         }
 
         function cancelarProducto() {
-            document.querySelector('#productos form').reset();
+            limpiarFormularioProducto();
+        }
+
+        function limpiarFormularioProducto() {
+            document.getElementById('productos-form').reset();
             editandoProductoId = null;
         }
 
@@ -861,26 +986,40 @@
                 return;
             }
             
-            container.innerHTML = productos.map(producto => `
+            const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            container.innerHTML = productosOrdenados.map(producto => `
                 <div class="item-card">
-                    <div class="sync-badge">LOCAL</div>
+                    <div class="sync-badge ${producto.synced ? 'synced' : 'pending'}">
+                        ${producto.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
                     <div class="item-header">
                         <div class="item-title">${producto.nombre}</div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="window.editarProducto('${producto.id}')">✏️ Editar</button>
-                            <button class="btn btn-danger btn-small" onclick="window.eliminarProducto('${producto.id}')">🗑️ Eliminar</button>
+                            <button class="btn btn-warning btn-small" onclick="editarProducto('${producto.id}')">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="eliminarProducto('${producto.id}')">
+                                🗑️ Eliminar
+                            </button>
                         </div>
                     </div>
+                    
                     <div class="item-details">
-                        <strong>Precio:</strong> $${producto.precio.toFixed(2)} | 
-                        <strong>Stock:</strong> ${producto.stockActual || 0}/${producto.stockInicial || 0}
+                        <strong>Precio:</strong> ${producto.precio?.toFixed(2)} | 
+                        <strong>Categoría:</strong> ${producto.categoria || 'Sin categoría'}
                         ${producto.descripcion ? `<br><strong>Descripción:</strong> ${producto.descripcion}` : ''}
+                        <br><small><strong>Creado:</strong> ${formatDate(producto.fechaCreacion)}</small>
                     </div>
                 </div>
             `).join('');
         }
 
-        // CLIENTES
+        // ========================================
+        // 🛠️ FUNCIONES DE CLIENTES
+        // ========================================
+        
         function guardarCliente(event) {
             event.preventDefault();
             
@@ -889,6 +1028,10 @@
             const telefono = document.getElementById('cliente-telefono').value.trim();
             const email = document.getElementById('cliente-email').value.trim();
             const direccion = document.getElementById('cliente-direccion').value.trim();
+            const numero = document.getElementById('cliente-numero').value.trim();
+            const piso = document.getElementById('cliente-piso').value.trim();
+            const departamento = document.getElementById('cliente-departamento').value.trim();
+            const ciudad = document.getElementById('cliente-ciudad').value.trim();
             
             if (!nombre || !apellido || !telefono) {
                 mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
@@ -896,26 +1039,56 @@
             }
             
             const cliente = {
-                id: editandoClienteId || Date.now().toString(),
                 nombre,
                 apellido,
                 telefono,
                 email,
-                direccion
+                direccion,
+                numero,
+                piso,
+                departamento,
+                ciudad,
+                fechaCreacion: firebase.firestore.Timestamp.now(),
+                fechaModificacion: firebase.firestore.Timestamp.now()
             };
             
-            if (editandoClienteId) {
-                const index = clientes.findIndex(c => c.id === editandoClienteId);
-                clientes[index] = cliente;
-                editandoClienteId = null;
+            if (isFirebaseConnected) {
+                if (editandoClienteId) {
+                    // Actualizar
+                    db.collection('clientes').doc(editandoClienteId).update({
+                        ...cliente,
+                        fechaModificacion: firebase.firestore.Timestamp.now()
+                    }).then(() => {
+                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" actualizado`, 'success');
+                        limpiarFormularioCliente();
+                    }).catch(error => {
+                        console.error('Error actualizando cliente:', error);
+                        mostrarNotificacion('❌ Error actualizando cliente', 'error');
+                    });
+                } else {
+                    // Crear nuevo
+                    db.collection('clientes').add(cliente).then(() => {
+                        mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" creado`, 'success');
+                        limpiarFormularioCliente();
+                    }).catch(error => {
+                        console.error('Error creando cliente:', error);
+                        mostrarNotificacion('❌ Error creando cliente', 'error');
+                    });
+                }
             } else {
-                clientes.push(cliente);
+                // Modo offline
+                if (editandoClienteId) {
+                    const index = clientes.findIndex(c => c.id === editandoClienteId);
+                    clientes[index] = { ...cliente, id: editandoClienteId, synced: false };
+                } else {
+                    clientes.push({ ...cliente, id: Date.now().toString(), synced: false });
+                }
+                
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                mostrarClientes();
+                mostrarNotificacion(`💾 Cliente "${nombre} ${apellido}" guardado localmente`, 'warning');
+                limpiarFormularioCliente();
             }
-            
-            guardarDatos();
-            mostrarClientes();
-            document.querySelector('#clientes form').reset();
-            mostrarNotificacion(`✅ Cliente "${nombre} ${apellido}" guardado`, 'success');
         }
 
         function editarCliente(id) {
@@ -923,25 +1096,47 @@
             if (!cliente) return;
             
             editandoClienteId = id;
+            
             document.getElementById('cliente-nombre').value = cliente.nombre;
             document.getElementById('cliente-apellido').value = cliente.apellido;
             document.getElementById('cliente-telefono').value = cliente.telefono;
             document.getElementById('cliente-email').value = cliente.email || '';
             document.getElementById('cliente-direccion').value = cliente.direccion || '';
+            document.getElementById('cliente-numero').value = cliente.numero || '';
+            document.getElementById('cliente-piso').value = cliente.piso || '';
+            document.getElementById('cliente-departamento').value = cliente.departamento || '';
+            document.getElementById('cliente-ciudad').value = cliente.ciudad || '';
+            
+            document.getElementById('clientes-form').scrollIntoView({ behavior: 'smooth' });
         }
 
         function eliminarCliente(id) {
             const cliente = clientes.find(c => c.id === id);
-            if (!cliente || !confirm(`¿Eliminar "${cliente.nombre} ${cliente.apellido}"?`)) return;
+            if (!cliente) return;
             
-            clientes = clientes.filter(c => c.id !== id);
-            guardarDatos();
-            mostrarClientes();
-            mostrarNotificacion('🗑️ Cliente eliminado', 'success');
+            if (!confirm(`¿Eliminar "${cliente.nombre} ${cliente.apellido}"?`)) return;
+            
+            if (isFirebaseConnected) {
+                db.collection('clientes').doc(id).delete().then(() => {
+                    mostrarNotificacion('🗑️ Cliente eliminado', 'success');
+                }).catch(error => {
+                    console.error('Error eliminando cliente:', error);
+                    mostrarNotificacion('❌ Error eliminando cliente', 'error');
+                });
+            } else {
+                clientes = clientes.filter(c => c.id !== id);
+                localStorage.setItem('clientes_backup', JSON.stringify(clientes));
+                mostrarClientes();
+                mostrarNotificacion('🗑️ Cliente eliminado localmente', 'warning');
+            }
         }
 
         function cancelarCliente() {
-            document.querySelector('#clientes form').reset();
+            limpiarFormularioCliente();
+        }
+
+        function limpiarFormularioCliente() {
+            document.getElementById('clientes-form').reset();
             editandoClienteId = null;
         }
 
@@ -953,490 +1148,188 @@
                 return;
             }
             
-            container.innerHTML = clientes.map(cliente => `
+            const clientesOrdenados = [...clientes].sort((a, b) => {
+                const apellidoA = a.apellido.toLowerCase();
+                const apellidoB = b.apellido.toLowerCase();
+                if (apellidoA !== apellidoB) {
+                    return apellidoA.localeCompare(apellidoB);
+                }
+                return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+            });
+            
+            container.innerHTML = clientesOrdenados.map(cliente => {
+                // Construir dirección completa
+                let direccionCompleta = '';
+                if (cliente.direccion || cliente.numero) {
+                    direccionCompleta = `${cliente.direccion || ''} ${cliente.numero || ''}`.trim();
+                    if (cliente.piso) direccionCompleta += `, Piso ${cliente.piso}`;
+                    if (cliente.departamento) direccionCompleta += `, Dto ${cliente.departamento}`;
+                    if (cliente.ciudad) direccionCompleta += `, ${cliente.ciudad}`;
+                }
+                
+                return `
                 <div class="item-card">
-                    <div class="sync-badge">LOCAL</div>
+                    <div class="sync-badge ${cliente.synced ? 'synced' : 'pending'}">
+                        ${cliente.synced ? 'SYNC' : 'LOCAL'}
+                    </div>
+                    
                     <div class="item-header">
                         <div class="item-title">${cliente.nombre} ${cliente.apellido}</div>
                         <div class="item-actions">
-                            <button class="btn btn-warning btn-small" onclick="window.editarCliente('${cliente.id}')">✏️ Editar</button>
-                            <button class="btn btn-danger btn-small" onclick="window.eliminarCliente('${cliente.id}')">🗑️ Eliminar</button>
+                            <button class="btn btn-warning btn-small" onclick="editarCliente('${cliente.id}')">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="eliminarCliente('${cliente.id}')">
+                                🗑️ Eliminar
+                            </button>
                         </div>
                     </div>
+                    
                     <div class="item-details">
                         <strong>Teléfono:</strong> ${cliente.telefono}
                         ${cliente.email ? ` | <strong>Email:</strong> ${cliente.email}` : ''}
-                        ${cliente.direccion ? `<br><strong>Dirección:</strong> ${cliente.direccion}` : ''}
+                        <br>
+                        ${direccionCompleta ? `<strong>Dirección:</strong> ${direccionCompleta}<br>` : ''}
+                        <small><strong>Registrado:</strong> ${formatDate(cliente.fechaCreacion)}</small>
                     </div>
                 </div>
-            `).join('');
-        }
-
-        // PEDIDOS
-        function configurarAutocompletado() {
-            // Autocompletado de clientes
-            const clienteInput = document.getElementById('pedido-cliente');
-            const clienteSuggestions = document.getElementById('cliente-suggestions');
-
-            if (clienteInput) {
-                clienteInput.addEventListener('input', function() {
-                    const query = this.value.toLowerCase().trim();
-                    
-                    if (query.length < 1) {
-                        clienteSuggestions.style.display = 'none';
-                        clienteSeleccionado = null;
-                        return;
-                    }
-
-                    const clientesFiltrados = clientes.filter(cliente => {
-                        const nombreCompleto = `${cliente.nombre} ${cliente.apellido}`.toLowerCase();
-                        return nombreCompleto.includes(query) || cliente.telefono.includes(query);
-                    });
-
-                    if (clientesFiltrados.length === 0) {
-                        clienteSuggestions.style.display = 'none';
-                        return;
-                    }
-
-                    clienteSuggestions.innerHTML = clientesFiltrados.map(cliente => 
-                        `<div class="suggestion-item" onclick="window.seleccionarCliente('${cliente.id}')">
-                            ${cliente.nombre} ${cliente.apellido} - ${cliente.telefono}
-                        </div>`
-                    ).join('');
-                    
-                    clienteSuggestions.style.display = 'block';
-                });
-            }
-
-            // Autocompletado de productos
-            const productoInput = document.getElementById('pedido-producto');
-            const productoSuggestions = document.getElementById('producto-suggestions');
-
-            if (productoInput) {
-                productoInput.addEventListener('input', function() {
-                    const query = this.value.toLowerCase().trim();
-                    
-                    console.log('🔍 Buscando productos:', query, '- Total productos:', productos.length);
-                    
-                    if (query.length < 1) {
-                        productoSuggestions.style.display = 'none';
-                        return;
-                    }
-
-                    const productosFiltrados = productos.filter(producto => 
-                        producto.nombre.toLowerCase().includes(query)
-                    );
-
-                    console.log('✅ Productos encontrados:', productosFiltrados.length);
-
-                    if (productosFiltrados.length === 0) {
-                        productoSuggestions.style.display = 'none';
-                        return;
-                    }
-
-                    productoSuggestions.innerHTML = productosFiltrados.map(producto => 
-                        `<div class="suggestion-item" onclick="window.agregarProductoPedido('${producto.id}')">
-                            ${producto.nombre} - ${producto.precio.toFixed(2)}
-                        </div>`
-                    ).join('');
-                    
-                    productoSuggestions.style.display = 'block';
-                });
-            }
-
-            // Ocultar sugerencias al hacer click fuera
-            document.addEventListener('click', function(e) {
-                if (clienteInput && clienteSuggestions && !clienteInput.contains(e.target) && !clienteSuggestions.contains(e.target)) {
-                    clienteSuggestions.style.display = 'none';
-                }
-                if (productoInput && productoSuggestions && !productoInput.contains(e.target) && !productoSuggestions.contains(e.target)) {
-                    productoSuggestions.style.display = 'none';
-                }
-            });
-        }
-
-        function seleccionarCliente(clienteId) {
-            clienteSeleccionado = clientes.find(c => c.id === clienteId);
-            if (clienteSeleccionado) {
-                document.getElementById('pedido-cliente').value = `${clienteSeleccionado.nombre} ${clienteSeleccionado.apellido}`;
-                document.getElementById('cliente-suggestions').style.display = 'none';
-            }
-        }
-
-        function agregarProductoPedido(productoId) {
-            console.log('🛒 Intentando agregar producto ID:', productoId);
-            console.log('📦 Productos disponibles:', productos.map(p => `${p.id}: ${p.nombre} - ${p.precio}`));
-            
-            const producto = productos.find(p => p.id === productoId);
-            
-            if (!producto) {
-                console.error('❌ Producto no encontrado con ID:', productoId);
-                mostrarNotificacion('❌ Producto no encontrado', 'error');
-                return;
-            }
-            
-            console.log('✅ Producto encontrado:', producto.nombre, ' + producto.precio);
-            
-            const existente = productosSeleccionados.find(p => p.id === productoId);
-            if (existente) {
-                existente.cantidad++;
-                console.log('📊 Cantidad actualizada a:', existente.cantidad);
-            } else {
-                const nuevoProducto = {
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    precio: parseFloat(producto.precio),
-                    cantidad: 1
-                };
-                productosSeleccionados.push(nuevoProducto);
-                console.log('➕ Producto agregado:', nuevoProducto);
-            }
-
-            document.getElementById('pedido-producto').value = '';
-            document.getElementById('producto-suggestions').style.display = 'none';
-            
-            mostrarProductosPedido();
-            calcularTotales();
-            
-            console.log('🔄 Estado actual productos seleccionados:', productosSeleccionados);
-        }
-
-        function mostrarProductosPedido() {
-            const container = document.getElementById('productos-pedido-lista');
-            
-            if (productosSeleccionados.length === 0) {
-                container.innerHTML = '<p style="color: #6c757d; font-style: italic;">No hay productos agregados</p>';
-                return;
-            }
-
-            container.innerHTML = productosSeleccionados.map(producto => `
-                <div class="producto-item">
-                    <div>${producto.nombre}</div>
-                    <div>
-                        <input type="number" value="${producto.cantidad}" min="1" 
-                               onchange="window.cambiarCantidadPedido('${producto.id}', this.value)">
-                    </div>
-                    <div>${producto.precio.toFixed(2)}</div>
-                    <div>
-                        <button class="btn btn-danger btn-small" onclick="window.eliminarProductoPedido('${producto.id}')">
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function cambiarCantidadPedido(productoId, nuevaCantidad) {
-            const producto = productosSeleccionados.find(p => p.id === productoId);
-            if (producto) {
-                producto.cantidad = parseInt(nuevaCantidad) || 1;
-                calcularTotales();
-                console.log('📊 Cantidad cambiada:', producto.nombre, 'x' + producto.cantidad);
-            }
-        }
-
-        function eliminarProductoPedido(productoId) {
-            productosSeleccionados = productosSeleccionados.filter(p => p.id !== productoId);
-            mostrarProductosPedido();
-            calcularTotales();
-            console.log('🗑️ Producto eliminado del pedido');
-        }
-
-        function calcularTotales() {
-            console.log('💰 === CALCULANDO TOTALES ===');
-            console.log('📦 Productos seleccionados:', productosSeleccionados);
-            
-            let subtotal = 0;
-            
-            productosSeleccionados.forEach((producto, index) => {
-                const precio = parseFloat(producto.precio) || 0;
-                const cantidad = parseInt(producto.cantidad) || 0;
-                const subtotalProducto = precio * cantidad;
-                
-                console.log(`${index + 1}. ${producto.nombre}: ${precio} x ${cantidad} = ${subtotalProducto}`);
-                subtotal += subtotalProducto;
-            });
-            
-            const costoEnvioInput = document.getElementById('pedido-costo-envio');
-            const costoEnvio = costoEnvioInput ? (parseFloat(costoEnvioInput.value) || 0) : 0;
-            const totalCompra = subtotal + costoEnvio;
-
-            console.log(`💵 RESUMEN: Subtotal: ${subtotal}, Envío: ${costoEnvio}, TOTAL: ${totalCompra}`);
-
-            const subtotalElement = document.getElementById('subtotal-productos');
-            const envioElement = document.getElementById('total-envio');
-            const totalElement = document.getElementById('total-compra');
-            
-            if (subtotalElement) subtotalElement.textContent = `${subtotal.toFixed(2)}`;
-            if (envioElement) envioElement.textContent = `${costoEnvio.toFixed(2)}`;
-            if (totalElement) totalElement.textContent = `${totalCompra.toFixed(2)}`;
-            
-            console.log('✅ Totales actualizados en pantalla');
-        }
-
-        function toggleMontoParcial() {
-            const opcionPago = document.getElementById('pedido-opcion-pago').value;
-            const montoParcialGroup = document.getElementById('monto-parcial-group');
-            
-            if (opcionPago === 'parcial') {
-                montoParcialGroup.style.display = 'block';
-            } else {
-                montoParcialGroup.style.display = 'none';
-            }
-        }
-
-        function guardarPedido(event) {
-            event.preventDefault();
-            
-            if (!clienteSeleccionado) {
-                mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
-                return;
-            }
-
-            if (productosSeleccionados.length === 0) {
-                mostrarNotificacion('❌ Debe agregar al menos un producto', 'error');
-                return;
-            }
-
-            const fechaEntrega = document.getElementById('pedido-fecha-entrega').value;
-            const turno = document.getElementById('pedido-turno').value;
-            const opcionPago = document.getElementById('pedido-opcion-pago').value;
-            const pagadoCon = document.getElementById('pedido-pagado-con').value;
-
-            if (!fechaEntrega || !turno || !opcionPago || !pagadoCon) {
-                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
-                return;
-            }
-
-            const costoEnvio = parseFloat(document.getElementById('pedido-costo-envio').value) || 0;
-            const subtotal = productosSeleccionados.reduce((total, producto) => 
-                total + (producto.precio * producto.cantidad), 0
-            );
-            const totalCompra = subtotal + costoEnvio;
-
-            let montoPagado = totalCompra;
-            let saldoPendiente = 0;
-
-            if (opcionPago === 'parcial') {
-                montoPagado = parseFloat(document.getElementById('pedido-monto-parcial').value) || 0;
-                saldoPendiente = totalCompra - montoPagado;
-            }
-
-            const pedido = {
-                id: Date.now().toString(),
-                cliente: clienteSeleccionado,
-                productos: [...productosSeleccionados],
-                fechaEntrega,
-                turno,
-                costoEnvio,
-                subtotal,
-                totalCompra,
-                opcionPago,
-                pagadoCon,
-                montoPagado,
-                saldoPendiente,
-                estadoPago: saldoPendiente > 0 ? 'pendiente' : 'pagado',
-                estadoEntrega: 'pendiente',
-                fechaCreacion: new Date().toISOString()
-            };
-
-            pedidos.push(pedido);
-            guardarDatos();
-            mostrarPedidos();
-            limpiarFormularioPedido();
-            mostrarNotificacion('✅ Pedido guardado exitosamente', 'success');
-        }
-
-        function limpiarFormularioPedido() {
-            document.querySelector('#pedidos form').reset();
-            clienteSeleccionado = null;
-            productosSeleccionados = [];
-            
-            mostrarProductosPedido();
-            calcularTotales();
-            toggleMontoParcial();
-        }
-
-        function cancelarPedido() {
-            limpiarFormularioPedido();
-        }
-
-        function mostrarPedidos() {
-            const container = document.getElementById('pedidos-lista');
-            
-            if (pedidos.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay pedidos registrados</div>';
-                return;
-            }
-
-            const pedidosActivos = pedidos.filter(pedido => 
-                pedido.estadoPago !== 'pagado' || pedido.estadoEntrega !== 'entregado'
-            );
-
-            pedidosActivos.sort((a, b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
-
-            if (pedidosActivos.length === 0) {
-                container.innerHTML = '<div class="no-items">No hay pedidos pendientes</div>';
-                return;
-            }
-
-            container.innerHTML = pedidosActivos.map(pedido => `
-                <div class="pedido-card">
-                    <div class="sync-badge">LOCAL</div>
-                    <div class="pedido-header">
-                        <h3>${pedido.cliente.nombre} ${pedido.cliente.apellido}</h3>
-                        <div>
-                            <span class="status-badge ${pedido.estadoPago === 'pagado' ? 'status-pagado' : 'status-pendiente'}">
-                                ${pedido.estadoPago === 'pagado' ? 'PAGADO' : 'SALDO PENDIENTE'}
-                            </span>
-                            <span class="status-badge ${pedido.estadoEntrega === 'entregado' ? 'status-entregado' : 'status-pendiente'}">
-                                ${pedido.estadoEntrega === 'entregado' ? 'ENTREGADO' : 'PENDIENTE'}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="pedido-info">
-                        <div><strong>Fecha:</strong> ${new Date(pedido.fechaEntrega).toLocaleDateString()}</div>
-                        <div><strong>Turno:</strong> ${pedido.turno}</div>
-                        <div><strong>Total:</strong> ${pedido.totalCompra.toFixed(2)}</div>
-                        <div><strong>Saldo:</strong> ${pedido.saldoPendiente.toFixed(2)}</div>
-                    </div>
-                    
-                    <div class="pedido-actions">
-                        ${pedido.estadoPago !== 'pagado' ? 
-                            `<button class="btn btn-success btn-small" onclick="window.marcarPagado('${pedido.id}')">
-                                💰 MARCAR PAGADO
-                            </button>` : ''
-                        }
-                        ${pedido.estadoEntrega !== 'entregado' ? 
-                            `<button class="btn btn-warning btn-small" onclick="window.marcarEntregado('${pedido.id}')">
-                                🚚 MARCAR ENTREGADO
-                            </button>` : ''
-                        }
-                        <button class="btn btn-primary btn-small" onclick="window.verDetallePedido('${pedido.id}')">
-                            👁️ VER DETALLE
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function marcarPagado(pedidoId) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            if (!pedido) return;
-
-            pedido.estadoPago = 'pagado';
-            pedido.saldoPendiente = 0;
-            pedido.montoPagado = pedido.totalCompra;
-            
-            guardarDatos();
-            mostrarPedidos();
-            mostrarNotificacion('✅ Pedido marcado como pagado', 'success');
-        }
-
-        function marcarEntregado(pedidoId) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            if (!pedido) return;
-
-            pedido.estadoEntrega = 'entregado';
-            
-            guardarDatos();
-            mostrarPedidos();
-            mostrarNotificacion('✅ Pedido marcado como entregado', 'success');
-        }
-
-        function verDetallePedido(pedidoId) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            if (!pedido) return;
-
-            const productosDetalle = pedido.productos.map(p => 
-                `${p.nombre} x${p.cantidad} - ${(p.precio * p.cantidad).toFixed(2)}`
-            ).join('\n');
-
-            const detalle = `
-DETALLE DEL PEDIDO
-
-Cliente: ${pedido.cliente.nombre} ${pedido.cliente.apellido}
-Teléfono: ${pedido.cliente.telefono}
-
-Productos:
-${productosDetalle}
-
-Subtotal: ${pedido.subtotal.toFixed(2)}
-Envío: ${pedido.costoEnvio.toFixed(2)}
-Total: ${pedido.totalCompra.toFixed(2)}
-
-Fecha de Entrega: ${new Date(pedido.fechaEntrega).toLocaleDateString()}
-Turno: ${pedido.turno}
-
-Pago: ${pedido.opcionPago} - ${pedido.pagadoCon}
-Monto Pagado: ${pedido.montoPagado.toFixed(2)}
-Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             `;
-
-            alert(detalle);
+            }).join('');
         }
 
-        function addTestData() {
-            const productosTest = [
-                { id: 'test1', nombre: 'Pastrami Clásico', precio: 15.50, stockInicial: 100, stockActual: 100, stockMinimo: 10, descripcion: 'Delicioso pastrami tradicional' },
-                { id: 'test2', nombre: 'Pastrami Especial', precio: 18.00, stockInicial: 50, stockActual: 50, stockMinimo: 5, descripcion: 'Pastrami gourmet con especias' },
-                { id: 'test3', nombre: 'Sandwich Jamón', precio: 12.00, stockInicial: 80, stockActual: 80, stockMinimo: 8, descripcion: 'Sandwich clásico de jamón' },
-                { id: 'test4', nombre: 'Pastrami 200', precio: 22.50, stockInicial: 30, stockActual: 30, stockMinimo: 3, descripcion: 'Pastrami premium' }
-            ];
+        // ========================================
+        // 🛠️ FUNCIONES DE UI
+        // ========================================
+        
+        function showTab(tabName, tabElement) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            const clientesTest = [
-                { id: 'test1', nombre: 'Juan', apellido: 'Pérez', telefono: '123456789', email: 'juan@email.com', direccion: 'Av. Principal 123' },
-                { id: 'test2', nombre: 'María', apellido: 'González', telefono: '987654321', email: 'maria@email.com', direccion: 'Calle Secundaria 456' }
-            ];
-            
-            productos.push(...productosTest);
-            clientes.push(...clientesTest);
-            
-            guardarDatos();
-            mostrarProductos();
-            mostrarClientes();
-            
-            mostrarNotificacion('✅ Datos de prueba agregados', 'success');
-            console.log('📦 Productos agregados:', productos.length);
-            console.log('👥 Clientes agregados:', clientes.length);
+            tabElement.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
         }
 
-        function establecerFechaMinima() {
-            const fechaInput = document.getElementById('pedido-fecha-entrega');
-            if (fechaInput) {
-                const hoy = new Date().toISOString().split('T')[0];
-                fechaInput.min = hoy;
-            }
-        }
-
-        // Inicializar cuando se carga la página
-        document.addEventListener('DOMContentLoaded', function() {
-            cargarDatos();
-            configurarAutocompletado();
-            establecerFechaMinima();
-            
-            // Agregar datos de prueba si no hay ninguno
-            if (productos.length === 0) {
-                addTestData();
+        function manualSync() {
+            if (!isFirebaseConnected) {
+                mostrarNotificacion('❌ Firebase no conectado', 'error');
+                return;
             }
             
-            window.addTestData = addTestData;
-            window.debug = {
-                productos: () => productos,
-                clientes: () => clientes,
-                pedidos: () => pedidos,
-                addTestData: addTestData,
-                clearData: () => {
-                    localStorage.clear();
-                    location.reload();
+            updateStatus('loading', 'Sincronizando...');
+            
+            setTimeout(async () => {
+                try {
+                    await testFirebaseConnection();
+                    mostrarNotificacion('🔄 Sincronización manual completada', 'success');
+                } catch (error) {
+                    console.error('Error en sincronización manual:', error);
+                    mostrarNotificacion('❌ Error en sincronización', 'error');
+                    updateStatus('offline', 'Error conexión');
                 }
-            };
+            }, 1000);
+        }
+
+        function updateStatus(status, text) {
+            const dot = document.getElementById('status-dot');
+            const textEl = document.getElementById('status-text');
             
-            mostrarNotificacion('✅ Sistema iniciado correctamente', 'success');
-            console.log('🎯 Sistema Pastrami v2.0 cargado correctamente');
-            console.log('🔧 Para debug: window.debug');
+            dot.className = `status-dot status-${status}`;
+            textEl.textContent = text;
+        }
+
+        function updateFirebaseStatus(type, message) {
+            const statusEl = document.getElementById('firebase-status');
+            statusEl.className = `firebase-status ${type}`;
+            statusEl.textContent = message;
+        }
+
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = `notification ${tipo}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function handleFirebaseError(error) {
+            console.error('🔥 Firebase Error:', error);
+            
+            let mensaje = 'Error de Firebase desconocido';
+            
+            if (error.code === 'permission-denied') {
+                mensaje = 'Sin permisos para acceder a Firebase';
+            } else if (error.code === 'unavailable') {
+                mensaje = 'Firebase temporalmente no disponible';
+            } else if (error.message.includes('SDK no cargado')) {
+                mensaje = 'Firebase SDK no se pudo cargar';
+            } else {
+                mensaje = error.message;
+            }
+            
+            updateFirebaseStatus('error', `❌ ${mensaje}`);
+            updateStatus('offline', 'Error Firebase');
+            
+            cargarDatosLocales();
+            mostrarNotificacion(`❌ ${mensaje}. Usando modo offline.`, 'error');
+        }
+
+        function formatDate(dateField) {
+            if (!dateField) return 'Sin fecha';
+            
+            try {
+                if (dateField.toDate) {
+                    // Es un Timestamp de Firebase
+                    return dateField.toDate().toLocaleDateString();
+                } else if (dateField.seconds) {
+                    // Es un timestamp con seconds
+                    return new Date(dateField.seconds * 1000).toLocaleDateString();
+                } else {
+                    // Es una fecha normal
+                    return new Date(dateField).toLocaleDateString();
+                }
+            } catch (error) {
+                return 'Fecha inválida';
+            }
+        }
+
+        // ========================================
+        // 🚀 INICIO DE LA APLICACIÓN
+        // ========================================
+        
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎯 Iniciando Sistema Pastrami v2.0...');
+            
+            // Verificar que Firebase esté disponible
+            if (typeof firebase !== 'undefined') {
+                console.log('✅ Firebase SDK detectado');
+                inicializarApp();
+            } else {
+                console.error('❌ Firebase SDK no disponible');
+                updateFirebaseStatus('error', '❌ Firebase SDK no cargado');
+                updateStatus('offline', 'SDK Error');
+                cargarDatosLocales();
+            }
         });
+
+        // Debug - Exponer funciones globalmente para testing
+        window.debug = {
+            productos: () => productos,
+            clientes: () => clientes,
+            firebase: () => ({ app, db, connected: isFirebaseConnected }),
+            clearLocal: () => {
+                localStorage.clear();
+                location.reload();
+            },
+            testConnection: testFirebaseConnection
+        };
+
+        console.log('🎯 Sistema Pastrami v2.0 cargado - Versión Compatible');
+        console.log('🔧 Para debug: window.debug');
+        
     </script>
 </body>
 </html>
