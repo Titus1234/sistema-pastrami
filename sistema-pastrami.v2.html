@@ -749,16 +749,16 @@
             }, 3000);
         }
 
+        function syncSystem() {
+            mostrarNotificacion('🔄 Sistema sincronizado', 'info');
+        }
+
         function showTab(tabName, tabElement) {
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
             tabElement.classList.add('active');
             document.getElementById(tabName).classList.add('active');
-        }
-
-        function syncSystem() {
-            mostrarNotificacion('🔄 Sistema sincronizado', 'info');
         }
 
         // PRODUCTOS
@@ -1372,8 +1372,33 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
                 }
             }, 500);
             
-            // Función global para debug
+            // EXPONER FUNCIONES GLOBALMENTE
+            window.showTab = showTab;
+            window.syncSystem = syncSystem;
+            window.guardarProducto = guardarProducto;
+            window.editarProducto = editarProducto;
+            window.eliminarProducto = eliminarProducto;
+            window.cancelarProducto = cancelarProducto;
+            window.guardarCliente = guardarCliente;
+            window.editarCliente = editarCliente;
+            window.eliminarCliente = eliminarCliente;
+            window.cancelarCliente = cancelarCliente;
+            window.guardarPedido = guardarPedido;
+            window.cancelarPedido = cancelarPedido;
+            window.seleccionarCliente = seleccionarCliente;
+            window.agregarProductoPedido = agregarProductoPedido;
+            window.cambiarCantidadPedido = cambiarCantidadPedido;
+            window.eliminarProductoPedido = eliminarProductoPedido;
+            window.calcularTotales = calcularTotales;
+            window.toggleMontoParcial = toggleMontoParcial;
+            window.marcarPagado = marcarPagado;
+            window.marcarEntregado = marcarEntregado;
+            window.verDetallePedido = verDetallePedido;
             window.addTestData = addTestData;
+            
+            console.log('✅ Todas las funciones expuestas globalmente');
+            
+            // Función global para debug
             window.debug = {
                 productos: () => productos,
                 clientes: () => clientes,
