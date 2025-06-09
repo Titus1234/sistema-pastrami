@@ -770,7 +770,7 @@
         }
 
         // ========================================
-        // 🛠️ FUNCIONES DE PRODUCTOS
+        // 🛠️ FUNCIONES DE PRODUCTOS - ARREGLO PRINCIPAL
         // ========================================
         
         function toggleComponentes() {
@@ -823,6 +823,7 @@
             mostrarComponentesTemp();
         }
         
+        // 🔧 FUNCIÓN CORREGIDA - ESTA ERA LA QUE ESTABA CORTADA
         function guardarProducto(event) {
             event.preventDefault();
             
@@ -853,12 +854,21 @@
             
             if (isFirebaseConnected) {
                 if (editandoProductoId) {
-                    // Actualizar
+                    // Actualizar producto existente
                     db.collection('productos').doc(editandoProductoId).update({
                         ...producto,
                         fechaModificacion: firebase.firestore.Timestamp.now()
                     }).then(() => {
                         mostrarNotificacion(`✅ Producto "${nombre}" actualizado`, 'success');
+                        limpiarFormularioProducto();
+                    }).catch(error => {
+                        console.error('Error actualizando producto:', error);
+                        mostrarNotificacion('❌ Error actualizando producto', 'error');
+                    });
+                } else {
+                    // Crear nuevo producto - ESTA PARTE ESTABA CORTADA
+                    db.collection('productos').add(producto).then(() => {
+                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
                         limpiarFormularioProducto();
                     }).catch(error => {
                         console.error('Error creando producto:', error);
@@ -1283,18 +1293,9 @@
             testConnection: testFirebaseConnection
         };
 
-        console.log('🎯 Sistema Pastrami v2.0 cargado - Versión Completa');
+        console.log('🎯 Sistema Pastrami v2.0 cargado - Versión Completa y Corregida');
         console.log('🔧 Para debug: window.debug');
         
     </script>
 </body>
 </html>
-                        console.error('Error actualizando producto:', error);
-                        mostrarNotificacion('❌ Error actualizando producto', 'error');
-                    });
-                } else {
-                    // Crear nuevo
-                    db.collection('productos').add(producto).then(() => {
-                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
-                        limpiarFormularioProducto();
-                    }).catch(error => {
