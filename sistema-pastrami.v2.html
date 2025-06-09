@@ -911,9 +911,11 @@
                 updateStatus('loading', 'Conectando Firebase...');
                 console.log('🔗 Intentando conectar a Firebase...');
                 
-                // Configurar timeout para evitar esperas infinitas
+                // Configurar timeout más corto para móviles
+                const timeoutDuration = window.innerWidth < 768 ? 10000 : 30000; // 10s móvil, 30s desktop
+                
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Timeout de conexión (30s)')), 30000);
+                    setTimeout(() => reject(new Error(`Timeout de conexión (${timeoutDuration/1000}s)`)), timeoutDuration);
                 });
                 
                 // Probar conexión con timeout
@@ -951,7 +953,11 @@
                 
                 let mensajeError = 'Error de conexión';
                 if (error.message.includes('Timeout')) {
-                    mensajeError = 'Timeout - Usando modo offline';
+                    mensajeError = 'Timeout - Trabajando offline';
+                    // En móviles, ir directo a offline si hay timeout
+                    updateStatus('offline', 'Modo Offline');
+                    updateFirebaseStatus('error', `⚠️ ${mensajeError} - Sistema funcional`);
+                    mostrarNotificacion(`📱 Modo offline activado`, 'info');
                 } else if (error.code === 'permission-denied') {
                     mensajeError = 'Sin permisos - Verificar reglas';
                 } else if (error.code === 'unavailable') {
@@ -960,12 +966,14 @@
                     mensajeError = error.message;
                 }
                 
-                updateStatus('offline', 'Modo Offline');
-                updateFirebaseStatus('error', `❌ ${mensajeError}`);
+                if (!error.message.includes('Timeout')) {
+                    updateStatus('offline', 'Modo Offline');
+                    updateFirebaseStatus('error', `❌ ${mensajeError}`);
+                    mostrarNotificacion(`⚠️ ${mensajeError}. Trabajando offline.`, 'warning');
+                }
                 
                 // Cargar datos locales como respaldo
                 cargarDatosLocales();
-                mostrarNotificacion(`⚠️ ${mensajeError}. Trabajando offline.`, 'warning');
             }
         }
 
@@ -1661,26 +1669,51 @@
         }
 
         function agregarProductoPedido(productoId) {
+            console.log('🛒 Agregando producto:', productoId); // Debug
+            
             const producto = productos.find(p => p.id === productoId);
+            
+            if (!producto) {
+                console.error('❌ Producto no encontrado:', productoId);
+                mostrarNotificacion('❌ Producto no encontrado', 'error');
+                return;
+            }
+            
+            console.log('✅ Producto encontrado:', producto.nombre, producto.precio); // Debug
             
             // Verificar si el producto ya está en la lista
             const existente = productosSeleccionados.find(p => p.id === productoId);
             if (existente) {
                 existente.cantidad++;
+                console.log('📊 Cantidad actualizada:', existente.cantidad); // Debug
             } else {
-                productosSeleccionados.push({
+                const nuevoProducto = {
                     id: producto.id,
                     nombre: producto.nombre,
                     precio: producto.precio,
                     cantidad: 1
-                });
+                };
+                productosSeleccionados.push(nuevoProducto);
+                console.log('➕ Producto agregado:', nuevoProducto); // Debug
             }
 
-            document.getElementById('pedido-producto').value = '';
-            document.getElementById('producto-suggestions').style.display = 'none';
+            // Limpiar campo de búsqueda
+            const productoInput = document.getElementById('pedido-producto');
+            if (productoInput) {
+                productoInput.value = '';
+            }
             
+            // Ocultar sugerencias
+            const productoSuggestions = document.getElementById('producto-suggestions');
+            if (productoSuggestions) {
+                productoSuggestions.style.display = 'none';
+            }
+            
+            // Actualizar vista
             mostrarProductosPedido();
             calcularTotalesPedido();
+            
+            console.log('🔄 Productos seleccionados:', productosSeleccionados); // Debug
         }
 
         function mostrarProductosPedido() {
@@ -2139,35 +2172,80 @@ Saldo Pendiente: ${pedido.saldoPendiente.toFixed(2)}
             testConnection: testFirebaseConnection,
             addTestData: () => {
                 // Agregar datos de prueba
-                productos.push({
-                    id: 'test1',
-                    nombre: 'Pastrami Clásico',
-                    precio: 15.50,
-                    stockInicial: 100,
-                    stockActual: 95,
-                    stockMinimo: 10,
-                    tipo: 'simple',
-                    descripcion: 'Delicioso pastrami tradicional',
-                    synced: false
-                });
+                const productosTest = [
+                    {
+                        id: 'test1',
+                        nombre: 'Pastrami Clásico',
+                        precio: 15.50,
+                        stockInicial: 100,
+                        stockActual: 95,
+                        stockMinimo: 10,
+                        tipo: 'simple',
+                        descripcion: 'Delicioso pastrami tradicional',
+                        synced: false
+                    },
+                    {
+                        id: 'test2',
+                        nombre: 'Pastrami Especial',
+                        precio: 18.00,
+                        stockInicial: 50,
+                        stockActual: 45,
+                        stockMinimo: 5,
+                        tipo: 'simple',
+                        descripcion: 'Pastrami gourmet con especias',
+                        synced: false
+                    },
+                    {
+                        id: 'test3',
+                        nombre: 'Sandwich Jamón',
+                        precio: 12.00,
+                        stockInicial: 80,
+                        stockActual: 75,
+                        stockMinimo: 8,
+                        tipo: 'simple',
+                        descripcion: 'Sandwich clásico de jamón',
+                        synced: false
+                    }
+                ];
                 
-                clientes.push({
-                    id: 'test1',
-                    nombre: 'Juan',
-                    apellido: 'Pérez',
-                    telefono: '123456789',
-                    email: 'juan@email.com',
-                    direccion: 'Av. Principal',
-                    numero: '123',
-                    ciudad: 'Buenos Aires',
-                    synced: false
-                });
+                const clientesTest = [
+                    {
+                        id: 'test1',
+                        nombre: 'Juan',
+                        apellido: 'Pérez',
+                        telefono: '123456789',
+                        email: 'juan@email.com',
+                        direccion: 'Av. Principal',
+                        numero: '123',
+                        ciudad: 'Buenos Aires',
+                        synced: false
+                    },
+                    {
+                        id: 'test2',
+                        nombre: 'María',
+                        apellido: 'González',
+                        telefono: '987654321',
+                        email: 'maria@email.com',
+                        direccion: 'Calle Secundaria',
+                        numero: '456',
+                        ciudad: 'Buenos Aires',
+                        synced: false
+                    }
+                ];
+                
+                // Combinar con datos existentes
+                productos.push(...productosTest);
+                clientes.push(...clientesTest);
                 
                 localStorage.setItem('productos_backup', JSON.stringify(productos));
                 localStorage.setItem('clientes_backup', JSON.stringify(clientes));
                 
                 mostrarProductos();
                 mostrarClientes();
+                
+                console.log('📦 Productos cargados:', productos);
+                console.log('👥 Clientes cargados:', clientes);
+                
                 mostrarNotificacion('✅ Datos de prueba agregados', 'success');
             }
         };
