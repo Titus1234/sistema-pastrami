@@ -861,15 +861,6 @@
                         mostrarNotificacion(`✅ Producto "${nombre}" actualizado`, 'success');
                         limpiarFormularioProducto();
                     }).catch(error => {
-                        console.error('Error actualizando producto:', error);
-                        mostrarNotificacion('❌ Error actualizando producto', 'error');
-                    });
-                } else {
-                    // Crear nuevo
-                    db.collection('productos').add(producto).then(() => {
-                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
-                        limpiarFormularioProducto();
-                    }).catch(error => {
                         console.error('Error creando producto:', error);
                         mostrarNotificacion('❌ Error creando producto', 'error');
                     });
@@ -1298,3 +1289,12 @@
     </script>
 </body>
 </html>
+                        console.error('Error actualizando producto:', error);
+                        mostrarNotificacion('❌ Error actualizando producto', 'error');
+                    });
+                } else {
+                    // Crear nuevo
+                    db.collection('productos').add(producto).then(() => {
+                        mostrarNotificacion(`✅ Producto "${nombre}" creado`, 'success');
+                        limpiarFormularioProducto();
+                    }).catch(error => {
