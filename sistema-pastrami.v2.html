@@ -231,6 +231,11 @@
         <div class="header">
             <h1>🥪 Sistema Pastrami</h1>
             <p>Gestión completa de productos, clientes y pedidos</p>
+            <div style="margin-top: 15px;">
+                <button onclick="exportarDatos()" class="btn btn-secondary" style="margin-right: 10px;">📥 Exportar</button>
+                <button onclick="document.getElementById('importFile').click()" class="btn btn-secondary">📤 Importar</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importarDatos(event)">
+            </div>
         </div>
 
         <div class="tabs">
@@ -997,6 +1002,56 @@
             mostrarClientes();
             mostrarPedidos();
         });
+
+        // Función para exportar datos
+        function exportarDatos() {
+            const datos = {
+                productos: productos,
+                clientes: clientes,
+                pedidos: pedidos,
+                fecha: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(datos, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'pastrami-datos-' + new Date().toISOString().split('T')[0] + '.json';
+            link.click();
+            
+            alert('Datos exportados correctamente');
+        }
+
+        // Función para importar datos
+        function importarDatos(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const datos = JSON.parse(e.target.result);
+                    
+                    if (confirm('¿Importar datos? Esto reemplazará todos los datos actuales.')) {
+                        productos = datos.productos || [];
+                        clientes = datos.clientes || [];
+                        pedidos = datos.pedidos || [];
+                        
+                        mostrarProductos();
+                        mostrarClientes();
+                        mostrarPedidos();
+                        actualizarSelectProductos();
+                        actualizarSelectClientes();
+                        
+                        alert('Datos importados correctamente');
+                    }
+                } catch (error) {
+                    alert('Error al importar: Archivo no válido');
+                }
+            };
+            reader.readAsText(file);
+        }
     </script>
 </body>
 </html>
