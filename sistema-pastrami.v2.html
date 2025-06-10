@@ -882,7 +882,7 @@
             const pago = document.getElementById('pedido-pago').value;
             const notas = document.getElementById('pedido-notas').value.trim();
             
-            if (!clienteId || !fecha || !turno || !envio || !estado || !pago) {
+            if (!clienteId || !fecha || !turno || isNaN(envio) || !estado || !pago) {
                 alert('Por favor, completa todos los campos obligatorios');
                 return;
             }
@@ -893,11 +893,11 @@
             }
             
             const cliente = clientes.find(c => c.id == clienteId);
-            let total = 0;
+            let subtotal = 0;
             
-            // Calcular total y actualizar stock
+            // Calcular subtotal y actualizar stock
             productosPedido.forEach(prodPedido => {
-                total += prodPedido.precio * prodPedido.cantidad;
+                subtotal += prodPedido.precio * prodPedido.cantidad;
                 
                 if (!editandoPedido) {
                     // Solo reducir stock si es un pedido nuevo
@@ -908,10 +908,12 @@
                 }
             });
             
+            const totalFinal = subtotal + envio;
+            
             const pedido = {
                 id: editandoPedido ? editandoPedido.id : Date.now(),
                 clienteId: parseInt(clienteId),
-                clienteNombre: cliente.nombre,
+                clienteNombre: cliente.nombre + ' ' + cliente.apellido,
                 fecha,
                 turno,
                 envio,
@@ -919,7 +921,8 @@
                 pago,
                 notas,
                 productos: [...productosPedido],
-                total: total + envio
+                subtotal: subtotal,
+                total: totalFinal
             };
             
             if (editandoPedido) {
