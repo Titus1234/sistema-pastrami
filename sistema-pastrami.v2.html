@@ -32,7 +32,6 @@
             color: white;
             text-align: center;
             padding: 30px;
-            position: relative;
         }
 
         .header h1 {
@@ -43,16 +42,6 @@
         .header p {
             font-size: 1.1em;
             opacity: 0.9;
-        }
-
-        .sync-status {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.9em;
         }
 
         .tabs {
@@ -240,7 +229,6 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="sync-status" id="sync-status">🔄 Conectando...</div>
             <h1>🥪 Sistema Pastrami</h1>
             <p>Gestión completa de productos, clientes y pedidos</p>
         </div>
@@ -383,6 +371,21 @@
 
                 <div class="form-row">
                     <div class="form-col">
+                        <label for="pedido-turno">Turno de Entrega <span class="required">*</span>:</label>
+                        <select id="pedido-turno" required>
+                            <option value="">Seleccionar turno...</option>
+                            <option value="mañana">Mañana (8:00 - 12:00)</option>
+                            <option value="tarde">Tarde (14:00 - 18:00)</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label for="pedido-precio-envio">Precio del Envío <span class="required">*</span>:</label>
+                        <input type="number" id="pedido-precio-envio" step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
                         <label for="pedido-estado">Estado <span class="required">*</span>:</label>
                         <select id="pedido-estado" required>
                             <option value="">Seleccionar...</option>
@@ -392,6 +395,17 @@
                             <option value="entregado">Entregado</option>
                         </select>
                     </div>
+                    <div class="form-col">
+                        <label for="pedido-tipo-pago">Tipo de Pago <span class="required">*</span>:</label>
+                        <select id="pedido-tipo-pago" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="total">Pago Total</option>
+                            <option value="parcial">Pago Parcial</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
                     <div class="form-col">
                         <label for="pedido-notas">Notas:</label>
                         <input type="text" id="pedido-notas">
@@ -433,115 +447,28 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
-        import { getDatabase, ref, set, onValue, push, remove } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
-
-        // Configuración Firebase - CAMBIAR POR TUS DATOS
-        const firebaseConfig = {
-            apiKey: "AIzaSyBYourAPIKeyHere",
-            authDomain: "your-project.firebaseapp.com",
-            databaseURL: "https://your-project-default-rtdb.firebaseio.com/",
-            projectId: "your-project",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
-        };
-
-        // Inicializar Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-
-        // Variables globales
-        window.productos = [];
-        window.clientes = [];
-        window.pedidos = [];
-        window.componentes = [];
-        window.productosPedido = [];
-        window.editandoProducto = null;
-        window.editandoCliente = null;
-        window.editandoPedido = null;
-        window.firebaseDb = database;
-
-        // Referencias Firebase
-        const productosRef = ref(database, 'productos');
-        const clientesRef = ref(database, 'clientes');
-        const pedidosRef = ref(database, 'pedidos');
-
-        // Escuchar cambios en Firebase
-        onValue(productosRef, (snapshot) => {
-            const data = snapshot.val();
-            window.productos = data ? Object.keys(data).map(key => ({...data[key], firebaseKey: key})) : [];
-            mostrarProductos();
-            actualizarSelectProductos();
-        });
-
-        onValue(clientesRef, (snapshot) => {
-            const data = snapshot.val();
-            window.clientes = data ? Object.keys(data).map(key => ({...data[key], firebaseKey: key})) : [];
-            mostrarClientes();
-            actualizarSelectClientes();
-        });
-
-        onValue(pedidosRef, (snapshot) => {
-            const data = snapshot.val();
-            window.pedidos = data ? Object.keys(data).map(key => ({...data[key], firebaseKey: key})) : [];
-            mostrarPedidos();
-        });
-
-        // Funciones Firebase globales
-        window.guardarEnFirebase = async (coleccion, datos, firebaseKey = null) => {
-            try {
-                document.getElementById('sync-status').innerHTML = '🔄 Sincronizando...';
-                
-                if (firebaseKey) {
-                    await set(ref(database, `${coleccion}/${firebaseKey}`), datos);
-                } else {
-                    await push(ref(database, coleccion), datos);
-                }
-                
-                document.getElementById('sync-status').innerHTML = '✅ Sincronizado';
-                setTimeout(() => {
-                    document.getElementById('sync-status').innerHTML = '🟢 Conectado';
-                }, 2000);
-            } catch (error) {
-                console.error('Error Firebase:', error);
-                document.getElementById('sync-status').innerHTML = '❌ Error';
-                alert('Error de sincronización. Revisa tu conexión.');
-            }
-        };
-
-        window.eliminarDeFirebase = async (coleccion, firebaseKey) => {
-            try {
-                document.getElementById('sync-status').innerHTML = '🔄 Sincronizando...';
-                await remove(ref(database, `${coleccion}/${firebaseKey}`));
-                document.getElementById('sync-status').innerHTML = '✅ Sincronizado';
-                setTimeout(() => {
-                    document.getElementById('sync-status').innerHTML = '🟢 Conectado';
-                }, 2000);
-            } catch (error) {
-                console.error('Error Firebase:', error);
-                document.getElementById('sync-status').innerHTML = '❌ Error';
-                alert('Error de sincronización. Revisa tu conexión.');
-            }
-        };
-
-        // Marcar como conectado
-        setTimeout(() => {
-            document.getElementById('sync-status').innerHTML = '🟢 Conectado';
-        }, 2000);
-    </script>
-
     <script>
+        // Variables globales para almacenar datos
+        let productos = [];
+        let clientes = [];
+        let pedidos = [];
+        let componentes = [];
+        let productosPedido = [];
+        let editandoProducto = null;
+        let editandoCliente = null;
+        let editandoPedido = null;
+
         // Función para cambiar entre pestañas
         function showTab(tabName, element) {
+            // Ocultar todas las pestañas
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(tab => tab.classList.remove('active'));
             
+            // Remover clase active de todos los botones
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             
+            // Mostrar la pestaña seleccionada
             document.getElementById(tabName).classList.add('active');
             element.classList.add('active');
         }
@@ -604,7 +531,7 @@
         }
 
         // Función para guardar producto
-        async function guardarProducto(event) {
+        function guardarProducto(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('producto-nombre').value.trim();
@@ -637,14 +564,17 @@
             };
             
             if (editandoProducto) {
-                await guardarEnFirebase('productos', producto, editandoProducto.firebaseKey);
+                const index = productos.findIndex(p => p.id === editandoProducto.id);
+                productos[index] = producto;
                 alert('Producto actualizado correctamente');
             } else {
-                await guardarEnFirebase('productos', producto);
+                productos.push(producto);
                 alert('Producto guardado correctamente');
             }
             
             limpiarFormProducto();
+            mostrarProductos();
+            actualizarSelectProductos();
         }
 
         // Función para mostrar lista de productos
@@ -659,7 +589,7 @@
             let html = '';
             productos.forEach(producto => {
                 const alertaStock = producto.stockActual <= producto.stockMinimo ? 'style="background-color: #ffe6e6;"' : '';
-                const componentesHtml = producto.componentes && producto.componentes.length > 0 ? 
+                const componentesHtml = producto.componentes.length > 0 ? 
                     `<br><small>Componentes: ${producto.componentes.map(c => c.nombre + ' (' + c.cantidad + ')').join(', ')}</small>` : '';
                 
                 html += `
@@ -674,8 +604,8 @@
                             ${producto.stockActual <= producto.stockMinimo ? '<p style="color: red; font-weight: bold;">⚠️ Stock bajo</p>' : ''}
                         </div>
                         <div class="item-actions">
-                            <button onclick="editarProducto('${producto.firebaseKey}')" class="btn-edit">✏️</button>
-                            <button onclick="eliminarProducto('${producto.firebaseKey}')" class="btn-delete">🗑️</button>
+                            <button onclick="editarProducto(${producto.id})" class="btn-edit">✏️</button>
+                            <button onclick="eliminarProducto(${producto.id})" class="btn-delete">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -685,8 +615,8 @@
         }
 
         // Función para editar producto
-        function editarProducto(firebaseKey) {
-            const producto = productos.find(p => p.firebaseKey === firebaseKey);
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id === id);
             if (!producto) return;
             
             editandoProducto = producto;
@@ -694,19 +624,21 @@
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-precio').value = producto.precio;
             document.getElementById('producto-tipo').value = producto.tipo;
-            document.getElementById('producto-descripcion').value = producto.descripcion || '';
+            document.getElementById('producto-descripion').value = producto.descripcion;
             document.getElementById('producto-stock-inicial').value = producto.stockInicial;
             document.getElementById('producto-stock-minimo').value = producto.stockMinimo;
             
-            componentes = producto.componentes ? [...producto.componentes] : [];
+            componentes = [...producto.componentes];
             toggleComponentes();
             actualizarListaComponentes();
         }
 
         // Función para eliminar producto
-        async function eliminarProducto(firebaseKey) {
+        function eliminarProducto(id) {
             if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-                await eliminarDeFirebase('productos', firebaseKey);
+                productos = productos.filter(p => p.id !== id);
+                mostrarProductos();
+                actualizarSelectProductos();
                 alert('Producto eliminado correctamente');
             }
         }
@@ -717,12 +649,12 @@
             select.innerHTML = '<option value="">Seleccionar producto...</option>';
             
             productos.forEach(producto => {
-                select.innerHTML += `<option value="${producto.firebaseKey}">${producto.nombre} - $${producto.precio.toFixed(2)}</option>`;
+                select.innerHTML += `<option value="${producto.id}">${producto.nombre} - $${producto.precio.toFixed(2)}</option>`;
             });
         }
 
         // Función para guardar cliente
-        async function guardarCliente(event) {
+        function guardarCliente(event) {
             event.preventDefault();
             
             const nombre = document.getElementById('cliente-nombre').value.trim();
@@ -744,14 +676,17 @@
             };
             
             if (editandoCliente) {
-                await guardarEnFirebase('clientes', cliente, editandoCliente.firebaseKey);
+                const index = clientes.findIndex(c => c.id === editandoCliente.id);
+                clientes[index] = cliente;
                 alert('Cliente actualizado correctamente');
             } else {
-                await guardarEnFirebase('clientes', cliente);
+                clientes.push(cliente);
                 alert('Cliente guardado correctamente');
             }
             
             limpiarFormCliente();
+            mostrarClientes();
+            actualizarSelectClientes();
         }
 
         // Función para mostrar lista de clientes
@@ -774,8 +709,8 @@
                             ${cliente.direccion ? `<p><strong>Dirección:</strong> ${cliente.direccion}</p>` : ''}
                         </div>
                         <div class="item-actions">
-                            <button onclick="editarCliente('${cliente.firebaseKey}')" class="btn-edit">✏️</button>
-                            <button onclick="eliminarCliente('${cliente.firebaseKey}')" class="btn-delete">🗑️</button>
+                            <button onclick="editarCliente(${cliente.id})" class="btn-edit">✏️</button>
+                            <button onclick="eliminarCliente(${cliente.id})" class="btn-delete">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -785,22 +720,24 @@
         }
 
         // Función para editar cliente
-        function editarCliente(firebaseKey) {
-            const cliente = clientes.find(c => c.firebaseKey === firebaseKey);
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
             if (!cliente) return;
             
             editandoCliente = cliente;
             
             document.getElementById('cliente-nombre').value = cliente.nombre;
             document.getElementById('cliente-telefono').value = cliente.telefono;
-            document.getElementById('cliente-email').value = cliente.email || '';
-            document.getElementById('cliente-direccion').value = cliente.direccion || '';
+            document.getElementById('cliente-email').value = cliente.email;
+            document.getElementById('cliente-direccion').value = cliente.direccion;
         }
 
         // Función para eliminar cliente
-        async function eliminarCliente(firebaseKey) {
+        function eliminarCliente(id) {
             if (confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
-                await eliminarDeFirebase('clientes', firebaseKey);
+                clientes = clientes.filter(c => c.id !== id);
+                mostrarClientes();
+                actualizarSelectClientes();
                 alert('Cliente eliminado correctamente');
             }
         }
@@ -811,21 +748,21 @@
             select.innerHTML = '<option value="">Seleccionar cliente...</option>';
             
             clientes.forEach(cliente => {
-                select.innerHTML += `<option value="${cliente.firebaseKey}">${cliente.nombre}</option>`;
+                select.innerHTML += `<option value="${cliente.id}">${cliente.nombre}</option>`;
             });
         }
 
         // Función para agregar producto al pedido
         function agregarProductoPedido() {
-            const productoKey = document.getElementById('pedido-producto').value;
+            const productoId = document.getElementById('pedido-producto').value;
             const cantidad = parseInt(document.getElementById('pedido-cantidad').value);
             
-            if (!productoKey || !cantidad || cantidad <= 0) {
+            if (!productoId || !cantidad || cantidad <= 0) {
                 alert('Por favor, selecciona un producto y una cantidad válida');
                 return;
             }
             
-            const producto = productos.find(p => p.firebaseKey === productoKey);
+            const producto = productos.find(p => p.id == productoId);
             if (!producto) {
                 alert('Producto no encontrado');
                 return;
@@ -836,12 +773,11 @@
                 return;
             }
             
-            const productoExistente = productosPedido.find(p => p.firebaseKey === productoKey);
+            const productoExistente = productosPedido.find(p => p.id == productoId);
             if (productoExistente) {
                 productoExistente.cantidad += cantidad;
             } else {
                 productosPedido.push({
-                    firebaseKey: producto.firebaseKey,
                     id: producto.id,
                     nombre: producto.nombre,
                     precio: producto.precio,
@@ -889,15 +825,18 @@
         }
 
         // Función para guardar pedido
-        async function guardarPedido(event) {
+        function guardarPedido(event) {
             event.preventDefault();
             
-            const clienteKey = document.getElementById('pedido-cliente').value;
+            const clienteId = document.getElementById('pedido-cliente').value;
             const fecha = document.getElementById('pedido-fecha').value;
+            const turno = document.getElementById('pedido-turno').value;
+            const precioEnvio = parseFloat(document.getElementById('pedido-precio-envio').value);
             const estado = document.getElementById('pedido-estado').value;
+            const tipoPago = document.getElementById('pedido-tipo-pago').value;
             const notas = document.getElementById('pedido-notas').value.trim();
             
-            if (!clienteKey || !fecha || !estado) {
+            if (!clienteId || !fecha || !turno || !precioEnvio === NaN || !estado || !tipoPago) {
                 alert('Por favor, completa todos los campos obligatorios');
                 return;
             }
@@ -907,43 +846,51 @@
                 return;
             }
             
-            const cliente = clientes.find(c => c.firebaseKey === clienteKey);
-            let total = 0;
+            const cliente = clientes.find(c => c.id == clienteId);
+            let totalProductos = 0;
             
             // Calcular total y actualizar stock
-            for (let prodPedido of productosPedido) {
-                total += prodPedido.precio * prodPedido.cantidad;
+            productosPedido.forEach(prodPedido => {
+                totalProductos += prodPedido.precio * prodPedido.cantidad;
                 
                 if (!editandoPedido) {
                     // Solo reducir stock si es un pedido nuevo
-                    const producto = productos.find(p => p.firebaseKey === prodPedido.firebaseKey);
+                    const producto = productos.find(p => p.id == prodPedido.id);
                     if (producto) {
                         producto.stockActual -= prodPedido.cantidad;
-                        await guardarEnFirebase('productos', producto, producto.firebaseKey);
                     }
                 }
-            }
+            });
+            
+            const totalFinal = totalProductos + precioEnvio;
             
             const pedido = {
                 id: editandoPedido ? editandoPedido.id : Date.now(),
-                clienteKey: clienteKey,
+                clienteId: parseInt(clienteId),
                 clienteNombre: cliente.nombre,
                 fecha,
+                turno,
+                precioEnvio,
                 estado,
+                tipoPago,
                 notas,
                 productos: [...productosPedido],
-                total: total
+                totalProductos: totalProductos,
+                totalFinal: totalFinal
             };
             
             if (editandoPedido) {
-                await guardarEnFirebase('pedidos', pedido, editandoPedido.firebaseKey);
+                const index = pedidos.findIndex(p => p.id === editandoPedido.id);
+                pedidos[index] = pedido;
                 alert('Pedido actualizado correctamente');
             } else {
-                await guardarEnFirebase('pedidos', pedido);
+                pedidos.push(pedido);
                 alert('Pedido guardado correctamente');
             }
             
             limpiarFormPedido();
+            mostrarPedidos();
+            mostrarProductos();
         }
 
         // Función para mostrar lista de pedidos
@@ -968,20 +915,27 @@
                     'entregado': '#6c757d'
                 };
                 
+                const turnoTexto = pedido.turno === 'mañana' ? 'Mañana (8:00-12:00)' : 'Tarde (14:00-18:00)';
+                const pagoTexto = pedido.tipoPago === 'total' ? 'Pago Total' : 'Pago Parcial';
+                
                 html += `
                     <div class="item-card">
                         <div class="item-info">
                             <h4>Pedido #${pedido.id}</h4>
                             <p><strong>Cliente:</strong> ${pedido.clienteNombre}</p>
                             <p><strong>Fecha:</strong> ${pedido.fecha}</p>
+                            <p><strong>Turno:</strong> ${turnoTexto}</p>
                             <p><strong>Estado:</strong> <span style="color: ${estadoColor[pedido.estado]}; font-weight: bold;">${pedido.estado.toUpperCase()}</span></p>
+                            <p><strong>Tipo de Pago:</strong> ${pagoTexto}</p>
                             <p><strong>Productos:</strong> ${productosHtml}</p>
-                            <p><strong>Total:</strong> ${pedido.total.toFixed(2)}</p>
+                            <p><strong>Subtotal:</strong> ${pedido.totalProductos.toFixed(2)}</p>
+                            <p><strong>Envío:</strong> ${pedido.precioEnvio.toFixed(2)}</p>
+                            <p><strong>Total Final:</strong> ${pedido.totalFinal.toFixed(2)}</p>
                             ${pedido.notas ? `<p><strong>Notas:</strong> ${pedido.notas}</p>` : ''}
                         </div>
                         <div class="item-actions">
-                            <button onclick="editarPedido('${pedido.firebaseKey}')" class="btn-edit">✏️</button>
-                            <button onclick="eliminarPedido('${pedido.firebaseKey}')" class="btn-delete">🗑️</button>
+                            <button onclick="editarPedido(${pedido.id})" class="btn-edit">✏️</button>
+                            <button onclick="eliminarPedido(${pedido.id})" class="btn-delete">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -991,25 +945,29 @@
         }
 
         // Función para editar pedido
-        function editarPedido(firebaseKey) {
-            const pedido = pedidos.find(p => p.firebaseKey === firebaseKey);
+        function editarPedido(id) {
+            const pedido = pedidos.find(p => p.id === id);
             if (!pedido) return;
             
             editandoPedido = pedido;
             
-            document.getElementById('pedido-cliente').value = pedido.clienteKey;
+            document.getElementById('pedido-cliente').value = pedido.clienteId;
             document.getElementById('pedido-fecha').value = pedido.fecha;
+            document.getElementById('pedido-turno').value = pedido.turno;
+            document.getElementById('pedido-precio-envio').value = pedido.precioEnvio;
             document.getElementById('pedido-estado').value = pedido.estado;
-            document.getElementById('pedido-notas').value = pedido.notas || '';
+            document.getElementById('pedido-tipo-pago').value = pedido.tipoPago;
+            document.getElementById('pedido-notas').value = pedido.notas;
             
-            productosPedido = pedido.productos ? [...pedido.productos] : [];
+            productosPedido = [...pedido.productos];
             actualizarListaProductosPedido();
         }
 
         // Función para eliminar pedido
-        async function eliminarPedido(firebaseKey) {
+        function eliminarPedido(id) {
             if (confirm('¿Estás seguro de que quieres eliminar este pedido?')) {
-                await eliminarDeFirebase('pedidos', firebaseKey);
+                pedidos = pedidos.filter(p => p.id !== id);
+                mostrarPedidos();
                 alert('Pedido eliminado correctamente');
             }
         }
@@ -1040,6 +998,11 @@
             // Establecer fecha actual por defecto
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('pedido-fecha').value = today;
+            
+            // Mostrar listas vacías inicialmente
+            mostrarProductos();
+            mostrarClientes();
+            mostrarPedidos();
         });
     </script>
 </body>
