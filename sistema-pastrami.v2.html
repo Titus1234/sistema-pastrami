@@ -624,7 +624,7 @@
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-precio').value = producto.precio;
             document.getElementById('producto-tipo').value = producto.tipo;
-            document.getElementById('producto-descripion').value = producto.descripcion;
+            document.getElementById('producto-descripcion').value = producto.descripcion;
             document.getElementById('producto-stock-inicial').value = producto.stockInicial;
             document.getElementById('producto-stock-minimo').value = producto.stockMinimo;
             
@@ -836,7 +836,7 @@
             const tipoPago = document.getElementById('pedido-tipo-pago').value;
             const notas = document.getElementById('pedido-notas').value.trim();
             
-            if (!clienteId || !fecha || !turno || !precioEnvio === NaN || !estado || !tipoPago) {
+            if (!clienteId || !fecha || !turno || isNaN(precioEnvio) || precioEnvio < 0 || !estado || !tipoPago) {
                 alert('Por favor, completa todos los campos obligatorios');
                 return;
             }
