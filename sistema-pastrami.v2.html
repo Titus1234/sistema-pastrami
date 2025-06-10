@@ -1,4 +1,37 @@
-<!DOCTYPE html>
+// Función para guardar cliente
+        function guardarCliente(event) {
+            event.preventDefault();
+            
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const apellido = document.getElementById('cliente-apellido').value.trim();
+            const telefono = document.getElementById('cliente-telefono').value.trim();
+            const email = document.getElementById('cliente-email').value.trim();
+            const calle = document.getElementById('cliente-calle').value.trim();
+            const numero = document.getElementById('cliente-numero').value.trim();
+            const piso = document.getElementById('cliente-piso').value.trim();
+            const postal = document.getElementById('cliente-postal').value.trim();
+            const localidad = document.getElementById('cliente-localidad').value.trim();
+            
+            if (!nombre || !apellido || !telefono || !calle || !numero || !postal || !localidad) {
+                alert('Por favor, completa todos los campos obligatorios');
+                return;
+            }
+            
+            const cliente = {
+                id: editandoCliente ? editandoCliente.id : Date.now(),
+                nombre,
+                apellido,
+                telefono,
+                email,
+                calle,
+                numero,
+                piso,
+                postal,
+                localidad
+            };
+            
+            if (editandoCliente) {
+                const index = clientes.findIndex(c => c.id === editando<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -322,19 +355,48 @@
                         <input type="text" id="cliente-nombre" required>
                     </div>
                     <div class="form-col">
-                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
-                        <input type="tel" id="cliente-telefono" required>
+                        <label for="cliente-apellido">Apellido <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-apellido" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-col">
+                        <label for="cliente-telefono">Teléfono <span class="required">*</span>:</label>
+                        <input type="tel" id="cliente-telefono" required>
+                    </div>
+                    <div class="form-col">
                         <label for="cliente-email">Email:</label>
                         <input type="email" id="cliente-email">
                     </div>
+                </div>
+
+                <div class="form-row">
                     <div class="form-col">
-                        <label for="cliente-direccion">Dirección:</label>
-                        <input type="text" id="cliente-direccion">
+                        <label for="cliente-calle">Calle <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-calle" required>
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-numero">Número <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-numero" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-piso">Piso/Dpto:</label>
+                        <input type="text" id="cliente-piso">
+                    </div>
+                    <div class="form-col">
+                        <label for="cliente-postal">Código Postal <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-postal" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cliente-localidad">Localidad <span class="required">*</span>:</label>
+                        <input type="text" id="cliente-localidad" required>
                     </div>
                 </div>
 
