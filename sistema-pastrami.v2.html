@@ -371,16 +371,16 @@
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="pedido-turno">Turno de Entrega <span class="required">*</span>:</label>
+                        <label for="pedido-turno">Turno <span class="required">*</span>:</label>
                         <select id="pedido-turno" required>
-                            <option value="">Seleccionar turno...</option>
-                            <option value="mañana">Mañana (8:00 - 12:00)</option>
-                            <option value="tarde">Tarde (14:00 - 18:00)</option>
+                            <option value="">Seleccionar...</option>
+                            <option value="mañana">Mañana</option>
+                            <option value="tarde">Tarde</option>
                         </select>
                     </div>
                     <div class="form-col">
-                        <label for="pedido-precio-envio">Precio del Envío <span class="required">*</span>:</label>
-                        <input type="number" id="pedido-precio-envio" step="0.01" min="0" required>
+                        <label for="pedido-envio">Precio Envío <span class="required">*</span>:</label>
+                        <input type="number" id="pedido-envio" step="0.01" min="0" required>
                     </div>
                 </div>
 
@@ -396,11 +396,11 @@
                         </select>
                     </div>
                     <div class="form-col">
-                        <label for="pedido-tipo-pago">Tipo de Pago <span class="required">*</span>:</label>
-                        <select id="pedido-tipo-pago" required>
+                        <label for="pedido-pago">Tipo Pago <span class="required">*</span>:</label>
+                        <select id="pedido-pago" required>
                             <option value="">Seleccionar...</option>
-                            <option value="total">Pago Total</option>
-                            <option value="parcial">Pago Parcial</option>
+                            <option value="total">Total</option>
+                            <option value="parcial">Parcial</option>
                         </select>
                     </div>
                 </div>
@@ -808,7 +808,7 @@
                 
                 html += `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee;">
-                        <span>${producto.nombre} x${producto.cantidad} = ${subtotal.toFixed(2)}</span>
+                        <span>${producto.nombre} x${producto.cantidad} = $${subtotal.toFixed(2)}</span>
                         <button type="button" onclick="eliminarProductoPedido(${index})" style="background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">×</button>
                     </div>
                 `;
@@ -831,12 +831,12 @@
             const clienteId = document.getElementById('pedido-cliente').value;
             const fecha = document.getElementById('pedido-fecha').value;
             const turno = document.getElementById('pedido-turno').value;
-            const precioEnvio = parseFloat(document.getElementById('pedido-precio-envio').value);
+            const envio = parseFloat(document.getElementById('pedido-envio').value);
             const estado = document.getElementById('pedido-estado').value;
-            const tipoPago = document.getElementById('pedido-tipo-pago').value;
+            const pago = document.getElementById('pedido-pago').value;
             const notas = document.getElementById('pedido-notas').value.trim();
             
-            if (!clienteId || !fecha || !turno || isNaN(precioEnvio) || precioEnvio < 0 || !estado || !tipoPago) {
+            if (!clienteId || !fecha || !turno || !envio || !estado || !pago) {
                 alert('Por favor, completa todos los campos obligatorios');
                 return;
             }
@@ -847,11 +847,11 @@
             }
             
             const cliente = clientes.find(c => c.id == clienteId);
-            let totalProductos = 0;
+            let total = 0;
             
             // Calcular total y actualizar stock
             productosPedido.forEach(prodPedido => {
-                totalProductos += prodPedido.precio * prodPedido.cantidad;
+                total += prodPedido.precio * prodPedido.cantidad;
                 
                 if (!editandoPedido) {
                     // Solo reducir stock si es un pedido nuevo
@@ -862,21 +862,18 @@
                 }
             });
             
-            const totalFinal = totalProductos + precioEnvio;
-            
             const pedido = {
                 id: editandoPedido ? editandoPedido.id : Date.now(),
                 clienteId: parseInt(clienteId),
                 clienteNombre: cliente.nombre,
                 fecha,
                 turno,
-                precioEnvio,
+                envio,
                 estado,
-                tipoPago,
+                pago,
                 notas,
                 productos: [...productosPedido],
-                totalProductos: totalProductos,
-                totalFinal: totalFinal
+                total: total + envio
             };
             
             if (editandoPedido) {
@@ -915,22 +912,18 @@
                     'entregado': '#6c757d'
                 };
                 
-                const turnoTexto = pedido.turno === 'mañana' ? 'Mañana (8:00-12:00)' : 'Tarde (14:00-18:00)';
-                const pagoTexto = pedido.tipoPago === 'total' ? 'Pago Total' : 'Pago Parcial';
-                
                 html += `
                     <div class="item-card">
                         <div class="item-info">
                             <h4>Pedido #${pedido.id}</h4>
                             <p><strong>Cliente:</strong> ${pedido.clienteNombre}</p>
                             <p><strong>Fecha:</strong> ${pedido.fecha}</p>
-                            <p><strong>Turno:</strong> ${turnoTexto}</p>
+                            <p><strong>Turno:</strong> ${pedido.turno}</p>
                             <p><strong>Estado:</strong> <span style="color: ${estadoColor[pedido.estado]}; font-weight: bold;">${pedido.estado.toUpperCase()}</span></p>
-                            <p><strong>Tipo de Pago:</strong> ${pagoTexto}</p>
+                            <p><strong>Pago:</strong> ${pedido.pago}</p>
                             <p><strong>Productos:</strong> ${productosHtml}</p>
-                            <p><strong>Subtotal:</strong> ${pedido.totalProductos.toFixed(2)}</p>
-                            <p><strong>Envío:</strong> ${pedido.precioEnvio.toFixed(2)}</p>
-                            <p><strong>Total Final:</strong> ${pedido.totalFinal.toFixed(2)}</p>
+                            <p><strong>Envío:</strong> ${pedido.envio.toFixed(2)}</p>
+                            <p><strong>Total:</strong> ${pedido.total.toFixed(2)}</p>
                             ${pedido.notas ? `<p><strong>Notas:</strong> ${pedido.notas}</p>` : ''}
                         </div>
                         <div class="item-actions">
@@ -954,9 +947,9 @@
             document.getElementById('pedido-cliente').value = pedido.clienteId;
             document.getElementById('pedido-fecha').value = pedido.fecha;
             document.getElementById('pedido-turno').value = pedido.turno;
-            document.getElementById('pedido-precio-envio').value = pedido.precioEnvio;
+            document.getElementById('pedido-envio').value = pedido.envio;
             document.getElementById('pedido-estado').value = pedido.estado;
-            document.getElementById('pedido-tipo-pago').value = pedido.tipoPago;
+            document.getElementById('pedido-pago').value = pedido.pago;
             document.getElementById('pedido-notas').value = pedido.notas;
             
             productosPedido = [...pedido.productos];
