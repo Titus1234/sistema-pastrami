@@ -428,9 +428,26 @@
                         <label for="pedido-pago">Tipo Pago <span class="required">*</span>:</label>
                         <select id="pedido-pago" required>
                             <option value="">Seleccionar...</option>
-                            <option value="total">Total</option>
-                            <option value="parcial">Parcial</option>
+                            <option value="total">Pago Total</option>
+                            <option value="parcial">Pago Parcial</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="pedido-modalidad">Modalidad Pago <span class="required">*</span>:</label>
+                        <select id="pedido-modalidad" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia Bancaria</option>
+                            <option value="mercadopago">Mercado Pago</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label for="pedido-importe">Importe Pagado <span class="required">*</span>:</label>
+                        <input type="number" id="pedido-importe" step="0.01" min="0" required>
                     </div>
                 </div>
 
@@ -880,9 +897,11 @@
             const envio = parseFloat(document.getElementById('pedido-envio').value);
             const estado = document.getElementById('pedido-estado').value;
             const pago = document.getElementById('pedido-pago').value;
+            const modalidad = document.getElementById('pedido-modalidad').value;
+            const importe = parseFloat(document.getElementById('pedido-importe').value);
             const notas = document.getElementById('pedido-notas').value.trim();
             
-            if (!clienteId || !fecha || !turno || isNaN(envio) || !estado || !pago) {
+            if (!clienteId || !fecha || !turno || isNaN(envio) || !estado || !pago || !modalidad || isNaN(importe)) {
                 alert('Por favor, completa todos los campos obligatorios');
                 return;
             }
@@ -909,6 +928,18 @@
             });
             
             const totalFinal = subtotal + envio;
+            const saldo = totalFinal - importe;
+            
+            // Validar importe según tipo de pago
+            if (pago === 'total' && importe < totalFinal) {
+                alert(`Para pago total, el importe debe ser ${totalFinal.toFixed(2)}`);
+                return;
+            }
+            
+            if (importe > totalFinal) {
+                alert(`El importe no puede ser mayor al total (${totalFinal.toFixed(2)})`);
+                return;
+            }
             
             const pedido = {
                 id: editandoPedido ? editandoPedido.id : Date.now(),
@@ -919,10 +950,13 @@
                 envio,
                 estado,
                 pago,
+                modalidad,
+                importe,
                 notas,
                 productos: [...productosPedido],
                 subtotal: subtotal,
-                total: totalFinal
+                total: totalFinal,
+                saldo: saldo
             };
             
             if (editandoPedido) {
@@ -999,6 +1033,8 @@
             document.getElementById('pedido-envio').value = pedido.envio;
             document.getElementById('pedido-estado').value = pedido.estado;
             document.getElementById('pedido-pago').value = pedido.pago;
+            document.getElementById('pedido-modalidad').value = pedido.modalidad || '';
+            document.getElementById('pedido-importe').value = pedido.importe || '';
             document.getElementById('pedido-notas').value = pedido.notas;
             
             productosPedido = [...pedido.productos];
