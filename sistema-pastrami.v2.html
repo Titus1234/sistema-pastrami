@@ -116,6 +116,28 @@
             border-color: #007bff;
         }
 
+        .total-display {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            background-color: #f8f9fa;
+            color: #333;
+            text-align: center;
+        }
+
+        .saldo-positivo {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .saldo-cero {
+            border-color: #28a745;
+            color: #28a745;
+        }
+
         .btn {
             padding: 12px 24px;
             border: none;
@@ -227,7 +249,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+<div class="container">
         <div class="header">
             <h1>🥪 Sistema Pastrami</h1>
             <p>Gestión completa de productos, clientes y pedidos</p>
@@ -380,8 +402,7 @@
                 </div>
             </div>
         </div>
-
-        <div id="pedidos" class="tab-content">
+<div id="pedidos" class="tab-content">
             <h2>🥪 Gestión de Pedidos</h2>
             
             <form id="pedidos-form" onsubmit="guardarPedido(event)">
@@ -409,7 +430,7 @@
                     </div>
                     <div class="form-col">
                         <label for="pedido-envio">Precio Envío <span class="required">*</span>:</label>
-                        <input type="number" id="pedido-envio" step="0.01" min="0" required>
+                        <input type="number" id="pedido-envio" step="0.01" min="0" required onchange="calcularTotales()">
                     </div>
                 </div>
 
@@ -447,11 +468,26 @@
                     </div>
                     <div class="form-col">
                         <label for="pedido-importe">Importe Pagado <span class="required">*</span>:</label>
-                        <input type="number" id="pedido-importe" step="0.01" min="0" required>
+                        <input type="number" id="pedido-importe" step="0.01" min="0" required onchange="calcularTotales()">
                     </div>
                 </div>
 
                 <div class="form-row">
+                    <div class="form-col">
+                        <label for="total-pedido">TOTAL DEL PEDIDO:</label>
+                        <input type="text" id="total-pedido" class="total-display" readonly value="$0.00">
+                    </div>
+                    <div class="form-col">
+                        <label for="total-abonado">TOTAL ABONADO:</label>
+                        <input type="text" id="total-abonado" class="total-display" readonly value="$0.00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="saldo-pendiente">SALDO:</label>
+                        <input type="text" id="saldo-pendiente" class="total-display saldo-cero" readonly value="$0.00">
+                    </div>
                     <div class="form-col">
                         <label for="pedido-notas">Notas:</label>
                         <input type="text" id="pedido-notas">
@@ -492,8 +528,7 @@
             </div>
         </div>
     </div>
-
-    <script>
+<script>
         // Variables globales
         let productos = [];
         let clientes = [];
@@ -514,6 +549,34 @@
             
             document.getElementById(tabName).classList.add('active');
             element.classList.add('active');
+        }
+
+        // Función para calcular totales en tiempo real
+        function calcularTotales() {
+            const envio = parseFloat(document.getElementById('pedido-envio').value) || 0;
+            const importe = parseFloat(document.getElementById('pedido-importe').value) || 0;
+            
+            // Calcular subtotal de productos
+            let subtotalProductos = 0;
+            productosPedido.forEach(producto => {
+                subtotalProductos += producto.precio * producto.cantidad;
+            });
+            
+            const totalPedido = subtotalProductos + envio;
+            const saldo = totalPedido - importe;
+            
+            // Actualizar campos visuales
+            document.getElementById('total-pedido').value = '$' + totalPedido.toFixed(2);
+            document.getElementById('total-abonado').value = '$' + importe.toFixed(2);
+            document.getElementById('saldo-pendiente').value = '$' + saldo.toFixed(2);
+            
+            // Cambiar colores según el saldo
+            const saldoField = document.getElementById('saldo-pendiente');
+            if (saldo > 0.01) {
+                saldoField.className = 'total-display saldo-positivo';
+            } else {
+                saldoField.className = 'total-display saldo-cero';
+            }
         }
 
         // Función para mostrar/ocultar sección de componentes
@@ -573,7 +636,82 @@
             actualizarListaComponentes();
         }
 
-        // Función para guardar producto
+        // Función para actualizar lista de productos en pedido
+        function actualizarListaProductosPedido() {
+            const lista = document.getElementById('productos-pedido');
+            
+            if (productosPedido.length === 0) {
+                lista.innerHTML = '<p style="color: #6c757d;">No hay productos agregados</p>';
+                calcularTotales();
+                return;
+            }
+            
+            let html = '';
+            let total = 0;
+            
+            productosPedido.forEach((producto, index) => {
+                const subtotal = producto.precio * producto.cantidad;
+                total += subtotal;
+                
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <span>${producto.nombre} x${producto.cantidad} = $${subtotal.toFixed(2)}</span>
+                        <button type="button" onclick="eliminarProductoPedido(${index})" style="background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">×</button>
+                    </div>
+                `;
+            });
+            
+            html += `<div style="margin-top: 10px; font-weight: bold; text-align: right;">Subtotal Productos: $${total.toFixed(2)}</div>`;
+            lista.innerHTML = html;
+            
+            // Recalcular totales
+            calcularTotales();
+        }
+
+        // Función para eliminar producto del pedido
+        function eliminarProductoPedido(index) {
+            productosPedido.splice(index, 1);
+            actualizarListaProductosPedido();
+        }
+
+        // Función para agregar producto al pedido
+        function agregarProductoPedido() {
+            const productoId = document.getElementById('pedido-producto').value;
+            const cantidad = parseInt(document.getElementById('pedido-cantidad').value);
+            
+            if (!productoId || !cantidad || cantidad <= 0) {
+                alert('Por favor, selecciona un producto y una cantidad válida');
+                return;
+            }
+            
+            const producto = productos.find(p => p.id == productoId);
+            if (!producto) {
+                alert('Producto no encontrado');
+                return;
+            }
+            
+            if (cantidad > producto.stockActual) {
+                alert(`Stock insuficiente. Stock disponible: ${producto.stockActual}`);
+                return;
+            }
+            
+            const productoExistente = productosPedido.find(p => p.id == productoId);
+            if (productoExistente) {
+                productoExistente.cantidad += cantidad;
+            } else {
+                productosPedido.push({
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    cantidad: cantidad
+                });
+            }
+            
+            document.getElementById('pedido-producto').value = '';
+            document.getElementById('pedido-cantidad').value = '';
+            actualizarListaProductosPedido();
+        }
+// Función para guardar producto
         function guardarProducto(event) {
             event.preventDefault();
             
@@ -811,80 +949,7 @@
                 select.innerHTML += `<option value="${cliente.id}">${cliente.nombre} ${cliente.apellido}</option>`;
             });
         }
-
-        // Función para agregar producto al pedido
-        function agregarProductoPedido() {
-            const productoId = document.getElementById('pedido-producto').value;
-            const cantidad = parseInt(document.getElementById('pedido-cantidad').value);
-            
-            if (!productoId || !cantidad || cantidad <= 0) {
-                alert('Por favor, selecciona un producto y una cantidad válida');
-                return;
-            }
-            
-            const producto = productos.find(p => p.id == productoId);
-            if (!producto) {
-                alert('Producto no encontrado');
-                return;
-            }
-            
-            if (cantidad > producto.stockActual) {
-                alert(`Stock insuficiente. Stock disponible: ${producto.stockActual}`);
-                return;
-            }
-            
-            const productoExistente = productosPedido.find(p => p.id == productoId);
-            if (productoExistente) {
-                productoExistente.cantidad += cantidad;
-            } else {
-                productosPedido.push({
-                    id: producto.id,
-                    nombre: producto.nombre,
-                    precio: producto.precio,
-                    cantidad: cantidad
-                });
-            }
-            
-            document.getElementById('pedido-producto').value = '';
-            document.getElementById('pedido-cantidad').value = '';
-            actualizarListaProductosPedido();
-        }
-
-        // Función para actualizar lista de productos en pedido
-        function actualizarListaProductosPedido() {
-            const lista = document.getElementById('productos-pedido');
-            
-            if (productosPedido.length === 0) {
-                lista.innerHTML = '<p style="color: #6c757d;">No hay productos agregados</p>';
-                return;
-            }
-            
-            let html = '';
-            let total = 0;
-            
-            productosPedido.forEach((producto, index) => {
-                const subtotal = producto.precio * producto.cantidad;
-                total += subtotal;
-                
-                html += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee;">
-                        <span>${producto.nombre} x${producto.cantidad} = ${subtotal.toFixed(2)}</span>
-                        <button type="button" onclick="eliminarProductoPedido(${index})" style="background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">×</button>
-                    </div>
-                `;
-            });
-            
-            html += `<div style="margin-top: 10px; font-weight: bold; text-align: right;">Total: ${total.toFixed(2)}</div>`;
-            lista.innerHTML = html;
-        }
-
-        // Función para eliminar producto del pedido
-        function eliminarProductoPedido(index) {
-            productosPedido.splice(index, 1);
-            actualizarListaProductosPedido();
-        }
-
-        // Función para guardar pedido
+// Función para guardar pedido
         function guardarPedido(event) {
             event.preventDefault();
             
@@ -928,12 +993,12 @@
             
             // Validar importe según tipo de pago
             if (pago === 'total' && importe < totalFinal) {
-                alert(`Para pago total, el importe debe ser ${totalFinal.toFixed(2)}`);
+                alert(`Para pago total, el importe debe ser $${totalFinal.toFixed(2)}`);
                 return;
             }
             
             if (importe > totalFinal) {
-                alert(`El importe no puede ser mayor al total (${totalFinal.toFixed(2)})`);
+                alert(`El importe no puede ser mayor al total ($${totalFinal.toFixed(2)})`);
                 return;
             }
             
@@ -998,9 +1063,9 @@
                     'otro': 'Otro'
                 };
                 
-                const subtotalPedido = pedido.subtotal || (pedido.total - (pedido.envio || 0));
+                const subtotalPedido = pedido.subtotal || 0;
                 const importePedido = pedido.importe || 0;
-                const saldoPedido = pedido.total - importePedido;
+                const saldoPedido = pedido.saldo || 0;
                 const estadoPago = saldoPedido > 0.01 ? '⚠️ PENDIENTE' : '✅ PAGADO';
                 const colorSaldo = saldoPedido > 0.01 ? 'red' : 'green';
                 const modalidadMostrar = pedido.modalidad ? modalidadTexto[pedido.modalidad] || pedido.modalidad : 'No especificada';
@@ -1014,12 +1079,12 @@
                             <p><strong>Turno:</strong> ${pedido.turno}</p>
                             <p><strong>Estado:</strong> <span style="color: ${estadoColor[pedido.estado]}; font-weight: bold;">${pedido.estado.toUpperCase()}</span></p>
                             <p><strong>Productos:</strong> ${productosHtml}</p>
-                            <p><strong>Subtotal:</strong> ${subtotalPedido.toFixed(2)}</p>
-                            <p><strong>Envío:</strong> ${(pedido.envio || 0).toFixed(2)}</p>
-                            <p><strong>Total:</strong> ${pedido.total.toFixed(2)}</p>
+                            <p><strong>Subtotal:</strong> $${subtotalPedido.toFixed(2)}</p>
+                            <p><strong>Envío:</strong> $${(pedido.envio || 0).toFixed(2)}</p>
+                            <p><strong>Total:</strong> $${pedido.total.toFixed(2)}</p>
                             <p><strong>Modalidad:</strong> ${modalidadMostrar}</p>
-                            <p><strong>Pagado:</strong> ${importePedido.toFixed(2)}</p>
-                            <p><strong>Saldo:</strong> <span style="color: ${colorSaldo}; font-weight: bold;">${saldoPedido.toFixed(2)}</span></p>
+                            <p><strong>Pagado:</strong> $${importePedido.toFixed(2)}</p>
+                            <p><strong>Saldo:</strong> <span style="color: ${colorSaldo}; font-weight: bold;">$${saldoPedido.toFixed(2)}</span></p>
                             <p><strong>Estado Pago:</strong> <span style="color: ${colorSaldo}; font-weight: bold;">${estadoPago}</span></p>
                             ${pedido.notas ? `<p><strong>Notas:</strong> ${pedido.notas}</p>` : ''}
                         </div>
@@ -1083,6 +1148,11 @@
             productosPedido = [];
             actualizarListaProductosPedido();
             editandoPedido = null;
+            // Limpiar campos de totales
+            document.getElementById('total-pedido').value = '$0.00';
+            document.getElementById('total-abonado').value = '$0.00';
+            document.getElementById('saldo-pendiente').value = '$0.00';
+            document.getElementById('saldo-pendiente').className = 'total-display saldo-cero';
         }
 
         // Inicialización
