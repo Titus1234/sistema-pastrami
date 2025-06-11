@@ -896,8 +896,7 @@
                 html += '<div class="carrito-item">';
                 html += '<div class="carrito-item-info">';
                 html += '<strong>' + item.producto.nombre + '</strong><br>';
-                html += '<small> + item.producto.precio.toFixed(2) + ' x ' + item.cantidad + ' =  + (item.producto.precio * item.cantidad).toFixed(2) + '</small>';
-                html += '</div>';
+                html += '<small>$' + item.producto.precio.toFixed(2) + ' x ' + item.cantidad + ' = $' + (item.producto.precio * item.cantidad).toFixed(2) + '</small>';
                 html += '<div class="carrito-item-actions">';
                 html += '<input type="number" class="cantidad-input" min="1" value="' + item.cantidad + '" onchange="cambiarCantidad(' + index + ', this.value)">';
                 html += '<button type="button" onclick="eliminarDelCarrito(' + index + ')" class="btn btn-danger btn-small">🗑️</button>';
