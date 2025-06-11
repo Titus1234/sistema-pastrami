@@ -1102,6 +1102,129 @@
             
             mostrarNotificacion('✅ Envío creado exitosamente', 'success');
         }
+        // Variables para envíos
+let carritoEnvio = [];
+let productoSeleccionadoEnvio = null;
+
+function buscarProductosEnvio(query) {
+    const container = document.getElementById('productos-envio-suggestions');
+    
+    if (!query || query.length < 2) {
+        container.classList.remove('show');
+        return;
+    }
+    
+    const productosFiltrados = productos.filter(producto => {
+        return producto.nombre.toLowerCase().includes(query.toLowerCase()) &&
+               (producto.stockActual || 0) > 0;
+    });
+    
+    let html = '';
+    if (productosFiltrados.length === 0) {
+        html = '<div class="suggestion-item">No hay productos disponibles</div>';
+    } else {
+        productosFiltrados.forEach(producto => {
+            html += '<div class="suggestion-item" onclick="seleccionarProductoEnvio(\'' + producto.id + '\')">';
+            html += '<strong>' + producto.nombre + '</strong> - $' + producto.precio.toFixed(2) + '<br>';
+            html += '<small>Stock: ' + (producto.stockActual || 0) + ' unidades</small>';
+            html += '</div>';
+        });
+    }
+    
+    container.innerHTML = html;
+    container.classList.add('show');
+}
+
+function seleccionarProductoEnvio(productoId) {
+    const producto = productos.find(p => p.id === productoId);
+    if (!producto) return;
+    
+    productoSeleccionadoEnvio = producto;
+    document.getElementById('envio-producto').value = producto.nombre;
+    document.getElementById('productos-envio-suggestions').classList.remove('show');
+    document.getElementById('envio-cantidad').focus();
+}
+
+function agregarProductoEnvio() {
+    if (!productoSeleccionadoEnvio) {
+        mostrarNotificacion('❌ Seleccione un producto primero', 'error');
+        return;
+    }
+    
+    const cantidad = parseInt(document.getElementById('envio-cantidad').value) || 1;
+    
+    if (cantidad <= 0) {
+        mostrarNotificacion('❌ Cantidad debe ser mayor a 0', 'error');
+        return;
+    }
+    
+    if (cantidad > productoSeleccionadoEnvio.stockActual) {
+        mostrarNotificacion('❌ Stock insuficiente', 'error');
+        return;
+    }
+    
+    const itemExistente = carritoEnvio.find(item => item.producto.id === productoSeleccionadoEnvio.id);
+    
+    if (itemExistente) {
+        itemExistente.cantidad += cantidad;
+    } else {
+        carritoEnvio.push({
+            producto: JSON.parse(JSON.stringify(productoSeleccionadoEnvio)),
+            cantidad: cantidad
+        });
+    }
+    
+    document.getElementById('envio-producto').value = '';
+    document.getElementById('envio-cantidad').value = '1';
+    productoSeleccionadoEnvio = null;
+    
+    mostrarProductosEnvio();
+    calcularTotalEnvio();
+    mostrarNotificacion('✅ Producto agregado', 'success');
+}
+
+function mostrarProductosEnvio() {
+    const container = document.getElementById('productos-envio-lista');
+    
+    if (carritoEnvio.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #6c757d;">No hay productos agregados</p>';
+        return;
+    }
+    
+    let html = '';
+    carritoEnvio.forEach((item, index) => {
+        html += '<div class="carrito-item">';
+        html += '<div class="carrito-item-info">';
+        html += '<strong>' + item.producto.nombre + '</strong><br>';
+        html += '<small>$' + item.producto.precio.toFixed(2) + ' x ' + item.cantidad + ' = $' + (item.producto.precio * item.cantidad).toFixed(2) + '</small>';
+        html += '</div>';
+        html += '<div class="carrito-item-actions">';
+        html += '<input type="number" class="cantidad-input" min="1" value="' + item.cantidad + '" onchange="cambiarCantidadEnvio(' + index + ', this.value)">';
+        html += '<button type="button" onclick="eliminarProductoEnvio(' + index + ')" class="btn btn-danger btn-small">🗑️</button>';
+        html += '</div>';
+        html += '</div>';
+    });
+    
+    container.innerHTML = html;
+}
+
+function cambiarCantidadEnvio(index, nuevaCantidad) {
+    const cantidad = parseInt(nuevaCantidad);
+    if (cantidad <= 0) {
+        eliminarProductoEnvio(index);
+        return;
+    }
+    
+    carritoEnvio[index].cantidad = cantidad;
+    mostrarProductosEnvio();
+    calcularTotalEnvio();
+}
+
+function eliminarProductoEnvio(index) {
+    carritoEnvio.splice(index, 1);
+    mostrarProductosEnvio();
+    calcularTotalEnvio();
+}
 
         function mostrarEnvios() {
             const container = document.getElementById('envios-lista');
