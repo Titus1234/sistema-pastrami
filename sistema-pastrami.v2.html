@@ -366,6 +366,31 @@
                         <input type="text" id="envio-direccion" required>
                     </div>
                 </div>
+                <div class="form-row">
+    <div class="form-col">
+        <label for="envio-producto">Producto:</label>
+        <div class="autocomplete-container">
+            <input type="text" id="envio-producto" placeholder="Buscar producto..." 
+                   oninput="buscarProductosEnvio(this.value)">
+            <div id="productos-envio-suggestions" class="autocomplete-suggestions"></div>
+        </div>
+    </div>
+    <div class="form-col" style="flex: 0.3;">
+        <label for="envio-cantidad">Cantidad:</label>
+        <input type="number" id="envio-cantidad" min="1" value="1">
+    </div>
+    <div class="form-col" style="flex: 0.3;">
+        <label>&nbsp;</label>
+        <button type="button" class="btn btn-primary" onclick="agregarProductoEnvio()">➕ Agregar</button>
+    </div>
+</div>
+
+<div class="carrito-container">
+    <h3>🛒 Productos del Envío</h3>
+    <div id="productos-envio-lista">
+        <p style="text-align: center; color: #6c757d;">No hay productos agregados</p>
+    </div>
+</div>
 
                 <div class="form-row">
                     <div class="form-col">
