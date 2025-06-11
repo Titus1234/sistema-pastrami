@@ -665,3 +665,555 @@
                 mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
                 return;
             }
+            
+            const cliente = {
+                id: Date.now().toString(),
+                nombre, apellido, telefono, direccion,
+                fechaCreacion: new Date()
+            };
+            
+            clientes.push(cliente);
+            guardarEnStorage();
+            mostrarClientes();
+            limpiarFormCliente();
+            mostrarNotificacion('✅ Cliente guardado: ' + nombre + ' ' + apellido, 'success');
+        }
+
+        function mostrarClientes() {
+            const container = document.getElementById('clientes-lista');
+            
+            if (clientes.length === 0) {
+                container.innerHTML = '<p>No hay clientes registrados</p>';
+                return;
+            }
+            
+            let html = '';
+            clientes.forEach(cliente => {
+                html += '<div class="item-card">';
+                html += '<div class="item-header">';
+                html += '<div class="item-title">' + cliente.nombre + ' ' + cliente.apellido + '</div>';
+                html += '<div class="item-actions">';
+                html += '<button class="btn btn-danger btn-small" onclick="eliminarCliente(\'' + cliente.id + '\')">🗑️</button>';
+                html += '</div></div>';
+                html += '<p>📞 ' + cliente.telefono + '</p>';
+                if (cliente.direccion) html += '<p>📍 ' + cliente.direccion + '</p>';
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function eliminarCliente(id) {
+            if (!confirm('¿Eliminar este cliente?')) return;
+            clientes = clientes.filter(c => c.id !== id);
+            guardarEnStorage();
+            mostrarClientes();
+            mostrarNotificacion('🗑️ Cliente eliminado', 'success');
+        }
+
+        function limpiarFormCliente() {
+            document.getElementById('clientes-form').reset();
+        }
+
+        // ENVÍOS - BÚSQUEDA DE CLIENTES
+        function buscarClientesEnvio(query) {
+            const container = document.getElementById('clientes-envio-suggestions');
+            
+            if (!query || query.length < 2) {
+                container.classList.remove('show');
+                return;
+            }
+            
+            const clientesFiltrados = clientes.filter(cliente => {
+                return cliente.nombre.toLowerCase().includes(query.toLowerCase()) ||
+                       cliente.apellido.toLowerCase().includes(query.toLowerCase());
+            });
+            
+            let html = '';
+            if (clientesFiltrados.length === 0) {
+                html = '<div class="suggestion-item">No se encontraron clientes</div>';
+            } else {
+                clientesFiltrados.forEach(cliente => {
+                    html += '<div class="suggestion-item" onclick="seleccionarClienteEnvio(\'' + cliente.id + '\')">';
+                    html += '<strong>' + cliente.nombre + ' ' + cliente.apellido + '</strong><br>';
+                    html += '<small>📞 ' + cliente.telefono + '</small>';
+                    html += '</div>';
+                });
+            }
+            
+            container.innerHTML = html;
+            container.classList.add('show');
+        }
+
+        function seleccionarClienteEnvio(clienteId) {
+            const cliente = clientes.find(c => c.id === clienteId);
+            if (!cliente) return;
+            
+            clienteSeleccionadoEnvio = cliente;
+            document.getElementById('envio-cliente').value = cliente.nombre + ' ' + cliente.apellido;
+            document.getElementById('clientes-envio-suggestions').classList.remove('show');
+            
+            // Auto-completar dirección
+            if (cliente.direccion) {
+                document.getElementById('envio-direccion').value = cliente.direccion;
+            }
+            
+            // Mostrar resumen financiero
+            document.getElementById('resumen-financiero-envio').style.display = 'block';
+            calcularTotalEnvio();
+        }
+
+        // ENVÍOS - BÚSQUEDA DE PRODUCTOS
+        function buscarProductosEnvio(query) {
+            const container = document.getElementById('productos-envio-suggestions');
+            
+            if (!query || query.length < 2) {
+                container.classList.remove('show');
+                return;
+            }
+            
+            const productosFiltrados = productos.filter(producto => {
+                return producto.nombre.toLowerCase().includes(query.toLowerCase()) &&
+                       (producto.stockActual || 0) > 0;
+            });
+            
+            let html = '';
+            if (productosFiltrados.length === 0) {
+                html = '<div class="suggestion-item">No hay productos disponibles</div>';
+            } else {
+                productosFiltrados.forEach(producto => {
+                    html += '<div class="suggestion-item" onclick="seleccionarProductoEnvio(\'' + producto.id + '\')">';
+                    html += '<strong>' + producto.nombre + '</strong> -  + producto.precio.toFixed(2) + '<br>';
+                    html += '<small>Stock: ' + (producto.stockActual || 0) + ' unidades</small>';
+                    html += '</div>';
+                });
+            }
+            
+            container.innerHTML = html;
+            container.classList.add('show');
+        }
+
+        function seleccionarProductoEnvio(productoId) {
+            const producto = productos.find(p => p.id === productoId);
+            if (!producto) return;
+            
+            productoSeleccionadoEnvio = producto;
+            document.getElementById('envio-producto').value = producto.nombre;
+            document.getElementById('productos-envio-suggestions').classList.remove('show');
+            document.getElementById('envio-cantidad').focus();
+        }
+
+        function agregarProductoEnvio() {
+            if (!productoSeleccionadoEnvio) {
+                mostrarNotificacion('❌ Seleccione un producto primero', 'error');
+                return;
+            }
+            
+            const cantidad = parseInt(document.getElementById('envio-cantidad').value) || 1;
+            
+            if (cantidad <= 0) {
+                mostrarNotificacion('❌ Cantidad debe ser mayor a 0', 'error');
+                return;
+            }
+            
+            if (cantidad > productoSeleccionadoEnvio.stockActual) {
+                mostrarNotificacion('❌ Stock insuficiente', 'error');
+                return;
+            }
+            
+            const itemExistente = carritoEnvio.find(item => item.producto.id === productoSeleccionadoEnvio.id);
+            
+            if (itemExistente) {
+                itemExistente.cantidad += cantidad;
+            } else {
+                carritoEnvio.push({
+                    producto: JSON.parse(JSON.stringify(productoSeleccionadoEnvio)),
+                    cantidad: cantidad
+                });
+            }
+            
+            document.getElementById('envio-producto').value = '';
+            document.getElementById('envio-cantidad').value = '1';
+            productoSeleccionadoEnvio = null;
+            
+            mostrarProductosEnvio();
+            calcularTotalEnvio();
+            mostrarNotificacion('✅ Producto agregado', 'success');
+        }
+
+        function mostrarProductosEnvio() {
+            const container = document.getElementById('productos-envio-lista');
+            
+            if (carritoEnvio.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">No hay productos agregados</p>';
+                return;
+            }
+            
+            let html = '';
+            carritoEnvio.forEach((item, index) => {
+                html += '<div class="carrito-item">';
+                html += '<div class="carrito-item-info">';
+                html += '<strong>' + item.producto.nombre + '</strong><br>';
+                html += '<small> + item.producto.precio.toFixed(2) + ' x ' + item.cantidad + ' =  + (item.producto.precio * item.cantidad).toFixed(2) + '</small>';
+                html += '</div>';
+                html += '<div class="carrito-item-actions">';
+                html += '<input type="number" class="cantidad-input" min="1" value="' + item.cantidad + '" onchange="cambiarCantidadEnvio(' + index + ', this.value)">';
+                html += '<button type="button" onclick="eliminarProductoEnvio(' + index + ')" class="btn btn-danger btn-small">🗑️</button>';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function cambiarCantidadEnvio(index, nuevaCantidad) {
+            const cantidad = parseInt(nuevaCantidad);
+            if (cantidad <= 0) {
+                eliminarProductoEnvio(index);
+                return;
+            }
+            
+            carritoEnvio[index].cantidad = cantidad;
+            mostrarProductosEnvio();
+            calcularTotalEnvio();
+        }
+
+        function eliminarProductoEnvio(index) {
+            carritoEnvio.splice(index, 1);
+            mostrarProductosEnvio();
+            calcularTotalEnvio();
+        }
+
+        // CÁLCULOS FINANCIEROS
+        function calcularTotalEnvio() {
+            // Calcular total de productos
+            const totalProductos = carritoEnvio.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
+            const costoEnvio = parseFloat(document.getElementById('envio-costo').value) || 0;
+            const pagadoCuenta = parseFloat(document.getElementById('envio-importe-pagado').value) || 0;
+            
+            const totalGeneral = totalProductos + costoEnvio;
+            const saldoCobrar = totalGeneral - pagadoCuenta;
+            
+            // Actualizar displays
+            document.getElementById('total-productos-envio').textContent = ' + totalProductos.toFixed(2);
+            document.getElementById('costo-envio-display').textContent = ' + costoEnvio.toFixed(2);
+            document.getElementById('total-general-envio').textContent = ' + totalGeneral.toFixed(2);
+            document.getElementById('pagado-cuenta-display').textContent = ' + pagadoCuenta.toFixed(2);
+            
+            const saldoElement = document.getElementById('saldo-cobrar-envio');
+            saldoElement.textContent = ' + saldoCobrar.toFixed(2);
+            
+            // Cambiar color según el saldo
+            if (saldoCobrar < 0) {
+                saldoElement.classList.add('valor-negativo');
+                saldoElement.classList.remove('valor-positivo');
+            } else if (saldoCobrar > 0) {
+                saldoElement.classList.remove('valor-negativo');
+                saldoElement.classList.remove('valor-positivo');
+            } else {
+                saldoElement.classList.remove('valor-negativo');
+                saldoElement.classList.add('valor-positivo');
+            }
+        }
+
+        // CREAR ENVÍO
+        function crearEnvio(event) {
+            event.preventDefault();
+            
+            if (!clienteSeleccionadoEnvio) {
+                mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
+                return;
+            }
+            
+            if (carritoEnvio.length === 0) {
+                mostrarNotificacion('❌ Debe agregar productos al envío', 'error');
+                return;
+            }
+            
+            const direccion = document.getElementById('envio-direccion').value.trim();
+            const fecha = document.getElementById('envio-fecha').value;
+            const hora = document.getElementById('envio-hora').value;
+            const costoEnvio = parseFloat(document.getElementById('envio-costo').value) || 0;
+            const modalidadPago = document.getElementById('envio-modalidad-pago').value;
+            const importePagado = parseFloat(document.getElementById('envio-importe-pagado').value) || 0;
+            const notas = document.getElementById('envio-notas').value.trim();
+            
+            if (!direccion || !fecha || !modalidadPago) {
+                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
+                return;
+            }
+            
+            const totalProductos = carritoEnvio.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
+            const totalGeneral = totalProductos + costoEnvio;
+            const saldoCobrar = totalGeneral - importePagado;
+            
+            const envio = {
+                id: Date.now().toString(),
+                cliente: JSON.parse(JSON.stringify(clienteSeleccionadoEnvio)),
+                productos: JSON.parse(JSON.stringify(carritoEnvio)),
+                direccion, fecha, hora, costoEnvio, modalidadPago, importePagado,
+                estado: 'pendiente',
+                notas,
+                totalProductos, totalGeneral, saldoCobrar,
+                fechaCreacion: new Date()
+            };
+            
+            envios.push(envio);
+            
+            // Actualizar stock
+            carritoEnvio.forEach(item => {
+                const producto = productos.find(p => p.id === item.producto.id);
+                if (producto) {
+                    producto.stockActual -= item.cantidad;
+                }
+            });
+            
+            guardarEnStorage();
+            mostrarProductos();
+            mostrarEnvios();
+            limpiarFormEnvio();
+            
+            mostrarNotificacion('✅ Envío creado exitosamente', 'success');
+        }
+
+        // MOSTRAR ENVÍOS (solo pendientes)
+        function mostrarEnvios() {
+            const container = document.getElementById('envios-lista');
+            
+            // Solo mostrar envíos pendientes
+            const enviosPendientes = envios.filter(envio => envio.estado === 'pendiente');
+            
+            if (enviosPendientes.length === 0) {
+                container.innerHTML = '<p>No hay envíos pendientes</p>';
+                return;
+            }
+            
+            let html = '';
+            enviosPendientes.forEach(envio => {
+                html += '<div class="item-card">';
+                html += '<div class="item-header">';
+                html += '<div class="item-title">Envío #' + envio.id + '</div>';
+                html += '<div class="item-actions">';
+                html += '<button class="btn btn-primary btn-small" onclick="entregarEnvio(\'' + envio.id + '\')">✅ ENTREGAR</button>';
+                html += '<button class="btn btn-danger btn-small" onclick="eliminarEnvio(\'' + envio.id + '\')">🗑️</button>';
+                html += '</div>';
+                html += '</div>';
+                
+                html += '<p><strong>Cliente:</strong> ' + envio.cliente.nombre + ' ' + envio.cliente.apellido + '</p>';
+                html += '<p><strong>Teléfono:</strong> ' + envio.cliente.telefono + '</p>';
+                html += '<p><strong>Dirección:</strong> ' + envio.direccion + '</p>';
+                html += '<p><strong>Fecha:</strong> ' + envio.fecha + (envio.hora ? ' - ' + envio.hora : '') + '</p>';
+                html += '<p><strong>Estado:</strong> <span style="color: #6c757d; font-weight: 600;">PENDIENTE</span></p>';
+                html += '<p><strong>Modalidad de Pago:</strong> ' + envio.modalidadPago + '</p>';
+                
+                html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">';
+                html += '<p><strong>💰 Resumen Financiero:</strong></p>';
+                html += '<p>• Total Productos:  + envio.totalProductos.toFixed(2) + '</p>';
+                html += '<p>• Costo Envío:  + envio.costoEnvio.toFixed(2) + '</p>';
+                html += '<p>• <strong>Total General:  + envio.totalGeneral.toFixed(2) + '</strong></p>';
+                html += '<p>• Pagado:  + envio.importePagado.toFixed(2) + '</p>';
+                
+                const saldoClass = envio.saldoCobrar > 0 ? 'color: #dc3545' : envio.saldoCobrar < 0 ? 'color: #6f42c1' : 'color: #28a745';
+                html += '<p style="' + saldoClass + '; font-weight: 600;">• Saldo a Cobrar:  + envio.saldoCobrar.toFixed(2) + '</p>';
+                html += '</div>';
+                
+                if (envio.notas) {
+                    html += '<p><strong>Notas:</strong> ' + envio.notas + '</p>';
+                }
+                
+                html += '<p><small>Creado: ' + new Date(envio.fechaCreacion).toLocaleString() + '</small></p>';
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // ENTREGAR ENVÍO
+        function entregarEnvio(id) {
+            const envio = envios.find(e => e.id === id);
+            if (!envio) return;
+            
+            if (envio.saldoCobrar > 0) {
+                // Hay saldo pendiente, pedir el importe cobrado
+                const saldoCobrado = prompt(
+                    'Saldo pendiente:  + envio.saldoCobrar.toFixed(2) + '\n\n' +
+                    '¿Cuánto se cobró en la entrega?\n' +
+                    '(Ingrese 0 si no se cobró nada)'
+                );
+                
+                if (saldoCobrado === null) return; // Usuario canceló
+                
+                const importeCobrado = parseFloat(saldoCobrado) || 0;
+                
+                if (importeCobrado < 0) {
+                    mostrarNotificacion('❌ El importe no puede ser negativo', 'error');
+                    return;
+                }
+                
+                // Actualizar el importe total pagado
+                envio.importePagado += importeCobrado;
+                envio.saldoCobrar = envio.totalGeneral - envio.importePagado;
+                
+                if (envio.saldoCobrar <= 0) {
+                    // Todo pagado, marcar como entregado
+                    envio.estado = 'entregado';
+                    envio.fechaEntrega = new Date();
+                    mostrarNotificacion('✅ Envío entregado y pagado completamente', 'success');
+                } else {
+                    // Aún queda saldo, mantener como pendiente
+                    mostrarNotificacion('✅ Pago parcial registrado. Saldo restante:  + envio.saldoCobrar.toFixed(2), 'success');
+                }
+            } else {
+                // No hay saldo o ya está pagado, marcar como entregado
+                envio.estado = 'entregado';
+                envio.fechaEntrega = new Date();
+                mostrarNotificacion('✅ Envío entregado exitosamente', 'success');
+            }
+            
+            guardarEnStorage();
+            mostrarEnvios(); // Refrescar lista (los entregados desaparecerán)
+        }
+
+        function eliminarEnvio(id) {
+            if (!confirm('¿Eliminar este envío?')) return;
+            
+            envios = envios.filter(e => e.id !== id);
+            guardarEnStorage();
+            mostrarEnvios();
+            mostrarNotificacion('🗑️ Envío eliminado', 'success');
+        }
+
+        function limpiarFormEnvio() {
+            document.getElementById('envios-form').reset();
+            clienteSeleccionadoEnvio = null;
+            productoSeleccionadoEnvio = null;
+            carritoEnvio = [];
+            document.getElementById('resumen-financiero-envio').style.display = 'none';
+            mostrarProductosEnvio();
+            calcularTotalEnvio();
+        }
+
+        // AUXILIARES
+        function showTab(tabName, tabElement) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            tabElement.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function mostrarNotificacion(mensaje, tipo) {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = 'notification ' + (tipo || 'success');
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function guardarEnStorage() {
+            localStorage.setItem('productos_pastrami', JSON.stringify(productos));
+            localStorage.setItem('clientes_pastrami', JSON.stringify(clientes));
+            localStorage.setItem('envios_pastrami', JSON.stringify(envios));
+        }
+
+        function cargarDeStorage() {
+            try {
+                const productosGuardados = localStorage.getItem('productos_pastrami');
+                const clientesGuardados = localStorage.getItem('clientes_pastrami');
+                const enviosGuardados = localStorage.getItem('envios_pastrami');
+                
+                if (productosGuardados) {
+                    productos = JSON.parse(productosGuardados);
+                    mostrarProductos();
+                }
+                
+                if (clientesGuardados) {
+                    clientes = JSON.parse(clientesGuardados);
+                    mostrarClientes();
+                }
+                
+                if (enviosGuardados) {
+                    envios = JSON.parse(enviosGuardados);
+                    mostrarEnvios();
+                }
+                
+                console.log('Datos cargados:', { 
+                    productos: productos.length, 
+                    clientes: clientes.length, 
+                    envios: envios.length 
+                });
+                
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+            }
+        }
+
+        // Cerrar sugerencias al hacer click fuera
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-suggestions').forEach(container => {
+                    container.classList.remove('show');
+                });
+            }
+        });
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Sistema Pastrami iniciado');
+            cargarDeStorage();
+            
+            // Establecer fecha de hoy por defecto
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('envio-fecha').value = hoy;
+            
+            // Debug para testing
+            window.debug = {
+                productos: () => productos,
+                clientes: () => clientes,
+                envios: () => envios,
+                carritoEnvio: () => carritoEnvio,
+                limpiarTodo: () => {
+                    localStorage.clear();
+                    location.reload();
+                },
+                crearDatosPrueba: () => {
+                    productos.push({
+                        id: '1', nombre: 'Pastrami Clásico', precio: 850, tipo: 'simple',
+                        stockActual: 20, stockInicial: 20, stockMinimo: 5, componentes: [], fechaCreacion: new Date()
+                    });
+                    
+                    productos.push({
+                        id: '2', nombre: 'Combo Pastrami', precio: 1200, tipo: 'compuesto',
+                        stockActual: 10, stockInicial: 10, stockMinimo: 2,
+                        componentes: [{ nombre: 'Pan', cantidad: 1 }, { nombre: 'Pastrami', cantidad: 200 }, { nombre: 'Papas', cantidad: 1 }],
+                        fechaCreacion: new Date()
+                    });
+                    
+                    clientes.push({
+                        id: '1', nombre: 'Juan', apellido: 'Pérez', telefono: '11-1234-5678',
+                        direccion: 'Av. Corrientes 1234', fechaCreacion: new Date()
+                    });
+                    
+                    clientes.push({
+                        id: '2', nombre: 'María', apellido: 'García', telefono: '11-8765-4321',
+                        direccion: 'Av. Santa Fe 5678', fechaCreacion: new Date()
+                    });
+                    
+                    guardarEnStorage();
+                    mostrarProductos();
+                    mostrarClientes();
+                    console.log('✅ Datos de prueba creados');
+                }
+            };
+            
+            console.log('✅ Sistema listo');
+            console.log('🔧 Debug: window.debug');
+            console.log('🧪 Crear datos de prueba: window.debug.crearDatosPrueba()');
+        });
+
+    </script>
+</body>
+</html>
