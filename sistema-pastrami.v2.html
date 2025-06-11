@@ -1076,13 +1076,13 @@
             const saldoCobrar = totalGeneral - pagadoCuenta;
             
             // Actualizar displays
-            document.getElementById('total-productos-envio').textContent = ' + totalProductos.toFixed(2);
-            document.getElementById('costo-envio-display').textContent = ' + costoEnvio.toFixed(2);
-            document.getElementById('total-general-envio').textContent = ' + totalGeneral.toFixed(2);
-            document.getElementById('pagado-cuenta-display').textContent = ' + pagadoCuenta.toFixed(2);
+           document.getElementById('total-productos-envio').textContent = '$' + totalProductos.toFixed(2);
+           document.getElementById('costo-envio-display').textContent = '$' + costoEnvio.toFixed(2);
+            document.getElementById('total-general-envio').textContent = '$' + totalGeneral.toFixed(2);
+            document.getElementById('pagado-cuenta-display').textContent = '$' + pagadoCuenta.toFixed(2);
             
             const saldoElement = document.getElementById('saldo-cobrar-envio');
-            saldoElement.textContent = ' + saldoCobrar.toFixed(2);
+            saldoElement.textContent = '$' + saldoCobrar.toFixed(2);
             
             // Cambiar color según el saldo
             if (saldoCobrar < 0) {
