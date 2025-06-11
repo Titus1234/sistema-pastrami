@@ -927,7 +927,7 @@
 
         function calcularTotal() {
             const total = carrito.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
-            document.getElementById('total-pedido').textContent = '$' + total.toFixed(2);
+           document.getElementById('total-pedido').textContent = '$' + total.toFixed(2);
         }
 
         function crearPedido(event) {
