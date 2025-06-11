@@ -225,13 +225,12 @@
     <div class="container">
         <div class="header">
             <h1>🥪 Sistema Pastrami</h1>
-            <p>Gestión completa de productos, clientes, pedidos y envíos</p>
+            <p>Gestión completa de productos, clientes y envíos</p>
         </div>
 
         <div class="tabs">
             <button class="tab active" onclick="showTab('productos', this)">📦 Productos</button>
             <button class="tab" onclick="showTab('clientes', this)">👥 Clientes</button>
-            
             <button class="tab" onclick="showTab('envios', this)">🚚 Envíos</button>
         </div>
 
@@ -348,7 +347,6 @@
             </div>
         </div>
 
-     
         <!-- ENVÍOS -->
         <div id="envios" class="tab-content">
             <h2>🚚 Gestión de Envíos</h2>
@@ -357,40 +355,43 @@
                 <div class="form-row">
                     <div class="form-col">
                        <label for="envio-cliente">Cliente <span class="required">*</span>:</label>
-                      <input type="text" id="envio-cliente" placeholder="Apellido del cliente..." oninput="seleccionarClienteParaEnvio()" required>
-                       
-              
+                       <div class="autocomplete-container">
+                           <input type="text" id="envio-cliente" placeholder="Apellido del cliente..." 
+                                  oninput="buscarClientesEnvio(this.value)" required>
+                           <div id="clientes-envio-suggestions" class="autocomplete-suggestions"></div>
+                       </div>
                     </div>
                     <div class="form-col">
                         <label for="envio-direccion">Dirección de Envío <span class="required">*</span>:</label>
                         <input type="text" id="envio-direccion" required>
                     </div>
                 </div>
+                
                 <div class="form-row">
-    <div class="form-col">
-        <label for="envio-producto">Producto:</label>
-        <div class="autocomplete-container">
-            <input type="text" id="envio-producto" placeholder="Buscar producto..." 
-                   oninput="buscarProductosEnvio(this.value)">
-            <div id="productos-envio-suggestions" class="autocomplete-suggestions"></div>
-        </div>
-    </div>
-    <div class="form-col" style="flex: 0.3;">
-        <label for="envio-cantidad">Cantidad:</label>
-        <input type="number" id="envio-cantidad" min="1" value="1">
-    </div>
-    <div class="form-col" style="flex: 0.3;">
-        <label>&nbsp;</label>
-        <button type="button" class="btn btn-primary" onclick="agregarProductoEnvio()">➕ Agregar</button>
-    </div>
-</div>
+                    <div class="form-col">
+                        <label for="envio-producto">Producto:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="envio-producto" placeholder="Buscar producto..." 
+                                   oninput="buscarProductosEnvio(this.value)">
+                            <div id="productos-envio-suggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                    </div>
+                    <div class="form-col" style="flex: 0.3;">
+                        <label for="envio-cantidad">Cantidad:</label>
+                        <input type="number" id="envio-cantidad" min="1" value="1">
+                    </div>
+                    <div class="form-col" style="flex: 0.3;">
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-primary" onclick="agregarProductoEnvio()">➕ Agregar</button>
+                    </div>
+                </div>
 
-<div class="carrito-container">
-    <h3>🛒 Productos del Envío</h3>
-    <div id="productos-envio-lista">
-        <p style="text-align: center; color: #6c757d;">No hay productos agregados</p>
-    </div>
-</div>
+                <div class="carrito-container">
+                    <h3>🛒 Productos del Envío</h3>
+                    <div id="productos-envio-lista">
+                        <p style="text-align: center; color: #6c757d;">No hay productos agregados</p>
+                    </div>
+                </div>
 
                 <div class="form-row">
                     <div class="form-col">
@@ -426,18 +427,6 @@
                         <label for="envio-importe-pagado">Importe Pagado a Cuenta:</label>
                         <input type="number" id="envio-importe-pagado" step="0.01" min="0" value="0" oninput="calcularTotalEnvio()">
                     </div>
-                    <div class="form-col">
-                        <label for="envio-estado">Estado del Envío:</label>
-                        <select id="envio-estado">
-                            <option value="pendiente">Pendiente</option>
-                            <option value="preparando">Preparando</option>
-                            <option value="en-camino">En Camino</option>
-                            <option value="entregado">Entregado</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
                     <div class="form-col">
                         <label for="envio-notas">Notas del Envío:</label>
                         <input type="text" id="envio-notas" placeholder="Observaciones, instrucciones especiales...">
@@ -481,9 +470,9 @@
             </form>
 
             <div style="margin-top: 30px;">
-                <h3>📦 Lista de Envíos</h3>
+                <h3>📦 Lista de Envíos Pendientes</h3>
                 <div id="envios-lista">
-                    <p>No hay envíos registrados</p>
+                    <p>No hay envíos pendientes</p>
                 </div>
             </div>
         </div>
@@ -495,12 +484,10 @@
         // Variables globales
         let productos = [];
         let clientes = [];
-        let pedidos = [];
         let envios = [];
-        let clienteSeleccionado = null;
-        let productoSeleccionado = null;
-        let pedidoSeleccionadoParaEnvio = null;
-        let carrito = [];
+        let clienteSeleccionadoEnvio = null;
+        let productoSeleccionadoEnvio = null;
+        let carritoEnvio = [];
         let componentesTemp = [];
         let editandoProductoId = null;
 
@@ -678,765 +665,3 @@
                 mostrarNotificacion('❌ Complete los campos obligatorios', 'error');
                 return;
             }
-            
-            const cliente = {
-                id: Date.now().toString(),
-                nombre, apellido, telefono, direccion,
-                fechaCreacion: new Date()
-            };
-            
-            clientes.push(cliente);
-            guardarEnStorage();
-            mostrarClientes();
-            limpiarFormCliente();
-            mostrarNotificacion('✅ Cliente guardado: ' + nombre + ' ' + apellido, 'success');
-        }
-
-        function mostrarClientes() {
-            const container = document.getElementById('clientes-lista');
-            
-            if (clientes.length === 0) {
-                container.innerHTML = '<p>No hay clientes registrados</p>';
-                return;
-            }
-            
-            let html = '';
-            clientes.forEach(cliente => {
-                html += '<div class="item-card">';
-                html += '<div class="item-header">';
-                html += '<div class="item-title">' + cliente.nombre + ' ' + cliente.apellido + '</div>';
-                html += '<div class="item-actions">';
-                html += '<button class="btn btn-danger btn-small" onclick="eliminarCliente(\'' + cliente.id + '\')">🗑️</button>';
-                html += '</div></div>';
-                html += '<p>📞 ' + cliente.telefono + '</p>';
-                if (cliente.direccion) html += '<p>📍 ' + cliente.direccion + '</p>';
-                html += '</div>';
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function eliminarCliente(id) {
-            if (!confirm('¿Eliminar este cliente?')) return;
-            clientes = clientes.filter(c => c.id !== id);
-            guardarEnStorage();
-            mostrarClientes();
-            mostrarNotificacion('🗑️ Cliente eliminado', 'success');
-        }
-
-        function limpiarFormCliente() {
-            document.getElementById('clientes-form').reset();
-        }
-
-        // PEDIDOS
-        function buscarClientes(query) {
-            const container = document.getElementById('clientes-suggestions');
-            
-            if (!query || query.length < 2) {
-                container.classList.remove('show');
-                return;
-            }
-            
-            const clientesFiltrados = clientes.filter(cliente => {
-                const nombreCompleto = cliente.nombre + ' ' + cliente.apellido;
-                return nombreCompleto.toLowerCase().includes(query.toLowerCase()) || 
-                       cliente.telefono.includes(query);
-            });
-            
-            let html = '';
-            if (clientesFiltrados.length === 0) {
-                html = '<div class="suggestion-item">No se encontraron clientes</div>';
-            } else {
-                clientesFiltrados.forEach(cliente => {
-                    html += '<div class="suggestion-item" onclick="seleccionarCliente(\'' + cliente.id + '\')">';
-                    html += '<strong>' + cliente.nombre + ' ' + cliente.apellido + '</strong><br>';
-                    html += '<small>📞 ' + cliente.telefono + '</small>';
-                    html += '</div>';
-                });
-            }
-            
-            container.innerHTML = html;
-            container.classList.add('show');
-        }
-
-        function buscarProductos(query) {
-            const container = document.getElementById('productos-suggestions');
-            
-            if (!query || query.length < 2) {
-                container.classList.remove('show');
-                return;
-            }
-            
-            const productosFiltrados = productos.filter(producto => {
-                return producto.nombre.toLowerCase().includes(query.toLowerCase()) &&
-                       (producto.stockActual || 0) > 0;
-            });
-            
-            let html = '';
-            if (productosFiltrados.length === 0) {
-                html = '<div class="suggestion-item">No hay productos disponibles</div>';
-            } else {
-                productosFiltrados.forEach(producto => {
-                    html += '<div class="suggestion-item" onclick="seleccionarProducto(\'' + producto.id + '\')">';
-                   html += '<strong>' + producto.nombre + '</strong> - $' + producto.precio.toFixed(2) + '<br>';
-                    html += '<small>Stock: ' + (producto.stockActual || 0) + ' unidades</small>';
-                    html += '</div>';
-                });
-            }
-            
-            container.innerHTML = html;
-            container.classList.add('show');
-        }
-
-        function seleccionarCliente(clienteId) {
-            const cliente = clientes.find(c => c.id === clienteId);
-            if (!cliente) return;
-            
-            clienteSeleccionado = cliente;
-            document.getElementById('pedido-cliente').value = cliente.nombre + ' ' + cliente.apellido;
-            document.getElementById('clientes-suggestions').classList.remove('show');
-        }
-
-        function seleccionarProducto(productoId) {
-            const producto = productos.find(p => p.id === productoId);
-            if (!producto) return;
-            
-            productoSeleccionado = producto;
-            document.getElementById('pedido-producto').value = producto.nombre;
-            document.getElementById('productos-suggestions').classList.remove('show');
-            document.getElementById('pedido-cantidad').focus();
-        }
-
-        function agregarAlCarrito() {
-            if (!productoSeleccionado) {
-                mostrarNotificacion('❌ Seleccione un producto primero', 'error');
-                return;
-            }
-            
-            const cantidad = parseInt(document.getElementById('pedido-cantidad').value) || 1;
-            
-            if (cantidad <= 0) {
-                mostrarNotificacion('❌ Cantidad debe ser mayor a 0', 'error');
-                return;
-            }
-            
-            if (cantidad > productoSeleccionado.stockActual) {
-                mostrarNotificacion('❌ Stock insuficiente', 'error');
-                return;
-            }
-            
-            const itemExistente = carrito.find(item => item.producto.id === productoSeleccionado.id);
-            
-            if (itemExistente) {
-                itemExistente.cantidad += cantidad;
-            } else {
-                carrito.push({
-                    producto: JSON.parse(JSON.stringify(productoSeleccionado)),
-                    cantidad: cantidad
-                });
-            }
-            
-            document.getElementById('pedido-producto').value = '';
-            document.getElementById('pedido-cantidad').value = '1';
-            productoSeleccionado = null;
-            
-            mostrarCarrito();
-            calcularTotal();
-            mostrarNotificacion('✅ Producto agregado al carrito', 'success');
-        }
-
-        function mostrarCarrito() {
-            const container = document.getElementById('carrito-items');
-            
-            if (carrito.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #6c757d;">No hay productos en el pedido</p>';
-                return;
-            }
-            
-            let html = '';
-            carrito.forEach((item, index) => {
-                html += '<div class="carrito-item">';
-                html += '<div class="carrito-item-info">';
-                html += '<strong>' + item.producto.nombre + '</strong><br>';
-                html += '<small>$' + item.producto.precio.toFixed(2) + ' x ' + item.cantidad + ' = $' + (item.producto.precio * item.cantidad).toFixed(2) + '</small>';
-                html += '<div class="carrito-item-actions">';
-                html += '<input type="number" class="cantidad-input" min="1" value="' + item.cantidad + '" onchange="cambiarCantidad(' + index + ', this.value)">';
-                html += '<button type="button" onclick="eliminarDelCarrito(' + index + ')" class="btn btn-danger btn-small">🗑️</button>';
-                html += '</div>';
-                html += '</div>';
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function cambiarCantidad(index, nuevaCantidad) {
-            const cantidad = parseInt(nuevaCantidad);
-            if (cantidad <= 0) {
-                eliminarDelCarrito(index);
-                return;
-            }
-            
-            carrito[index].cantidad = cantidad;
-            mostrarCarrito();
-            calcularTotal();
-        }
-
-        function eliminarDelCarrito(index) {
-            carrito.splice(index, 1);
-            mostrarCarrito();
-            calcularTotal();
-        }
-
-        function calcularTotal() {
-            const total = carrito.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
-           document.getElementById('total-pedido').textContent = '$' + total.toFixed(2);
-        }
-
-        function crearPedido(event) {
-            event.preventDefault();
-            
-            if (!clienteSeleccionado) {
-                mostrarNotificacion('❌ Debe seleccionar un cliente', 'error');
-                return;
-            }
-            
-            if (carrito.length === 0) {
-                mostrarNotificacion('❌ Debe agregar productos al carrito', 'error');
-                return;
-            }
-            
-            const total = carrito.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
-            
-            const pedido = {
-                id: Date.now().toString(),
-                cliente: JSON.parse(JSON.stringify(clienteSeleccionado)),
-                productos: JSON.parse(JSON.stringify(carrito)),
-                total: total,
-                fechaCreacion: new Date()
-            };
-            
-            pedidos.push(pedido);
-            
-            // Actualizar stock
-            carrito.forEach(item => {
-                const producto = productos.find(p => p.id === item.producto.id);
-                if (producto) {
-                    producto.stockActual -= item.cantidad;
-                }
-            });
-            
-            guardarEnStorage();
-            mostrarProductos();
-            mostrarPedidos();
-            cargarPedidosEnEnvios();
-            limpiarFormPedido();
-            
-            mostrarNotificacion('✅ Pedido creado exitosamente', 'success');
-        }
-
-        function mostrarPedidos() {
-            const container = document.getElementById('pedidos-lista');
-            
-            if (pedidos.length === 0) {
-                container.innerHTML = '<p>No hay pedidos registrados</p>';
-                return;
-            }
-            
-            let html = '';
-            pedidos.forEach(pedido => {
-                html += '<div class="item-card">';
-                html += '<div class="item-header">';
-                html += '<div class="item-title">Pedido #' + pedido.id + '</div>';
-                html += '<div class="item-actions">';
-                html += '<button class="btn btn-danger btn-small" onclick="eliminarPedido(\'' + pedido.id + '\')">🗑️</button>';
-                html += '</div>';
-                html += '</div>';
-                html += '<p><strong>Cliente:</strong> ' + pedido.cliente.nombre + ' ' + pedido.cliente.apellido + '</p>';
-                html += '<p><strong>Teléfono:</strong> ' + pedido.cliente.telefono + '</p>';
-                html += '<p><strong>Productos:</strong></p>';
-                html += '<ul>';
-                pedido.productos.forEach(item => {
-               html += '<li>' + item.cantidad + 'x ' + item.producto.nombre + ' - $' + (item.producto.precio * item.cantidad).toFixed(2) + '</li>';
-                });
-                html += '</ul>';
-                html += '<p><strong>Total: $' + pedido.total.toFixed(2) + '</strong></p>';
-                html += '<p><small>Fecha: ' + new Date(pedido.fechaCreacion).toLocaleString() + '</small></p>';
-                html += '</div>';
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function eliminarPedido(id) {
-            if (!confirm('¿Eliminar este pedido?')) return;
-            
-            pedidos = pedidos.filter(p => p.id !== id);
-            guardarEnStorage();
-            mostrarPedidos();
-            cargarPedidosEnEnvios();
-            mostrarNotificacion('🗑️ Pedido eliminado', 'success');
-        }
-
-        function limpiarFormPedido() {
-            document.getElementById('pedidos-form').reset();
-            clienteSeleccionado = null;
-            productoSeleccionado = null;
-            carrito = [];
-            
-            mostrarCarrito();
-            calcularTotal();
-            
-            document.getElementById('clientes-suggestions').classList.remove('show');
-            document.getElementById('productos-suggestions').classList.remove('show');
-        }
-
-        // ENVÍOS
-        function cargarPedidosEnEnvios() {
-            const select = document.getElementById('envio-pedido');
-            const pedidosSinEnvio = pedidos.filter(pedido => 
-                !envios.some(envio => envio.pedido.id === pedido.id)
-            );
-            
-            let html = '<option value="">Seleccionar pedido...</option>';
-            pedidosSinEnvio.forEach(pedido => {
-              html += '<option value="' + pedido.id + '">Pedido #' + pedido.id + ' - ' + pedido.cliente.nombre + ' ' + pedido.cliente.apellido + ' ($' + pedido.total.toFixed(2) + ')</option>';
-            });
-            
-            select.innerHTML = html;
-        }
-
-       function seleccionarClienteParaEnvio() {
-    const apellido = document.getElementById('envio-cliente').value.trim();
-    
-    if (!apellido) {
-        document.getElementById('resumen-financiero-envio').style.display = 'none';
-        return;
-    }
-    
-    // Buscar cliente por apellido
-    const cliente = clientes.find(c => c.apellido.toLowerCase().includes(apellido.toLowerCase()));
-    
-    if (!cliente) {
-        document.getElementById('resumen-financiero-envio').style.display = 'none';
-        return;
-    }
-    
-    // Auto-completar dirección si el cliente la tiene
-    if (cliente.direccion) {
-        document.getElementById('envio-direccion').value = cliente.direccion;
-    }
-    
-    // Mostrar resumen financiero
-    document.getElementById('resumen-financiero-envio').style.display = 'block';
-    calcularTotalEnvio();
-}
-
-        function calcularTotalEnvio() {
-            if (!pedidoSeleccionadoParaEnvio) return;
-            
-            const totalProductos = pedidoSeleccionadoParaEnvio.total;
-            const costoEnvio = parseFloat(document.getElementById('envio-costo').value) || 0;
-            const pagadoCuenta = parseFloat(document.getElementById('envio-importe-pagado').value) || 0;
-            
-            const totalGeneral = totalProductos + costoEnvio;
-            const saldoCobrar = totalGeneral - pagadoCuenta;
-            
-            // Actualizar displays
-           document.getElementById('total-productos-envio').textContent = '$' + totalProductos.toFixed(2);
-           document.getElementById('costo-envio-display').textContent = '$' + costoEnvio.toFixed(2);
-            document.getElementById('total-general-envio').textContent = '$' + totalGeneral.toFixed(2);
-            document.getElementById('pagado-cuenta-display').textContent = '$' + pagadoCuenta.toFixed(2);
-            
-            const saldoElement = document.getElementById('saldo-cobrar-envio');
-            saldoElement.textContent = '$' + saldoCobrar.toFixed(2);
-            
-            // Cambiar color según el saldo
-            if (saldoCobrar < 0) {
-                saldoElement.classList.add('valor-negativo');
-                saldoElement.classList.remove('valor-positivo');
-            } else if (saldoCobrar > 0) {
-                saldoElement.classList.remove('valor-negativo');
-                saldoElement.classList.remove('valor-positivo');
-            } else {
-                saldoElement.classList.remove('valor-negativo');
-                saldoElement.classList.add('valor-positivo');
-            }
-        }
-
-        function crearEnvio(event) {
-            event.preventDefault();
-            
-            if (!pedidoSeleccionadoParaEnvio) {
-                mostrarNotificacion('❌ Debe seleccionar un pedido', 'error');
-                return;
-            }
-            
-            const direccion = document.getElementById('envio-direccion').value.trim();
-            const fecha = document.getElementById('envio-fecha').value;
-            const hora = document.getElementById('envio-hora').value;
-            const costoEnvio = parseFloat(document.getElementById('envio-costo').value) || 0;
-            const modalidadPago = document.getElementById('envio-modalidad-pago').value;
-            const importePagado = parseFloat(document.getElementById('envio-importe-pagado').value) || 0;
-            const estado = document.getElementById('envio-estado').value;
-            const notas = document.getElementById('envio-notas').value.trim();
-            
-            if (!direccion || !fecha || !modalidadPago) {
-                mostrarNotificacion('❌ Complete todos los campos obligatorios', 'error');
-                return;
-            }
-            
-            const totalGeneral = pedidoSeleccionadoParaEnvio.total + costoEnvio;
-            const saldoCobrar = totalGeneral - importePagado;
-            
-            const envio = {
-                id: Date.now().toString(),
-                pedido: JSON.parse(JSON.stringify(pedidoSeleccionadoParaEnvio)),
-                direccion, fecha, hora, costoEnvio, modalidadPago, importePagado,
-                estado, notas,
-                totalProductos: pedidoSeleccionadoParaEnvio.total,
-                totalGeneral, saldoCobrar,
-                fechaCreacion: new Date()
-            };
-            
-            envios.push(envio);
-            guardarEnStorage();
-            mostrarEnvios();
-            cargarPedidosEnEnvios();
-            limpiarFormEnvio();
-            
-            mostrarNotificacion('✅ Envío creado exitosamente', 'success');
-        }
-        // Variables para envíos
-let carritoEnvio = [];
-let productoSeleccionadoEnvio = null;
-
-function buscarProductosEnvio(query) {
-    const container = document.getElementById('productos-envio-suggestions');
-    
-    if (!query || query.length < 2) {
-        container.classList.remove('show');
-        return;
-    }
-    
-    const productosFiltrados = productos.filter(producto => {
-        return producto.nombre.toLowerCase().includes(query.toLowerCase()) &&
-               (producto.stockActual || 0) > 0;
-    });
-    
-    let html = '';
-    if (productosFiltrados.length === 0) {
-        html = '<div class="suggestion-item">No hay productos disponibles</div>';
-    } else {
-        productosFiltrados.forEach(producto => {
-            html += '<div class="suggestion-item" onclick="seleccionarProductoEnvio(\'' + producto.id + '\')">';
-            html += '<strong>' + producto.nombre + '</strong> - $' + producto.precio.toFixed(2) + '<br>';
-            html += '<small>Stock: ' + (producto.stockActual || 0) + ' unidades</small>';
-            html += '</div>';
-        });
-    }
-    
-    container.innerHTML = html;
-    container.classList.add('show');
-}
-
-function seleccionarProductoEnvio(productoId) {
-    const producto = productos.find(p => p.id === productoId);
-    if (!producto) return;
-    
-    productoSeleccionadoEnvio = producto;
-    document.getElementById('envio-producto').value = producto.nombre;
-    document.getElementById('productos-envio-suggestions').classList.remove('show');
-    document.getElementById('envio-cantidad').focus();
-}
-
-function agregarProductoEnvio() {
-    if (!productoSeleccionadoEnvio) {
-        mostrarNotificacion('❌ Seleccione un producto primero', 'error');
-        return;
-    }
-    
-    const cantidad = parseInt(document.getElementById('envio-cantidad').value) || 1;
-    
-    if (cantidad <= 0) {
-        mostrarNotificacion('❌ Cantidad debe ser mayor a 0', 'error');
-        return;
-    }
-    
-    if (cantidad > productoSeleccionadoEnvio.stockActual) {
-        mostrarNotificacion('❌ Stock insuficiente', 'error');
-        return;
-    }
-    
-    const itemExistente = carritoEnvio.find(item => item.producto.id === productoSeleccionadoEnvio.id);
-    
-    if (itemExistente) {
-        itemExistente.cantidad += cantidad;
-    } else {
-        carritoEnvio.push({
-            producto: JSON.parse(JSON.stringify(productoSeleccionadoEnvio)),
-            cantidad: cantidad
-        });
-    }
-    
-    document.getElementById('envio-producto').value = '';
-    document.getElementById('envio-cantidad').value = '1';
-    productoSeleccionadoEnvio = null;
-    
-    mostrarProductosEnvio();
-    calcularTotalEnvio();
-    mostrarNotificacion('✅ Producto agregado', 'success');
-}
-
-function mostrarProductosEnvio() {
-    const container = document.getElementById('productos-envio-lista');
-    
-    if (carritoEnvio.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #6c757d;">No hay productos agregados</p>';
-        return;
-    }
-    
-    let html = '';
-    carritoEnvio.forEach((item, index) => {
-        html += '<div class="carrito-item">';
-        html += '<div class="carrito-item-info">';
-        html += '<strong>' + item.producto.nombre + '</strong><br>';
-        html += '<small>$' + item.producto.precio.toFixed(2) + ' x ' + item.cantidad + ' = $' + (item.producto.precio * item.cantidad).toFixed(2) + '</small>';
-        html += '</div>';
-        html += '<div class="carrito-item-actions">';
-        html += '<input type="number" class="cantidad-input" min="1" value="' + item.cantidad + '" onchange="cambiarCantidadEnvio(' + index + ', this.value)">';
-        html += '<button type="button" onclick="eliminarProductoEnvio(' + index + ')" class="btn btn-danger btn-small">🗑️</button>';
-        html += '</div>';
-        html += '</div>';
-    });
-    
-    container.innerHTML = html;
-}
-
-function cambiarCantidadEnvio(index, nuevaCantidad) {
-    const cantidad = parseInt(nuevaCantidad);
-    if (cantidad <= 0) {
-        eliminarProductoEnvio(index);
-        return;
-    }
-    
-    carritoEnvio[index].cantidad = cantidad;
-    mostrarProductosEnvio();
-    calcularTotalEnvio();
-}
-
-function eliminarProductoEnvio(index) {
-    carritoEnvio.splice(index, 1);
-    mostrarProductosEnvio();
-    calcularTotalEnvio();
-}
-
-        function mostrarEnvios() {
-            const container = document.getElementById('envios-lista');
-            
-            if (envios.length === 0) {
-                container.innerHTML = '<p>No hay envíos registrados</p>';
-                return;
-            }
-            
-            let html = '';
-            envios.forEach(envio => {
-                const estadoColor = {
-                    'pendiente': '#6c757d',
-                    'preparando': '#ffc107',
-                    'en-camino': '#17a2b8',
-                    'entregado': '#28a745'
-                };
-                
-                html += '<div class="item-card">';
-                html += '<div class="item-header">';
-                html += '<div class="item-title">Envío #' + envio.id + '</div>';
-                html += '<div class="item-actions">';
-                html += '<button class="btn btn-danger btn-small" onclick="eliminarEnvio(\'' + envio.id + '\')">🗑️</button>';
-                html += '</div>';
-                html += '</div>';
-                
-                html += '<p><strong>Cliente:</strong> ' + envio.pedido.cliente.nombre + ' ' + envio.pedido.cliente.apellido + '</p>';
-                html += '<p><strong>Teléfono:</strong> ' + envio.pedido.cliente.telefono + '</p>';
-                html += '<p><strong>Dirección:</strong> ' + envio.direccion + '</p>';
-                html += '<p><strong>Fecha:</strong> ' + envio.fecha + (envio.hora ? ' - ' + envio.hora : '') + '</p>';
-                html += '<p><strong>Estado:</strong> <span style="color: ' + estadoColor[envio.estado] + '; font-weight: 600;">' + envio.estado.toUpperCase() + '</span></p>';
-                html += '<p><strong>Modalidad de Pago:</strong> ' + envio.modalidadPago + '</p>';
-                
-                html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">';
-                html += '<p><strong>💰 Resumen Financiero:</strong></p>';
-                html += '<p>• Total Productos: $' + envio.totalProductos.toFixed(2) + '</p>';
-                html += '<p>• Costo Envío: $' + envio.costoEnvio.toFixed(2) + '</p>';
-                html += '<p>• <strong>Total General: $' + envio.totalGeneral.toFixed(2) + '</strong></p>';
-                html += '<p>• Pagado: $' + envio.importePagado.toFixed(2) + '</p>';
-                
-                const saldoClass = envio.saldoCobrar > 0 ? 'color: #dc3545' : envio.saldoCobrar < 0 ? 'color: #6f42c1' : 'color: #28a745';
-                html += '<p style="' + saldoClass + '; font-weight: 600;">• Saldo a Cobrar: $' + envio.saldoCobrar.toFixed(2) + '</p>';
-                html += '</div>';
-                
-                if (envio.notas) {
-                    html += '<p><strong>Notas:</strong> ' + envio.notas + '</p>';
-                }
-                
-                html += '<p><small>Creado: ' + new Date(envio.fechaCreacion).toLocaleString() + '</small></p>';
-                html += '</div>';
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function eliminarEnvio(id) {
-            if (!confirm('¿Eliminar este envío?')) return;
-            
-            envios = envios.filter(e => e.id !== id);
-            guardarEnStorage();
-            mostrarEnvios();
-            cargarPedidosEnEnvios();
-            mostrarNotificacion('🗑️ Envío eliminado', 'success');
-        }
-
-        function limpiarFormEnvio() {
-            document.getElementById('envios-form').reset();
-            pedidoSeleccionadoParaEnvio = null;
-            document.getElementById('resumen-financiero-envio').style.display = 'none';
-            document.getElementById('envio-estado').value = 'pendiente';
-        }
-
-        // AUXILIARES
-        function showTab(tabName, tabElement) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            tabElement.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
-            
-            // Si se abre la pestaña de envíos, cargar pedidos disponibles
-            if (tabName === 'envios') {
-                cargarPedidosEnEnvios();
-            }
-        }
-
-        function mostrarNotificacion(mensaje, tipo) {
-            const notification = document.getElementById('notification');
-            notification.textContent = mensaje;
-            notification.className = 'notification ' + (tipo || 'success');
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        function guardarEnStorage() {
-            localStorage.setItem('productos_pastrami', JSON.stringify(productos));
-            localStorage.setItem('clientes_pastrami', JSON.stringify(clientes));
-            localStorage.setItem('pedidos_pastrami', JSON.stringify(pedidos));
-            localStorage.setItem('envios_pastrami', JSON.stringify(envios));
-        }
-
-        function cargarDeStorage() {
-            try {
-                const productosGuardados = localStorage.getItem('productos_pastrami');
-                const clientesGuardados = localStorage.getItem('clientes_pastrami');
-                const pedidosGuardados = localStorage.getItem('pedidos_pastrami');
-                const enviosGuardados = localStorage.getItem('envios_pastrami');
-                
-                if (productosGuardados) {
-                    productos = JSON.parse(productosGuardados);
-                    mostrarProductos();
-                }
-                
-                if (clientesGuardados) {
-                    clientes = JSON.parse(clientesGuardados);
-                    mostrarClientes();
-                }
-                
-                if (pedidosGuardados) {
-                    pedidos = JSON.parse(pedidosGuardados);
-                    mostrarPedidos();
-                }
-                
-                if (enviosGuardados) {
-                    envios = JSON.parse(enviosGuardados);
-                    mostrarEnvios();
-                }
-                
-                console.log('Datos cargados:', { 
-                    productos: productos.length, 
-                    clientes: clientes.length, 
-                    pedidos: pedidos.length,
-                    envios: envios.length 
-                });
-                
-            } catch (error) {
-                console.error('Error cargando datos:', error);
-            }
-        }
-
-        // Cerrar sugerencias al hacer click fuera
-        document.addEventListener('click', function(event) {
-            if (!event.target.closest('.autocomplete-container')) {
-                document.querySelectorAll('.autocomplete-suggestions').forEach(container => {
-                    container.classList.remove('show');
-                });
-            }
-        });
-
-        // Inicializar la aplicación
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Sistema Pastrami iniciado');
-            cargarDeStorage();
-            
-            // Establecer fecha de hoy por defecto
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('envio-fecha').value = hoy;
-            
-            // Debug para testing
-            window.debug = {
-                productos: () => productos,
-                clientes: () => clientes,
-                pedidos: () => pedidos,
-                envios: () => envios,
-                carrito: () => carrito,
-                limpiarTodo: () => {
-                    localStorage.clear();
-                    location.reload();
-                },
-                crearDatosPrueba: () => {
-                    productos.push({
-                        id: '1', nombre: 'Pastrami Clásico', precio: 850, tipo: 'simple',
-                        stockActual: 20, stockInicial: 20, stockMinimo: 5, componentes: [], fechaCreacion: new Date()
-                    });
-                    
-                    productos.push({
-                        id: '2', nombre: 'Combo Pastrami', precio: 1200, tipo: 'compuesto',
-                        stockActual: 10, stockInicial: 10, stockMinimo: 2,
-                        componentes: [{ nombre: 'Pan', cantidad: 1 }, { nombre: 'Pastrami', cantidad: 200 }, { nombre: 'Papas', cantidad: 1 }],
-                        fechaCreacion: new Date()
-                    });
-                    
-                    clientes.push({
-                        id: '1', nombre: 'Juan', apellido: 'Pérez', telefono: '11-1234-5678',
-                        direccion: 'Av. Corrientes 1234', fechaCreacion: new Date()
-                    });
-                    
-                    clientes.push({
-                        id: '2', nombre: 'María', apellido: 'García', telefono: '11-8765-4321',
-                        direccion: 'Av. Santa Fe 5678', fechaCreacion: new Date()
-                    });
-                    
-                    guardarEnStorage();
-                    mostrarProductos();
-                    mostrarClientes();
-                    cargarPedidosEnEnvios();
-                    console.log('✅ Datos de prueba creados');
-                }
-            };
-            
-            console.log('✅ Sistema listo');
-            console.log('🔧 Debug: window.debug');
-            console.log('🧪 Crear datos de prueba: window.debug.crearDatosPrueba()');
-        });
-
-    </script>
-</body>
-</html>
