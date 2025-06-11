@@ -997,7 +997,7 @@
                html += '<li>' + item.cantidad + 'x ' + item.producto.nombre + ' - $' + (item.producto.precio * item.cantidad).toFixed(2) + '</li>';
                 });
                 html += '</ul>';
-               html += '<p><strong>Total: $' + pedido.total.toFixed(2) + '</strong></p>';
+                html += '<p><strong>Total: $' + pedido.total.toFixed(2) + '</strong></p>';
                 html += '<p><small>Fecha: ' + new Date(pedido.fechaCreacion).toLocaleString() + '</small></p>';
                 html += '</div>';
             });
