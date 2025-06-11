@@ -465,6 +465,18 @@
                         <input type="number" id="envio-importe-pagado" step="0.01" min="0" value="0" oninput="calcularTotalEnvio()">
                     </div>
                     <div class="form-col">
+                        <label for="envio-estado">Estado del Envío:</label>
+                        <select id="envio-estado">
+                            <option value="pendiente">Pendiente</option>
+                            <option value="preparando">Preparando</option>
+                            <option value="en-camino">En Camino</option>
+                            <option value="entregado">Entregado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
                         <label for="envio-notas">Notas del Envío:</label>
                         <input type="text" id="envio-notas" placeholder="Observaciones, instrucciones especiales...">
                     </div>
@@ -1100,6 +1112,7 @@
             const costoEnvio = parseFloat(document.getElementById('envio-costo').value) || 0;
             const modalidadPago = document.getElementById('envio-modalidad-pago').value;
             const importePagado = parseFloat(document.getElementById('envio-importe-pagado').value) || 0;
+            const estado = document.getElementById('envio-estado').value;
             const notas = document.getElementById('envio-notas').value.trim();
             
             if (!direccion || !fecha || !modalidadPago) {
@@ -1114,8 +1127,7 @@
                 id: Date.now().toString(),
                 pedido: JSON.parse(JSON.stringify(pedidoSeleccionadoParaEnvio)),
                 direccion, fecha, hora, costoEnvio, modalidadPago, importePagado,
-                estado: 'pendiente',
-                notas,
+                estado, notas,
                 totalProductos: pedidoSeleccionadoParaEnvio.total,
                 totalGeneral, saldoCobrar,
                 fechaCreacion: new Date()
@@ -1133,22 +1145,24 @@
         function mostrarEnvios() {
             const container = document.getElementById('envios-lista');
             
-            // CAMBIO 1: Solo mostrar envíos pendientes
-            const enviosPendientes = envios.filter(envio => envio.estado === 'pendiente');
-            
-            if (enviosPendientes.length === 0) {
-                container.innerHTML = '<p>No hay envíos pendientes</p>';
+            if (envios.length === 0) {
+                container.innerHTML = '<p>No hay envíos registrados</p>';
                 return;
             }
             
             let html = '';
-            enviosPendientes.forEach(envio => {
+            envios.forEach(envio => {
+                const estadoColor = {
+                    'pendiente': '#6c757d',
+                    'preparando': '#ffc107',
+                    'en-camino': '#17a2b8',
+                    'entregado': '#28a745'
+                };
+                
                 html += '<div class="item-card">';
                 html += '<div class="item-header">';
                 html += '<div class="item-title">Envío #' + envio.id + '</div>';
                 html += '<div class="item-actions">';
-                // CAMBIO 2: Botón ENTREGAR en lugar de eliminar
-                html += '<button class="btn btn-primary btn-small" onclick="entregarEnvio(\'' + envio.id + '\')">✅ ENTREGAR</button>';
                 html += '<button class="btn btn-danger btn-small" onclick="eliminarEnvio(\'' + envio.id + '\')">🗑️</button>';
                 html += '</div>';
                 html += '</div>';
@@ -1157,7 +1171,7 @@
                 html += '<p><strong>Teléfono:</strong> ' + envio.pedido.cliente.telefono + '</p>';
                 html += '<p><strong>Dirección:</strong> ' + envio.direccion + '</p>';
                 html += '<p><strong>Fecha:</strong> ' + envio.fecha + (envio.hora ? ' - ' + envio.hora : '') + '</p>';
-                html += '<p><strong>Estado:</strong> <span style="color: #6c757d; font-weight: 600;">PENDIENTE</span></p>';
+                html += '<p><strong>Estado:</strong> <span style="color: ' + estadoColor[envio.estado] + '; font-weight: 600;">' + envio.estado.toUpperCase() + '</span></p>';
                 html += '<p><strong>Modalidad de Pago:</strong> ' + envio.modalidadPago + '</p>';
                 
                 html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">';
@@ -1182,52 +1196,6 @@
             container.innerHTML = html;
         }
 
-        // CAMBIO 3: Nueva función para entregar envío
-        function entregarEnvio(id) {
-            const envio = envios.find(e => e.id === id);
-            if (!envio) return;
-            
-            if (envio.saldoCobrar > 0) {
-                // Hay saldo pendiente, pedir el importe cobrado
-                const saldoCobrado = prompt(
-                    'Saldo pendiente:  + envio.saldoCobrar.toFixed(2) + '\n\n' +
-                    '¿Cuánto se cobró en la entrega?\n' +
-                    '(Ingrese 0 si no se cobró nada)'
-                );
-                
-                if (saldoCobrado === null) return; // Usuario canceló
-                
-                const importeCobrado = parseFloat(saldoCobrado) || 0;
-                
-                if (importeCobrado < 0) {
-                    mostrarNotificacion('❌ El importe no puede ser negativo', 'error');
-                    return;
-                }
-                
-                // Actualizar el importe total pagado
-                envio.importePagado += importeCobrado;
-                envio.saldoCobrar = envio.totalGeneral - envio.importePagado;
-                
-                if (envio.saldoCobrar <= 0) {
-                    // Todo pagado, marcar como entregado
-                    envio.estado = 'entregado';
-                    envio.fechaEntrega = new Date();
-                    mostrarNotificacion('✅ Envío entregado y pagado completamente', 'success');
-                } else {
-                    // Aún queda saldo, mantener como pendiente
-                    mostrarNotificacion('✅ Pago parcial registrado. Saldo restante:  + envio.saldoCobrar.toFixed(2), 'success');
-                }
-            } else {
-                // No hay saldo o ya está pagado, marcar como entregado
-                envio.estado = 'entregado';
-                envio.fechaEntrega = new Date();
-                mostrarNotificacion('✅ Envío entregado exitosamente', 'success');
-            }
-            
-            guardarEnStorage();
-            mostrarEnvios(); // Refrescar lista (los entregados desaparecerán)
-        }
-
         function eliminarEnvio(id) {
             if (!confirm('¿Eliminar este envío?')) return;
             
@@ -1242,6 +1210,7 @@
             document.getElementById('envios-form').reset();
             pedidoSeleccionadoParaEnvio = null;
             document.getElementById('resumen-financiero-envio').style.display = 'none';
+            document.getElementById('envio-estado').value = 'pendiente';
         }
 
         // AUXILIARES
@@ -1359,3 +1328,27 @@
                     
                     clientes.push({
                         id: '1', nombre: 'Juan', apellido: 'Pérez', telefono: '11-1234-5678',
+                        direccion: 'Av. Corrientes 1234', fechaCreacion: new Date()
+                    });
+                    
+                    clientes.push({
+                        id: '2', nombre: 'María', apellido: 'García', telefono: '11-8765-4321',
+                        direccion: 'Av. Santa Fe 5678', fechaCreacion: new Date()
+                    });
+                    
+                    guardarEnStorage();
+                    mostrarProductos();
+                    mostrarClientes();
+                    cargarPedidosEnEnvios();
+                    console.log('✅ Datos de prueba creados');
+                }
+            };
+            
+            console.log('✅ Sistema listo');
+            console.log('🔧 Debug: window.debug');
+            console.log('🧪 Crear datos de prueba: window.debug.crearDatosPrueba()');
+        });
+
+    </script>
+</body>
+</html>
