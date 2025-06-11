@@ -348,70 +348,7 @@
             </div>
         </div>
 
-        <!-- PEDIDOS -->
-        <div id="pedidos" class="tab-content">
-            <h2>🥪 Gestión de Pedidos</h2>
-            
-            <form id="pedidos-form" onsubmit="crearPedido(event)">
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="pedido-cliente">Cliente <span class="required">*</span>:</label>
-                        <div class="autocomplete-container">
-                            <input type="text" id="pedido-cliente" placeholder="Buscar cliente..." 
-                                   oninput="buscarClientes(this.value)" required>
-                            <div id="clientes-suggestions" class="autocomplete-suggestions"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-col">
-                        <label for="pedido-producto">Producto:</label>
-                        <div class="autocomplete-container">
-                            <input type="text" id="pedido-producto" placeholder="Buscar producto..." 
-                                   oninput="buscarProductos(this.value)">
-                            <div id="productos-suggestions" class="autocomplete-suggestions"></div>
-                        </div>
-                    </div>
-                    <div class="form-col" style="flex: 0.3;">
-                        <label for="pedido-cantidad">Cantidad:</label>
-                        <input type="number" id="pedido-cantidad" min="1" value="1">
-                    </div>
-                    <div class="form-col" style="flex: 0.3;">
-                        <label>&nbsp;</label>
-                        <button type="button" class="btn btn-primary" onclick="agregarAlCarrito()">➕ Agregar</button>
-                    </div>
-                </div>
-
-                <div class="carrito-container">
-                    <h3>🛒 Productos del Pedido</h3>
-                    <div id="carrito-items">
-                        <p style="text-align: center; color: #6c757d;">No hay productos en el pedido</p>
-                    </div>
-                </div>
-
-                <div class="resumen-pedido">
-                    <h3>💰 Resumen del Pedido</h3>
-                    <div class="resumen-linea">
-                        <span>Total:</span>
-                        <span id="total-pedido">$0.00</span>
-                    </div>
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary">💾 Crear Pedido</button>
-                    <button type="button" class="btn btn-secondary" onclick="limpiarFormPedido()">❌ Limpiar</button>
-                </div>
-            </form>
-
-            <div style="margin-top: 30px;">
-                <h3>📋 Lista de Pedidos</h3>
-                <div id="pedidos-lista">
-                    <p>No hay pedidos registrados</p>
-                </div>
-            </div>
-        </div>
-
+     
         <!-- ENVÍOS -->
         <div id="envios" class="tab-content">
             <h2>🚚 Gestión de Envíos</h2>
