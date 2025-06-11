@@ -994,7 +994,7 @@
                 html += '<p><strong>Productos:</strong></p>';
                 html += '<ul>';
                 pedido.productos.forEach(item => {
-                    html += '<li>' + item.cantidad + 'x ' + item.producto.nombre + ' -  + (item.producto.precio * item.cantidad).toFixed(2) + '</li>';
+                html += '<li>' + item.cantidad + 'x ' + item.producto.nombre + ' - $' + (item.producto.precio * item.cantidad).toFixed(2) + '</li>';
                 });
                 html += '</ul>';
                 html += '<p><strong>Total:  + pedido.total.toFixed(2) + '</strong></p>';
