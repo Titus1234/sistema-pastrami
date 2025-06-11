@@ -357,7 +357,7 @@
                 <div class="form-row">
                     <div class="form-col">
                        <label for="envio-cliente">Cliente <span class="required">*</span>:</label>
-                       <input type="text" id="envio-cliente" placeholder="Apellido del cliente..." required>
+                      <input type="text" id="envio-cliente" placeholder="Apellido del cliente..." oninput="seleccionarClienteParaEnvio()" required>
                        
               
                     </div>
@@ -1005,27 +1005,31 @@
             select.innerHTML = html;
         }
 
-        function seleccionarPedidoParaEnvio() {
-            const pedidoId = document.getElementById('envio-pedido').value;
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            
-            if (!pedido) {
-                pedidoSeleccionadoParaEnvio = null;
-                document.getElementById('resumen-financiero-envio').style.display = 'none';
-                return;
-            }
-            
-            pedidoSeleccionadoParaEnvio = pedido;
-            
-            // Auto-completar dirección si el cliente la tiene
-            if (pedido.cliente.direccion) {
-                document.getElementById('envio-direccion').value = pedido.cliente.direccion;
-            }
-            
-            // Mostrar resumen financiero
-            document.getElementById('resumen-financiero-envio').style.display = 'block';
-            calcularTotalEnvio();
-        }
+       function seleccionarClienteParaEnvio() {
+    const apellido = document.getElementById('envio-cliente').value.trim();
+    
+    if (!apellido) {
+        document.getElementById('resumen-financiero-envio').style.display = 'none';
+        return;
+    }
+    
+    // Buscar cliente por apellido
+    const cliente = clientes.find(c => c.apellido.toLowerCase().includes(apellido.toLowerCase()));
+    
+    if (!cliente) {
+        document.getElementById('resumen-financiero-envio').style.display = 'none';
+        return;
+    }
+    
+    // Auto-completar dirección si el cliente la tiene
+    if (cliente.direccion) {
+        document.getElementById('envio-direccion').value = cliente.direccion;
+    }
+    
+    // Mostrar resumen financiero
+    document.getElementById('resumen-financiero-envio').style.display = 'block';
+    calcularTotalEnvio();
+}
 
         function calcularTotalEnvio() {
             if (!pedidoSeleccionadoParaEnvio) return;
