@@ -1175,13 +1175,13 @@
                 
                 html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">';
                 html += '<p><strong>💰 Resumen Financiero:</strong></p>';
-                html += '<p>• Total Productos:  + envio.totalProductos.toFixed(2) + '</p>';
-                html += '<p>• Costo Envío:  + envio.costoEnvio.toFixed(2) + '</p>';
-                html += '<p>• <strong>Total General:  + envio.totalGeneral.toFixed(2) + '</strong></p>';
-                html += '<p>• Pagado:  + envio.importePagado.toFixed(2) + '</p>';
+                html += '<p>• Total Productos: $' + envio.totalProductos.toFixed(2) + '</p>';
+                html += '<p>• Costo Envío: $' + envio.costoEnvio.toFixed(2) + '</p>';
+                html += '<p>• <strong>Total General: $' + envio.totalGeneral.toFixed(2) + '</strong></p>';
+                html += '<p>• Pagado: $' + envio.importePagado.toFixed(2) + '</p>';
                 
                 const saldoClass = envio.saldoCobrar > 0 ? 'color: #dc3545' : envio.saldoCobrar < 0 ? 'color: #6f42c1' : 'color: #28a745';
-                html += '<p style="' + saldoClass + '; font-weight: 600;">• Saldo a Cobrar:  + envio.saldoCobrar.toFixed(2) + '</p>';
+                html += '<p style="' + saldoClass + '; font-weight: 600;">• Saldo a Cobrar: $' + envio.saldoCobrar.toFixed(2) + '</p>';
                 html += '</div>';
                 
                 if (envio.notas) {
