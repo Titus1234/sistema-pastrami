@@ -1037,7 +1037,7 @@
             
             let html = '<option value="">Seleccionar pedido...</option>';
             pedidosSinEnvio.forEach(pedido => {
-                html += '<option value="' + pedido.id + '">Pedido #' + pedido.id + ' - ' + pedido.cliente.nombre + ' ' + pedido.cliente.apellido + ' ( + pedido.total.toFixed(2) + ')</option>';
+               html += '<option value="' + pedido.id + '">Pedido #' + pedido.id + ' - ' + pedido.cliente.nombre + ' ' + pedido.cliente.apellido + ' ($' + pedido.total.toFixed(2) + ')</option>';
             });
             
             select.innerHTML = html;
