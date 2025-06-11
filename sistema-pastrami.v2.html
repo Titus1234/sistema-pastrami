@@ -816,7 +816,7 @@
             } else {
                 productosFiltrados.forEach(producto => {
                     html += '<div class="suggestion-item" onclick="seleccionarProducto(\'' + producto.id + '\')">';
-                    html += '<strong>' + producto.nombre + '</strong> -  + producto.precio.toFixed(2) + '<br>';
+                    html += '<strong>' + producto.nombre + '</strong> - $' + producto.precio.toFixed(2) + '<br>';
                     html += '<small>Stock: ' + (producto.stockActual || 0) + ' unidades</small>';
                     html += '</div>';
                 });
