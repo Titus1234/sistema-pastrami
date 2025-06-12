@@ -1,4 +1,669 @@
-<!DOCTYPE html>
+let html = '';
+            componentesTemporales.forEach((comp, index) => {
+                html += `
+                    <div class="componente-item">
+                        <span>${comp.nombre} - ${comp.precio.toFixed(2)} x ${comp.cantidad} = ${(comp.precio * comp.cantidad).toFixed(2)}</span>
+                        <button class="btn-eliminar btn-small" onclick="eliminarComponente(${index})">🗑️</button>
+                    </div>
+                `;
+            });
+            lista.innerHTML = html;
+        }
+
+        function eliminarComponente(index) {
+            componentesTemporales.splice(index, 1);
+            mostrarComponentes();
+        }
+
+        function agregarProducto() {
+            const nombre = document.getElementById('nombreProducto').value;
+            const precio = parseFloat(document.getElementById('precioProducto').value);
+            const stock = parseInt(document.getElementById('stockProducto').value);
+            const tipo = document.getElementById('tipoProducto').value;
+
+            if (!nombre || !precio || !stock) {
+                alert('Completa todos los campos obligatorios');
+                return;
+            }
+
+            if (tipo === 'compuesto' && componentesTemporales.length === 0) {
+                alert('Agrega al menos un componente para el producto compuesto');
+                return;
+            }
+
+            // Crear una copia profunda de los componentes para evitar referencias
+            const componentesCopia = componentesTemporales.map(comp => ({
+                id: comp.id,
+                nombre: comp.nombre,
+                precio: comp.precio,
+                cantidad: comp.cantidad
+            }));
+
+            const nuevoProducto = {
+                id: Date.now(),
+                nombre: nombre,
+                precio: precio,
+                stock: stock,
+                tipo: tipo,
+                componentes: tipo === 'compuesto' ? componentesCopia : [],
+                fechaCreacion: new Date().toLocaleDateString()
+            };
+
+            productos.push(nuevoProducto);
+            localStorage.setItem('productos', JSON.stringify(productos));
+
+            // Limpiar formulario
+            document.getElementById('nombreProducto').value = '';
+            document.getElementById('precioProducto').value = '';
+            document.getElementById('stockProducto').value = '';
+            document.getElementById('tipoProducto').value = 'simple';
+            componentesTemporales = [];
+            document.getElementById('componentesSection').style.display = 'none';
+            document.getElementById('listaComponentes').innerHTML = '<p style="color: #666; text-align: center;">No hay componentes agregados</p>';
+
+            mostrarProductos();
+            actualizarStatsProductos();
+            cargarProductosEnComponentes();
+            cargarProductosEnSelect();
+            
+            alert('Producto agregado exitosamente');
+        }
+
+        function mostrarProductos() {
+            const lista = document.getElementById('listaProductos');
+            
+            if (productos.length === 0) {
+                lista.innerHTML = '<div class="empty-state"><h3>No hay productos</h3><p>Agrega tu primer producto</p></div>';
+                return;
+            }
+
+            let html = '';
+            productos.forEach(producto => {
+                const componentesHtml = producto.componentes && producto.componentes.length > 0 
+                    ? `<p><strong>Componentes:</strong> ${producto.componentes.map(c => `${c.nombre} x${c.cantidad}`).join(', ')}</p>`
+                    : '';
+                
+                html += `
+                    <div class="producto-item">
+                        <div class="producto-info">
+                            <h4>${producto.nombre} ${producto.tipo === 'compuesto' ? '📦' : '📋'}</h4>
+                            <p>Precio: ${producto.precio.toFixed(2)} | Stock: ${producto.stock} | Tipo: ${producto.tipo}</p>
+                            ${componentesHtml}
+                            <p style="font-size: 0.9em; color: #666;">Creado: ${producto.fechaCreacion}</p>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-small btn-warning" onclick="editarProducto(${producto.id})">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarProducto(${producto.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = html;
+        }
+
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+
+            const nuevoNombre = prompt('Nuevo nombre:', producto.nombre);
+            const nuevoPrecio = prompt('Nuevo precio:', producto.precio);
+            const nuevoStock = prompt('Nuevo stock:', producto.stock);
+
+            if (nuevoNombre && nuevoPrecio && nuevoStock) {
+                producto.nombre = nuevoNombre;
+                producto.precio = parseFloat(nuevoPrecio);
+                producto.stock = parseInt(nuevoStock);
+                
+                localStorage.setItem('productos', JSON.stringify(productos));
+                mostrarProductos();
+                actualizarStatsProductos();
+                cargarProductosEnComponentes();
+                cargarProductosEnSelect();
+            }
+        }
+
+        function eliminarProducto(id) {
+            if (confirm('¿Eliminar este producto?')) {
+                productos = productos.filter(p => p.id !== id);
+                localStorage.setItem('productos', JSON.stringify(productos));
+                mostrarProductos();
+                actualizarStatsProductos();
+                cargarProductosEnComponentes();
+                cargarProductosEnSelect();
+            }
+        }
+
+        function filtrarProductos() {
+            const filtro = document.getElementById('searchProductos').value.toLowerCase();
+            document.querySelectorAll('.producto-item').forEach(item => {
+                const texto = item.textContent.toLowerCase();
+                item.style.display = texto.includes(filtro) ? 'flex' : 'none';
+            });
+        }
+
+        function actualizarStatsProductos() {
+            document.getElementById('totalProductos').textContent = productos.length;
+            const valorTotal = productos.reduce((total, producto) => total + (producto.precio * producto.stock), 0);
+            document.getElementById('valorInventario').textContent = `${valorTotal.toFixed(2)}`;
+        }
+
+        // === CLIENTES ===
+        function agregarCliente() {
+            const nombre = document.getElementById('nombreCliente').value;
+            const apellido = document.getElementById('apellidoCliente').value;
+            const telefono = document.getElementById('telefonoCliente').value;
+            const email = document.getElementById('emailCliente').value;
+            const direccion = document.getElementById('direccionCliente').value;
+            const numero = document.getElementById('numeroCliente').value;
+            const piso = document.getElementById('pisoCliente').value;
+            const codigoPostal = document.getElementById('codigoPostalCliente').value;
+            const localidad = document.getElementById('localidadCliente').value;
+
+            if (!nombre || !apellido || !telefono) {
+                alert('Completa los campos obligatorios: Nombre, Apellido y Teléfono');
+                return;
+            }
+
+            let direccionCompleta = '';
+            if (direccion) {
+                direccionCompleta = direccion;
+                if (numero) direccionCompleta += ` ${numero}`;
+                if (piso) direccionCompleta += `, ${piso}`;
+                if (localidad) direccionCompleta += `, ${localidad}`;
+                if (codigoPostal) direccionCompleta += ` (${codigoPostal})`;
+            }
+
+            const nuevoCliente = {
+                id: Date.now(),
+                nombre: nombre,
+                apellido: apellido,
+                telefono: telefono,
+                email: email || '',
+                direccion: direccion || '',
+                numero: numero || '',
+                piso: piso || '',
+                codigoPostal: codigoPostal || '',
+                localidad: localidad || '',
+                direccionCompleta: direccionCompleta,
+                fechaRegistro: new Date().toLocaleDateString(),
+                activo: true
+            };
+
+            clientes.push(nuevoCliente);
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+
+            // Limpiar formulario
+            ['nombreCliente', 'apellidoCliente', 'telefonoCliente', 'emailCliente', 
+             'direccionCliente', 'numeroCliente', 'pisoCliente', 'codigoPostalCliente', 'localidadCliente']
+            .forEach(id => document.getElementById(id).value = '');
+
+            mostrarClientes();
+            actualizarStatsClientes();
+            cargarClientesEnSelect();
+            alert('Cliente agregado exitosamente');
+        }
+
+        function mostrarClientes() {
+            const lista = document.getElementById('listaClientes');
+            
+            if (clientes.length === 0) {
+                lista.innerHTML = '<div class="empty-state"><h3>No hay clientes</h3><p>Agrega tu primer cliente</p></div>';
+                return;
+            }
+
+            let html = '';
+            clientes.forEach(cliente => {
+                html += `
+                    <div class="cliente-item">
+                        <div class="cliente-info">
+                            <h4>${cliente.nombre} ${cliente.apellido}</h4>
+                            <p>📞 ${cliente.telefono}${cliente.email ? ' | 📧 ' + cliente.email : ''}</p>
+                            <p>📍 ${cliente.direccionCompleta || 'Sin dirección'}</p>
+                            <p>Registrado: ${cliente.fechaRegistro} | ${cliente.activo ? '✅ Activo' : '❌ Inactivo'}</p>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-small btn-warning" onclick="editarCliente(${cliente.id})">✏️</button>
+                            <button class="btn btn-small ${cliente.activo ? 'btn-danger' : 'btn-success'}" onclick="toggleClienteActivo(${cliente.id})">
+                                ${cliente.activo ? '❌' : '✅'}
+                            </button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarCliente(${cliente.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = html;
+        }
+
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+
+            const nuevoNombre = prompt('Nuevo nombre:', cliente.nombre);
+            const nuevoApellido = prompt('Nuevo apellido:', cliente.apellido);
+            const nuevoTelefono = prompt('Nuevo teléfono:', cliente.telefono);
+
+            if (nuevoNombre && nuevoApellido && nuevoTelefono) {
+                cliente.nombre = nuevoNombre;
+                cliente.apellido = nuevoApellido;
+                cliente.telefono = nuevoTelefono;
+                
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+                actualizarStatsClientes();
+                cargarClientesEnSelect();
+            }
+        }
+
+        function toggleClienteActivo(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (cliente) {
+                cliente.activo = !cliente.activo;
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+                actualizarStatsClientes();
+                cargarClientesEnSelect();
+            }
+        }
+
+        function eliminarCliente(id) {
+            if (confirm('¿Eliminar este cliente?')) {
+                clientes = clientes.filter(c => c.id !== id);
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+                actualizarStatsClientes();
+                cargarClientesEnSelect();
+            }
+        }
+
+        function filtrarClientes() {
+            const filtro = document.getElementById('searchClientes').value.toLowerCase();
+            document.querySelectorAll('.cliente-item').forEach(item => {
+                const texto = item.textContent.toLowerCase();
+                item.style.display = texto.includes(filtro) ? 'flex' : 'none';
+            });
+        }
+
+        function actualizarStatsClientes() {
+            document.getElementById('totalClientes').textContent = clientes.length;
+            const clientesActivos = clientes.filter(c => c.activo).length;
+            document.getElementById('clientesActivos').textContent = clientesActivos;
+        }
+
+        // === ENVÍOS ===
+        function establecerFechaHoy() {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaEnvio').value = hoy;
+        }
+
+        function cargarClientesEnSelect() {
+            const select = document.getElementById('clienteEnvioSelect');
+            select.innerHTML = '<option value="">Seleccionar cliente existente</option>';
+            
+            clientes.filter(c => c.activo).forEach(cliente => {
+                select.innerHTML += `<option value="${cliente.id}">${cliente.nombre} ${cliente.apellido}</option>`;
+            });
+        }
+
+        function cargarDatosCliente() {
+            const clienteId = document.getElementById('clienteEnvioSelect').value;
+            
+            if (clienteId) {
+                const cliente = clientes.find(c => c.id == clienteId);
+                if (cliente) {
+                    document.getElementById('clienteEnvioManual').value = `${cliente.nombre} ${cliente.apellido}`;
+                    document.getElementById('direccionEnvio').value = cliente.direccionCompleta || '';
+                    document.getElementById('telefonoEnvio').value = cliente.telefono || '';
+                }
+            } else {
+                document.getElementById('clienteEnvioManual').value = '';
+                document.getElementById('direccionEnvio').value = '';
+                document.getElementById('telefonoEnvio').value = '';
+            }
+        }
+
+        function cargarProductosEnSelect() {
+            const select = document.getElementById('productoEnvioSelect');
+            select.innerHTML = '<option value="">Seleccionar producto</option>';
+            
+            productos.forEach(producto => {
+                const tipo = producto.tipo === 'compuesto' ? '📦' : '📋';
+                select.innerHTML += `<option value="${producto.id}">${tipo} ${producto.nombre} - ${producto.precio.toFixed(2)}</option>`;
+            });
+        }
+
+        function toggleMontoPago() {
+            const tipoPago = document.getElementById('tipoPago').value;
+            const montoDiv = document.getElementById('montoPagoDiv');
+            montoDiv.style.display = tipoPago === 'cuenta' ? 'block' : 'none';
+        }
+
+        function agregarProductoEnvio() {
+            const productoId = document.getElementById('productoEnvioSelect').value;
+            const cantidad = parseInt(document.getElementById('cantidadEnvio').value);
+            const precio = parseFloat(document.getElementById('precioEnvio').value);
+
+            if (!productoId || !cantidad || !precio) {
+                alert('Completa todos los campos');
+                return;
+            }
+
+            const producto = productos.find(p => p.id == productoId);
+            if (!producto) return;
+
+            const productosEnvio = document.getElementById('productosEnvio');
+            
+            // Si es el primer producto, limpiar el mensaje
+            if (productosEnvio.innerHTML.includes('No hay productos agregados')) {
+                productosEnvio.innerHTML = '';
+            }
+
+            const productoDiv = document.createElement('div');
+            productoDiv.className = 'producto-envio';
+            const tipo = producto.tipo === 'compuesto' ? '📦' : '📋';
+            productoDiv.innerHTML = `
+                <div>
+                    <span class="nombre-producto">${tipo} ${producto.nombre}</span> - 
+                    Cantidad: <span class="cantidad-envio">${cantidad}</span> - 
+                    Precio: $<span class="precio-envio">${precio.toFixed(2)}</span>
+                    <strong> = ${(precio * cantidad).toFixed(2)}</strong>
+                </div>
+                <button class="btn-eliminar btn-small" onclick="eliminarProductoEnvio(this)">🗑️</button>
+            `;
+
+            productosEnvio.appendChild(productoDiv);
+
+            // Limpiar campos
+            document.getElementById('productoEnvioSelect').value = '';
+            document.getElementById('cantidadEnvio').value = '1';
+            document.getElementById('precioEnvio').value = '';
+
+            actualizarTotalesEnvio();
+        }
+
+        function eliminarProductoEnvio(btn) {
+            btn.parentElement.remove();
+            
+            // Si no quedan productos, mostrar mensaje
+            const productosEnvio = document.getElementById('productosEnvio');
+            if (productosEnvio.children.length === 0) {
+                productosEnvio.innerHTML = '<p style="text-align: center; color: #666;">No hay productos agregados</p>';
+            }
+            
+            actualizarTotalesEnvio();
+        }
+
+        function actualizarTotalesEnvio() {
+            const subtotal = calcularSubtotalProductos();
+            const costoEnvio = parseFloat(document.getElementById('costoEnvio').value) || 0;
+            const total = subtotal + costoEnvio;
+
+            document.getElementById('subtotalProductos').textContent = `${subtotal.toFixed(2)}`;
+            document.getElementById('totalCostoEnvio').textContent = `${costoEnvio.toFixed(2)}`;
+            document.getElementById('totalEnvio').textContent = `${total.toFixed(2)}`;
+        }
+
+        function calcularSubtotalProductos() {
+            const productosEnvio = document.querySelectorAll('#productosEnvio .producto-envio');
+            let total = 0;
+            productosEnvio.forEach(producto => {
+                const precio = parseFloat(producto.querySelector('.precio-envio').textContent);
+                const cantidad = parseInt(producto.querySelector('.cantidad-envio').textContent);
+                total += precio * cantidad;
+            });
+            return total;
+        }
+
+        function crearEnvio() {
+            const clienteSelect = document.getElementById('clienteEnvioSelect').value;
+            const clienteManual = document.getElementById('clienteEnvioManual').value;
+            const direccionEnvio = document.getElementById('direccionEnvio').value;
+            const telefonoEnvio = document.getElementById('telefonoEnvio').value;
+            const fechaEnvio = document.getElementById('fechaEnvio').value;
+            const turnoEnvio = document.getElementById('turnoEnvio').value;
+            const costoEnvio = parseFloat(document.getElementById('costoEnvio').value) || 0;
+            const modalidadPago = document.getElementById('modalidadPago').value;
+            const tipoPago = document.getElementById('tipoPago').value;
+            const montoPago = parseFloat(document.getElementById('montoPago').value) || 0;
+            const productosEnvio = document.querySelectorAll('#productosEnvio .producto-envio');
+            
+            const nombreCliente = clienteManual || (clienteSelect ? clientes.find(c => c.id == clienteSelect)?.nombre + ' ' + clientes.find(c => c.id == clienteSelect)?.apellido : '');
+            
+            if (!nombreCliente || !direccionEnvio || !telefonoEnvio || !fechaEnvio || productosEnvio.length === 0) {
+                alert('Completa todos los campos obligatorios del envío');
+                return;
+            }
+            
+            const productos = [];
+            productosEnvio.forEach(producto => {
+                const nombre = producto.querySelector('.nombre-producto').textContent;
+                const precio = parseFloat(producto.querySelector('.precio-envio').textContent);
+                const cantidad = parseInt(producto.querySelector('.cantidad-envio').textContent);
+                productos.push({ nombre, precio, cantidad });
+            });
+            
+            const subtotal = calcularSubtotalProductos();
+            const total = subtotal + costoEnvio;
+            const montoPagado = tipoPago === 'total' ? total : montoPago;
+            const saldoPendiente = total - montoPagado;
+            
+            const nuevoEnvio = {
+                id: Date.now(),
+                cliente: nombreCliente,
+                direccion: direccionEnvio,
+                telefono: telefonoEnvio,
+                fecha: fechaEnvio,
+                turno: turnoEnvio,
+                productos: productos,
+                subtotal: subtotal,
+                costoEnvio: costoEnvio,
+                total: total,
+                modalidadPago: modalidadPago,
+                tipoPago: tipoPago,
+                montoPagado: montoPagado,
+                saldoPendiente: saldoPendiente,
+                estado: saldoPendiente > 0 ? 'PENDIENTE' : 'EN_PREPARACION',
+                fechaCreacion: new Date().toLocaleDateString()
+            };
+            
+            envios.push(nuevoEnvio);
+            localStorage.setItem('envios', JSON.stringify(envios));
+            
+            // Limpiar formulario
+            document.getElementById('clienteEnvioSelect').value = '';
+            document.getElementById('clienteEnvioManual').value = '';
+            document.getElementById('direccionEnvio').value = '';
+            document.getElementById('telefonoEnvio').value = '';
+            document.getElementById('costoEnvio').value = '';
+            document.getElementById('modalidadPago').value = 'efectivo';
+            document.getElementById('tipoPago').value = 'total';
+            document.getElementById('montoPago').value = '';
+            document.getElementById('montoPagoDiv').style.display = 'none';
+            document.getElementById('productosEnvio').innerHTML = '<p style="text-align: center; color: #666;">No hay productos agregados</p>';
+            establecerFechaHoy();
+            actualizarTotalesEnvio();
+            
+            mostrarEnvios();
+            actualizarStatsEnvios();
+            alert('Envío creado exitosamente');
+        }
+
+        function mostrarEnvios() {
+            const lista = document.getElementById('listaEnvios');
+            
+            // Filtrar envíos activos (no entregados ni finalizados)
+            const enviosActivos = envios.filter(envio => 
+                envio.estado !== 'ENTREGADO' && envio.estado !== 'FINALIZADO'
+            );
+            
+            if (enviosActivos.length === 0) {
+                lista.innerHTML = '<div class="empty-state"><h3>No hay envíos pendientes</h3><p>Todos los envíos han sido completados</p></div>';
+                return;
+            }
+
+            let enviosHtml = '';
+            enviosActivos.forEach(envio => {
+                const modalidadTexto = {
+                    'efectivo': 'Efectivo',
+                    'tarjeta_credito': 'Tarjeta Crédito',
+                    'tarjeta_debito': 'Tarjeta Débito',
+                    'mercado_pago': 'Mercado Pago',
+                    'transferencia': 'Transferencia'
+                };
+
+                const estadoTexto = {
+                    'PENDIENTE': 'PENDIENTE PAGO',
+                    'EN_PREPARACION': 'EN PREPARACIÓN',
+                    'EN_CAMINO': 'EN CAMINO',
+                    'ENTREGADO': 'ENTREGADO'
+                };
+
+                const saldoHtml = envio.saldoPendiente > 0 ? 
+                    `<div class="saldo-pendiente">💰 Saldo Pendiente: ${envio.saldoPendiente.toFixed(2)}</div>` :
+                    `<div class="pago-completo">✅ Pago Completo</div>`;
+
+                enviosHtml += `
+                    <div class="envio-card">
+                        <div class="envio-header">
+                            <h4>Envío #${envio.id}</h4>
+                            <span class="estado-envio estado-${envio.estado.toLowerCase()}">${estadoTexto[envio.estado]}</span>
+                        </div>
+                        <div class="envio-info">
+                            <p><strong>Cliente:</strong> ${envio.cliente}</p>
+                            <p><strong>📍 Dirección:</strong> ${envio.direccion}</p>
+                            <p><strong>📞 Teléfono:</strong> ${envio.telefono}</p>
+                            <p><strong>📅 Fecha:</strong> ${envio.fecha} - <strong>🕐 Turno:</strong> ${envio.turno}</p>
+                            <p><strong>💳 Pago:</strong> ${modalidadTexto[envio.modalidadPago]} (${envio.tipoPago === 'total' ? 'Total' : 'A Cuenta'})</p>
+                        </div>
+                        <div class="productos-envio">
+                            <h5>Productos:</h5>
+                            <ul>
+                                ${envio.productos.map(p => `<li>${p.nombre} - Cantidad: ${p.cantidad} - ${p.precio.toFixed(2)}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                            <p><strong>Subtotal:</strong> ${envio.subtotal.toFixed(2)}</p>
+                            <p><strong>Costo Envío:</strong> ${envio.costoEnvio.toFixed(2)}</p>
+                            <p><strong>Total:</strong> ${envio.total.toFixed(2)}</p>
+                            <p><strong>Pagado:</strong> ${envio.montoPagado.toFixed(2)}</p>
+                        </div>
+                        ${saldoHtml}
+                        <div class="envio-acciones">
+                            ${envio.estado === 'PENDIENTE' ? `<button class="btn-pagar" onclick="pagarSaldo(${envio.id})">💰 Pagar Saldo</button>` : ''}
+                            ${envio.estado === 'EN_PREPARACION' ? `<button class="btn-preparar" onclick="cambiarEstadoEnvio(${envio.id}, 'EN_CAMINO')">🚚 EN CAMINO</button>` : ''}
+                            ${envio.estado === 'EN_CAMINO' ? `<button class="btn-entregar" onclick="cambiarEstadoEnvio(${envio.id}, 'ENTREGADO')">✅ ENTREGAR</button>` : ''}
+                            <button class="btn-eliminar" onclick="eliminarEnvio(${envio.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = enviosHtml;
+        }
+
+        function pagarSaldo(envioId) {
+            const envio = envios.find(e => e.id === envioId);
+            if (!envio) return;
+
+            const saldoPendiente = envio.saldoPendiente;
+            const montoPago = prompt(`Saldo pendiente: ${saldoPendiente.toFixed(2)}\n¿Cuánto va a pagar?`, saldoPendiente.toFixed(2));
+            
+            if (montoPago === null) return;
+            
+            const pago = parseFloat(montoPago);
+            if (isNaN(pago) || pago <= 0) {
+                alert('Ingresa un monto válido');
+                return;
+            }
+
+            envio.montoPagado += pago;
+            envio.saldoPendiente = envio.total - envio.montoPagado;
+            
+            if (envio.saldoPendiente <= 0) {
+                envio.saldoPendiente = 0;
+                envio.estado = 'EN_PREPARACION';
+            }
+
+            localStorage.setItem('envios', JSON.stringify(envios));
+            mostrarEnvios();
+            actualizarStatsEnvios();
+            
+            alert(`Pago registrado. ${envio.saldoPendiente > 0 ? `Saldo restante: ${envio.saldoPendiente.toFixed(2)}` : 'Pago completo!'}`);
+        }
+
+        function cambiarEstadoEnvio(envioId, nuevoEstado) {
+            const envio = envios.find(e => e.id === envioId);
+            if (envio) {
+                envio.estado = nuevoEstado;
+                
+                // Si se entrega, cambiar a finalizado para que desaparezca de la lista
+                if (nuevoEstado === 'ENTREGADO') {
+                    setTimeout(() => {
+                        if (confirm('Envío entregado exitosamente. ¿Finalizar y remover de la lista?')) {
+                            envio.estado = 'FINALIZADO';
+                            localStorage.setItem('envios', JSON.stringify(envios));
+                            mostrarEnvios();
+                            actualizarStatsEnvios();
+                        }
+                    }, 500);
+                }
+                
+                localStorage.setItem('envios', JSON.stringify(envios));
+                mostrarEnvios();
+                actualizarStatsEnvios();
+            }
+        }
+
+        function eliminarEnvio(id) {
+            if (confirm('¿Eliminar este envío permanentemente?')) {
+                envios = envios.filter(e => e.id !== id);
+                localStorage.setItem('envios', JSON.stringify(envios));
+                mostrarEnvios();
+                actualizarStatsEnvios();
+            }
+        }
+
+        function actualizarStatsEnvios() {
+            const enviosActivos = envios.filter(e => e.estado !== 'FINALIZADO');
+            document.getElementById('totalEnvios').textContent = enviosActivos.length;
+            
+            const hoy = new Date().toISOString().split('T')[0];
+            const enviosHoy = enviosActivos.filter(e => e.fecha === hoy).length;
+            document.getElementById('enviosHoy').textContent = enviosHoy;
+            
+            const enviosPendientes = enviosActivos.filter(e => e.estado === 'PENDIENTE' || e.saldoPendiente > 0).length;
+            document.getElementById('enviosPendientes').textContent = enviosPendientes;
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            mostrarProductos();
+            actualizarStatsProductos();
+            cargarProductosEnComponentes();
+            cargarProductosEnSelect();
+            cargarClientesEnSelect();
+            establecerFechaHoy();
+
+            // Auto-completar precio cuando se selecciona producto en envíos
+            document.getElementById('productoEnvioSelect').addEventListener('change', function() {
+                const productoId = this.value;
+                if (productoId) {
+                    const producto = productos.find(p => p.id == productoId);
+                    if (producto) {
+                        document.getElementById('precioEnvio').value = producto.precio.toFixed(2);
+                    }
+                } else {
+                    document.getElementById('precioEnvio').value = '';
+                }
+            });
+
+            // Actualizar totales cuando cambia el costo de envío
+            document.getElementById('costoEnvio').addEventListener('input', actualizarTotalesEnvio);
+        });
+    </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -19,7 +684,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -233,6 +898,7 @@
             padding: 15px;
             border-radius: 8px;
             margin-top: 10px;
+            min-height: 50px;
         }
 
         .componente-item {
@@ -241,11 +907,14 @@
             align-items: center;
             padding: 10px;
             border-bottom: 1px solid #e1e8ed;
+            background: white;
+            margin-bottom: 5px;
+            border-radius: 5px;
         }
 
         .envio-form {
             background: #f8f9fa;
-            padding: 20px;
+            padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
         }
@@ -257,6 +926,7 @@
             border-radius: 8px;
             padding: 10px;
             margin-bottom: 10px;
+            background: white;
         }
 
         .producto-envio {
@@ -291,25 +961,31 @@
             text-transform: uppercase;
         }
 
-        .estado-en_preparacion {
+        .estado-pendiente {
             background: #fff3cd;
             color: #856404;
         }
 
-        .estado-en_camino {
+        .estado-en_preparacion {
             background: #cce5ff;
             color: #004085;
         }
 
-        .estado-entregado {
-            background: #d1edff;
+        .estado-en_camino {
+            background: #d4edda;
             color: #155724;
+        }
+
+        .estado-entregado {
+            background: #d1ecf1;
+            color: #0c5460;
         }
 
         .envio-acciones {
             display: flex;
             gap: 10px;
             margin-top: 15px;
+            flex-wrap: wrap;
         }
 
         .btn-preparar {
@@ -334,6 +1010,17 @@
             font-weight: bold;
         }
 
+        .btn-pagar {
+            background: linear-gradient(45deg, #ffc107, #e0a800);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
         .btn-eliminar {
             background: linear-gradient(45deg, #dc3545, #c82333);
             color: white;
@@ -346,7 +1033,7 @@
 
         .grid-form {
             display: grid;
-            gap: 10px;
+            gap: 15px;
             align-items: end;
         }
 
@@ -354,12 +1041,32 @@
         .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
         .grid-4 { grid-template-columns: 1fr 1fr 1fr auto; }
         .grid-5 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
+        .grid-6 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; }
+
+        .saldo-pendiente {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .pago-completo {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
 
         @media (max-width: 768px) {
             .grid-form { grid-template-columns: 1fr; }
             .tab { padding: 15px 10px; font-size: 14px; }
             .tab-content { padding: 20px; }
             .stats { grid-template-columns: 1fr; }
+            .envio-acciones { flex-direction: column; }
         }
     </style>
 </head>
@@ -418,7 +1125,7 @@
                 
                 <div id="componentesSection" style="display: none;">
                     <h3>Componentes del Producto</h3>
-                    <div class="grid-form grid-3">
+                    <div class="grid-form grid-3" style="margin-bottom: 10px;">
                         <div>
                             <label for="componenteSelect">Producto Base</label>
                             <select id="componenteSelect">
@@ -433,7 +1140,9 @@
                             <button class="btn btn-success" onclick="agregarComponente()">Agregar Componente</button>
                         </div>
                     </div>
-                    <div id="listaComponentes" class="componentes"></div>
+                    <div id="listaComponentes" class="componentes">
+                        <p style="color: #666; text-align: center;">No hay componentes agregados</p>
+                    </div>
                 </div>
             </div>
 
@@ -524,22 +1233,61 @@
                     <h3 id="enviosHoy">0</h3>
                     <p>Envíos Hoy</p>
                 </div>
+                <div class="stat-card">
+                    <h3 id="enviosPendientes">0</h3>
+                    <p>Pendientes</p>
+                </div>
             </div>
 
             <div class="envio-form">
                 <h2>📦 Crear Nuevo Envío</h2>
-                <div class="grid-form grid-2">
+                
+                <!-- DATOS DEL CLIENTE -->
+                <div class="grid-form grid-2" style="margin-bottom: 15px;">
                     <div>
-                        <label for="clienteEnvio">Cliente</label>
-                        <input type="text" id="clienteEnvio" placeholder="Nombre del cliente">
+                        <label for="clienteEnvioSelect">Seleccionar Cliente</label>
+                        <select id="clienteEnvioSelect" onchange="cargarDatosCliente()">
+                            <option value="">Seleccionar cliente existente</option>
+                        </select>
                     </div>
+                    <div>
+                        <label for="clienteEnvioManual">O escribir cliente nuevo</label>
+                        <input type="text" id="clienteEnvioManual" placeholder="Nombre del cliente">
+                    </div>
+                </div>
+                
+                <div class="grid-form grid-2" style="margin-bottom: 15px;">
                     <div>
                         <label for="direccionEnvio">Dirección de Envío</label>
                         <input type="text" id="direccionEnvio" placeholder="Dirección completa">
                     </div>
+                    <div>
+                        <label for="telefonoEnvio">Teléfono de Contacto</label>
+                        <input type="tel" id="telefonoEnvio" placeholder="Teléfono">
+                    </div>
                 </div>
-                
-                <div style="margin-top: 15px;">
+
+                <!-- FECHA Y TURNO -->
+                <div class="grid-form grid-3" style="margin-bottom: 15px;">
+                    <div>
+                        <label for="fechaEnvio">Fecha de Envío</label>
+                        <input type="date" id="fechaEnvio">
+                    </div>
+                    <div>
+                        <label for="turnoEnvio">Turno</label>
+                        <select id="turnoEnvio">
+                            <option value="mañana">Mañana (9:00 - 13:00)</option>
+                            <option value="tarde">Tarde (14:00 - 18:00)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="costoEnvio">Costo de Envío</label>
+                        <input type="number" id="costoEnvio" placeholder="0.00" step="0.01">
+                    </div>
+                </div>
+
+                <!-- PRODUCTOS -->
+                <div style="margin: 20px 0;">
                     <h3>Agregar Productos al Envío</h3>
                     <div class="grid-form grid-4">
                         <div>
@@ -562,13 +1310,55 @@
                     </div>
                 </div>
 
-                <div class="productos-envio" id="productosEnvio"></div>
+                <div class="productos-envio" id="productosEnvio">
+                    <p style="text-align: center; color: #666;">No hay productos agregados</p>
+                </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-                    <div style="font-size: 1.2em; font-weight: bold;">
-                        Total: <span id="totalEnvio">$0</span>
+                <!-- OPCIONES DE PAGO -->
+                <div class="grid-form grid-3" style="margin: 20px 0;">
+                    <div>
+                        <label for="modalidadPago">Modalidad de Pago</label>
+                        <select id="modalidadPago">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta_credito">Tarjeta de Crédito</option>
+                            <option value="tarjeta_debito">Tarjeta de Débito</option>
+                            <option value="mercado_pago">Mercado Pago</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
                     </div>
-                    <button class="btn btn-success" onclick="crearEnvio()">Crear Envío</button>
+                    <div>
+                        <label for="tipoPago">Tipo de Pago</label>
+                        <select id="tipoPago" onchange="toggleMontoPago()">
+                            <option value="total">Pago Total</option>
+                            <option value="cuenta">A Cuenta</option>
+                        </select>
+                    </div>
+                    <div id="montoPagoDiv" style="display: none;">
+                        <label for="montoPago">Monto Pagado</label>
+                        <input type="number" id="montoPago" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+
+                <!-- TOTALES -->
+                <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: bold;">Subtotal Productos:</span>
+                        <span id="subtotalProductos">$0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: bold;">Costo Envío:</span>
+                        <span id="totalCostoEnvio">$0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 1.2em; font-weight: bold; color: #007bff;">
+                        <span>TOTAL:</span>
+                        <span id="totalEnvio">$0.00</span>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn btn-success" onclick="crearEnvio()" style="padding: 15px 30px; font-size: 18px;">
+                        🚚 Crear Envío
+                    </button>
                 </div>
             </div>
 
@@ -602,6 +1392,8 @@
                 mostrarEnvios();
                 actualizarStatsEnvios();
                 cargarProductosEnSelect();
+                cargarClientesEnSelect();
+                establecerFechaHoy();
             }
         }
 
@@ -610,14 +1402,18 @@
             const tipo = document.getElementById('tipoProducto').value;
             const section = document.getElementById('componentesSection');
             section.style.display = tipo === 'compuesto' ? 'block' : 'none';
+            
             if (tipo === 'compuesto') {
                 cargarProductosEnComponentes();
+                componentesTemporales = [];
+                mostrarComponentes();
             }
         }
 
         function cargarProductosEnComponentes() {
             const select = document.getElementById('componenteSelect');
             select.innerHTML = '<option value="">Seleccionar producto</option>';
+            
             productos.filter(p => p.tipo === 'simple').forEach(producto => {
                 select.innerHTML += `<option value="${producto.id}">${producto.nombre} - $${producto.precio.toFixed(2)}</option>`;
             });
@@ -635,12 +1431,18 @@
             const producto = productos.find(p => p.id == productoId);
             if (!producto) return;
 
-            componentesTemporales.push({
-                id: producto.id,
-                nombre: producto.nombre,
-                precio: producto.precio,
-                cantidad: cantidad
-            });
+            // Verificar si ya existe el componente
+            const existeComponente = componentesTemporales.find(c => c.id == productoId);
+            if (existeComponente) {
+                existeComponente.cantidad += cantidad;
+            } else {
+                componentesTemporales.push({
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    cantidad: cantidad
+                });
+            }
 
             mostrarComponentes();
             document.getElementById('componenteSelect').value = '';
@@ -649,477 +1451,8 @@
 
         function mostrarComponentes() {
             const lista = document.getElementById('listaComponentes');
-            let html = '';
-            componentesTemporales.forEach((comp, index) => {
-                html += `
-                    <div class="componente-item">
-                        <span>${comp.nombre} - $${comp.precio.toFixed(2)} x ${comp.cantidad}</span>
-                        <button class="btn-eliminar btn-small" onclick="eliminarComponente(${index})">🗑️</button>
-                    </div>
-                `;
-            });
-            lista.innerHTML = html;
-        }
-
-        function eliminarComponente(index) {
-            componentesTemporales.splice(index, 1);
-            mostrarComponentes();
-        }
-
-        function agregarProducto() {
-            const nombre = document.getElementById('nombreProducto').value;
-            const precio = parseFloat(document.getElementById('precioProducto').value);
-            const stock = parseInt(document.getElementById('stockProducto').value);
-            const tipo = document.getElementById('tipoProducto').value;
-
-            if (!nombre || !precio || !stock) {
-                alert('Completa todos los campos obligatorios');
+            
+            if (componentesTemporales.length === 0) {
+                lista.innerHTML = '<p style="color: #666; text-align: center;">No hay componentes agregados</p>';
                 return;
             }
-
-            if (tipo === 'compuesto' && componentesTemporales.length === 0) {
-                alert('Agrega al menos un componente para el producto compuesto');
-                return;
-            }
-
-            const nuevoProducto = {
-                id: Date.now(),
-                nombre: nombre,
-                precio: precio,
-                stock: stock,
-                tipo: tipo,
-                componentes: tipo === 'compuesto' ? [...componentesTemporales] : [],
-                fechaCreacion: new Date().toLocaleDateString()
-            };
-
-            productos.push(nuevoProducto);
-            localStorage.setItem('productos', JSON.stringify(productos));
-
-            // Limpiar formulario
-            document.getElementById('nombreProducto').value = '';
-            document.getElementById('precioProducto').value = '';
-            document.getElementById('stockProducto').value = '';
-            document.getElementById('tipoProducto').value = 'simple';
-            componentesTemporales = [];
-            document.getElementById('componentesSection').style.display = 'none';
-            document.getElementById('listaComponentes').innerHTML = '';
-
-            mostrarProductos();
-            actualizarStatsProductos();
-            cargarProductosEnComponentes();
-            cargarProductosEnSelect();
-        }
-
-        function mostrarProductos() {
-            const lista = document.getElementById('listaProductos');
-            
-            if (productos.length === 0) {
-                lista.innerHTML = '<div class="empty-state"><h3>No hay productos</h3><p>Agrega tu primer producto</p></div>';
-                return;
-            }
-
-            let html = '';
-            productos.forEach(producto => {
-                const componentesHtml = producto.componentes && producto.componentes.length > 0 
-                    ? `<p><strong>Componentes:</strong> ${producto.componentes.map(c => `${c.nombre} x${c.cantidad}`).join(', ')}</p>`
-                    : '';
-                
-                html += `
-                    <div class="producto-item">
-                        <div class="producto-info">
-                            <h4>${producto.nombre} ${producto.tipo === 'compuesto' ? '📦' : ''}</h4>
-                            <p>Precio: $${producto.precio.toFixed(2)} | Stock: ${producto.stock} | Tipo: ${producto.tipo}</p>
-                            ${componentesHtml}
-                        </div>
-                        <div class="actions">
-                            <button class="btn btn-small btn-warning" onclick="editarProducto(${producto.id})">✏️</button>
-                            <button class="btn btn-small btn-danger" onclick="eliminarProducto(${producto.id})">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            lista.innerHTML = html;
-        }
-
-        function editarProducto(id) {
-            const producto = productos.find(p => p.id === id);
-            if (!producto) return;
-
-            const nuevoNombre = prompt('Nuevo nombre:', producto.nombre);
-            const nuevoPrecio = prompt('Nuevo precio:', producto.precio);
-            const nuevoStock = prompt('Nuevo stock:', producto.stock);
-
-            if (nuevoNombre && nuevoPrecio && nuevoStock) {
-                producto.nombre = nuevoNombre;
-                producto.precio = parseFloat(nuevoPrecio);
-                producto.stock = parseInt(nuevoStock);
-                
-                localStorage.setItem('productos', JSON.stringify(productos));
-                mostrarProductos();
-                actualizarStatsProductos();
-                cargarProductosEnComponentes();
-                cargarProductosEnSelect();
-            }
-        }
-
-        function eliminarProducto(id) {
-            if (confirm('¿Eliminar este producto?')) {
-                productos = productos.filter(p => p.id !== id);
-                localStorage.setItem('productos', JSON.stringify(productos));
-                mostrarProductos();
-                actualizarStatsProductos();
-                cargarProductosEnComponentes();
-                cargarProductosEnSelect();
-            }
-        }
-
-        function filtrarProductos() {
-            const filtro = document.getElementById('searchProductos').value.toLowerCase();
-            document.querySelectorAll('.producto-item').forEach(item => {
-                const texto = item.textContent.toLowerCase();
-                item.style.display = texto.includes(filtro) ? 'flex' : 'none';
-            });
-        }
-
-        function actualizarStatsProductos() {
-            document.getElementById('totalProductos').textContent = productos.length;
-            const valorTotal = productos.reduce((total, producto) => total + (producto.precio * producto.stock), 0);
-            document.getElementById('valorInventario').textContent = `$${valorTotal.toFixed(2)}`;
-        }
-
-        // === CLIENTES ===
-        function agregarCliente() {
-            const nombre = document.getElementById('nombreCliente').value;
-            const apellido = document.getElementById('apellidoCliente').value;
-            const telefono = document.getElementById('telefonoCliente').value;
-            const email = document.getElementById('emailCliente').value;
-            const direccion = document.getElementById('direccionCliente').value;
-            const numero = document.getElementById('numeroCliente').value;
-            const piso = document.getElementById('pisoCliente').value;
-            const codigoPostal = document.getElementById('codigoPostalCliente').value;
-            const localidad = document.getElementById('localidadCliente').value;
-
-            if (!nombre || !apellido || !telefono) {
-                alert('Completa los campos obligatorios: Nombre, Apellido y Teléfono');
-                return;
-            }
-
-            let direccionCompleta = '';
-            if (direccion) {
-                direccionCompleta = direccion;
-                if (numero) direccionCompleta += ` ${numero}`;
-                if (piso) direccionCompleta += `, ${piso}`;
-                if (localidad) direccionCompleta += `, ${localidad}`;
-                if (codigoPostal) direccionCompleta += ` (${codigoPostal})`;
-            }
-
-            const nuevoCliente = {
-                id: Date.now(),
-                nombre: nombre,
-                apellido: apellido,
-                telefono: telefono,
-                email: email || '',
-                direccion: direccion || '',
-                numero: numero || '',
-                piso: piso || '',
-                codigoPostal: codigoPostal || '',
-                localidad: localidad || '',
-                direccionCompleta: direccionCompleta,
-                fechaRegistro: new Date().toLocaleDateString(),
-                activo: true
-            };
-
-            clientes.push(nuevoCliente);
-            localStorage.setItem('clientes', JSON.stringify(clientes));
-
-            // Limpiar formulario
-            ['nombreCliente', 'apellidoCliente', 'telefonoCliente', 'emailCliente', 
-             'direccionCliente', 'numeroCliente', 'pisoCliente', 'codigoPostalCliente', 'localidadCliente']
-            .forEach(id => document.getElementById(id).value = '');
-
-            mostrarClientes();
-            actualizarStatsClientes();
-        }
-
-        function mostrarClientes() {
-            const lista = document.getElementById('listaClientes');
-            
-            if (clientes.length === 0) {
-                lista.innerHTML = '<div class="empty-state"><h3>No hay clientes</h3><p>Agrega tu primer cliente</p></div>';
-                return;
-            }
-
-            let html = '';
-            clientes.forEach(cliente => {
-                html += `
-                    <div class="cliente-item">
-                        <div class="cliente-info">
-                            <h4>${cliente.nombre} ${cliente.apellido}</h4>
-                            <p>📞 ${cliente.telefono}${cliente.email ? ' | 📧 ' + cliente.email : ''}</p>
-                            <p>📍 ${cliente.direccionCompleta || 'Sin dirección'}</p>
-                            <p>Registrado: ${cliente.fechaRegistro} | ${cliente.activo ? '✅ Activo' : '❌ Inactivo'}</p>
-                        </div>
-                        <div class="actions">
-                            <button class="btn btn-small btn-warning" onclick="editarCliente(${cliente.id})">✏️</button>
-                            <button class="btn btn-small ${cliente.activo ? 'btn-danger' : 'btn-success'}" onclick="toggleClienteActivo(${cliente.id})">
-                                ${cliente.activo ? '❌' : '✅'}
-                            </button>
-                            <button class="btn btn-small btn-danger" onclick="eliminarCliente(${cliente.id})">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            lista.innerHTML = html;
-        }
-
-        function editarCliente(id) {
-            const cliente = clientes.find(c => c.id === id);
-            if (!cliente) return;
-
-            const nuevoNombre = prompt('Nuevo nombre:', cliente.nombre);
-            const nuevoApellido = prompt('Nuevo apellido:', cliente.apellido);
-            const nuevoTelefono = prompt('Nuevo teléfono:', cliente.telefono);
-
-            if (nuevoNombre && nuevoApellido && nuevoTelefono) {
-                cliente.nombre = nuevoNombre;
-                cliente.apellido = nuevoApellido;
-                cliente.telefono = nuevoTelefono;
-                
-                localStorage.setItem('clientes', JSON.stringify(clientes));
-                mostrarClientes();
-                actualizarStatsClientes();
-            }
-        }
-
-        function toggleClienteActivo(id) {
-            const cliente = clientes.find(c => c.id === id);
-            if (cliente) {
-                cliente.activo = !cliente.activo;
-                localStorage.setItem('clientes', JSON.stringify(clientes));
-                mostrarClientes();
-                actualizarStatsClientes();
-            }
-        }
-
-        function eliminarCliente(id) {
-            if (confirm('¿Eliminar este cliente?')) {
-                clientes = clientes.filter(c => c.id !== id);
-                localStorage.setItem('clientes', JSON.stringify(clientes));
-                mostrarClientes();
-                actualizarStatsClientes();
-            }
-        }
-
-        function filtrarClientes() {
-            const filtro = document.getElementById('searchClientes').value.toLowerCase();
-            document.querySelectorAll('.cliente-item').forEach(item => {
-                const texto = item.textContent.toLowerCase();
-                item.style.display = texto.includes(filtro) ? 'flex' : 'none';
-            });
-        }
-
-        function actualizarStatsClientes() {
-            document.getElementById('totalClientes').textContent = clientes.length;
-            const clientesActivos = clientes.filter(c => c.activo).length;
-            document.getElementById('clientesActivos').textContent = clientesActivos;
-        }
-
-        // === ENVÍOS ===
-        function cargarProductosEnSelect() {
-            const select = document.getElementById('productoEnvioSelect');
-            select.innerHTML = '<option value="">Seleccionar producto</option>';
-            
-            productos.forEach(producto => {
-                select.innerHTML += `<option value="${producto.id}">${producto.nombre} - ${producto.precio.toFixed(2)}</option>`;
-            });
-        }
-
-        function agregarProductoEnvio() {
-            const productoId = document.getElementById('productoEnvioSelect').value;
-            const cantidad = parseInt(document.getElementById('cantidadEnvio').value);
-            const precio = parseFloat(document.getElementById('precioEnvio').value);
-
-            if (!productoId || !cantidad || !precio) {
-                alert('Completa todos los campos');
-                return;
-            }
-
-            const producto = productos.find(p => p.id == productoId);
-            if (!producto) return;
-
-            const productosEnvio = document.getElementById('productosEnvio');
-            const productoDiv = document.createElement('div');
-            productoDiv.className = 'producto-envio';
-            productoDiv.innerHTML = `
-                <div>
-                    <span class="nombre-producto">${producto.nombre}</span> - 
-                    Cantidad: <span class="cantidad-envio">${cantidad}</span> - 
-                    Precio: $<span class="precio-envio">${precio.toFixed(2)}</span>
-                </div>
-                <button class="btn-eliminar btn-small" onclick="eliminarProductoEnvio(this)">🗑️</button>
-            `;
-
-            productosEnvio.appendChild(productoDiv);
-
-            // Limpiar campos
-            document.getElementById('productoEnvioSelect').value = '';
-            document.getElementById('cantidadEnvio').value = '1';
-            document.getElementById('precioEnvio').value = '';
-
-            actualizarTotalEnvio();
-        }
-
-        function eliminarProductoEnvio(btn) {
-            btn.parentElement.remove();
-            actualizarTotalEnvio();
-        }
-
-        function actualizarTotalEnvio() {
-            const total = calcularTotalEnvio();
-            document.getElementById('totalEnvio').textContent = `${total.toFixed(2)}`;
-        }
-
-        function calcularTotalEnvio() {
-            const productosEnvio = document.querySelectorAll('#productosEnvio .producto-envio');
-            let total = 0;
-            productosEnvio.forEach(producto => {
-                const precio = parseFloat(producto.querySelector('.precio-envio').textContent);
-                const cantidad = parseInt(producto.querySelector('.cantidad-envio').textContent);
-                total += precio * cantidad;
-            });
-            return total;
-        }
-
-        function crearEnvio() {
-            const clienteEnvio = document.getElementById('clienteEnvio').value;
-            const direccionEnvio = document.getElementById('direccionEnvio').value;
-            const productosEnvio = document.querySelectorAll('#productosEnvio .producto-envio');
-            
-            if (!clienteEnvio || !direccionEnvio || productosEnvio.length === 0) {
-                alert('Completa todos los campos del envío');
-                return;
-            }
-            
-            const productos = [];
-            productosEnvio.forEach(producto => {
-                const nombre = producto.querySelector('.nombre-producto').textContent;
-                const precio = parseFloat(producto.querySelector('.precio-envio').textContent);
-                const cantidad = parseInt(producto.querySelector('.cantidad-envio').textContent);
-                productos.push({ nombre, precio, cantidad });
-            });
-            
-            const nuevoEnvio = {
-                id: Date.now(),
-                cliente: clienteEnvio,
-                direccion: direccionEnvio,
-                productos: productos,
-                total: calcularTotalEnvio(),
-                estado: 'EN_PREPARACION',
-                fecha: new Date().toLocaleDateString()
-            };
-            
-            envios.push(nuevoEnvio);
-            localStorage.setItem('envios', JSON.stringify(envios));
-            
-            // Limpiar formulario
-            document.getElementById('clienteEnvio').value = '';
-            document.getElementById('direccionEnvio').value = '';
-            document.getElementById('productosEnvio').innerHTML = '';
-            document.getElementById('totalEnvio').textContent = '$0';
-            
-            mostrarEnvios();
-            actualizarStatsEnvios();
-            alert('Envío creado exitosamente');
-        }
-
-        function mostrarEnvios() {
-            const lista = document.getElementById('listaEnvios');
-            
-            if (envios.length === 0) {
-                lista.innerHTML = '<div class="empty-state"><h3>No hay envíos</h3><p>Crea tu primer envío</p></div>';
-                return;
-            }
-
-            let enviosHtml = '';
-            envios.forEach(envio => {
-                enviosHtml += `
-                    <div class="envio-card">
-                        <div class="envio-header">
-                            <h4>Envío #${envio.id}</h4>
-                            <span class="estado-envio estado-${envio.estado.toLowerCase()}">${envio.estado.replace('_', ' ')}</span>
-                        </div>
-                        <div class="envio-info">
-                            <p><strong>Cliente:</strong> ${envio.cliente}</p>
-                            <p><strong>Dirección:</strong> ${envio.direccion}</p>
-                            <p><strong>Fecha:</strong> ${envio.fecha}</p>
-                            <p><strong>Total:</strong> ${envio.total.toFixed(2)}</p>
-                        </div>
-                        <div class="productos-envio">
-                            <h5>Productos:</h5>
-                            <ul>
-                                ${envio.productos.map(p => `<li>${p.nombre} - Cantidad: ${p.cantidad} - ${p.precio.toFixed(2)}</li>`).join('')}
-                            </ul>
-                        </div>
-                        <div class="envio-acciones">
-                            ${envio.estado === 'EN_PREPARACION' ? `<button class="btn-preparar" onclick="cambiarEstadoEnvio(${envio.id}, 'EN_CAMINO')">EN CAMINO</button>` : ''}
-                            ${envio.estado === 'EN_CAMINO' ? `<button class="btn-entregar" onclick="cambiarEstadoEnvio(${envio.id}, 'ENTREGADO')">ENTREGAR</button>` : ''}
-                            <button class="btn-eliminar" onclick="eliminarEnvio(${envio.id})">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            lista.innerHTML = enviosHtml;
-        }
-
-        function cambiarEstadoEnvio(envioId, nuevoEstado) {
-            const envio = envios.find(e => e.id === envioId);
-            if (envio) {
-                envio.estado = nuevoEstado;
-                localStorage.setItem('envios', JSON.stringify(envios));
-                mostrarEnvios();
-                actualizarStatsEnvios();
-            }
-        }
-
-        function eliminarEnvio(id) {
-            if (confirm('¿Eliminar este envío?')) {
-                envios = envios.filter(e => e.id !== id);
-                localStorage.setItem('envios', JSON.stringify(envios));
-                mostrarEnvios();
-                actualizarStatsEnvios();
-            }
-        }
-
-        function actualizarStatsEnvios() {
-            document.getElementById('totalEnvios').textContent = envios.length;
-            const hoy = new Date().toLocaleDateString();
-            const enviosHoy = envios.filter(e => e.fecha === hoy).length;
-            document.getElementById('enviosHoy').textContent = enviosHoy;
-        }
-
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', function() {
-            mostrarProductos();
-            actualizarStatsProductos();
-            cargarProductosEnComponentes();
-            cargarProductosEnSelect();
-
-            // Auto-completar precio cuando se selecciona producto en envíos
-            document.getElementById('productoEnvioSelect').addEventListener('change', function() {
-                const productoId = this.value;
-                if (productoId) {
-                    const producto = productos.find(p => p.id == productoId);
-                    if (producto) {
-                        document.getElementById('precioEnvio').value = producto.precio.toFixed(2);
-                    }
-                } else {
-                    document.getElementById('precioEnvio').value = '';
-                }
-            });
-        });
-    </script>
-</body>
-</html>
