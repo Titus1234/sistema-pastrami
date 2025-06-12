@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema Pastrami</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -138,24 +144,12 @@
             background: linear-gradient(45deg, #dc3545, #c82333);
         }
 
-        .btn-danger:hover {
-            box-shadow: 0 5px 15px rgba(220,53,69,0.3);
-        }
-
         .btn-success {
             background: linear-gradient(45deg, #28a745, #1e7e34);
         }
 
-        .btn-success:hover {
-            box-shadow: 0 5px 15px rgba(40,167,69,0.3);
-        }
-
         .btn-warning {
             background: linear-gradient(45deg, #ffc107, #e0a800);
-        }
-
-        .btn-warning:hover {
-            box-shadow: 0 5px 15px rgba(255,193,7,0.3);
         }
 
         .btn-small {
@@ -184,11 +178,6 @@
             margin-bottom: 10px;
         }
 
-        .stat-card p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
         .producto-item, .cliente-item {
             display: flex;
             justify-content: space-between;
@@ -208,16 +197,6 @@
 
         .producto-info, .cliente-info {
             flex: 1;
-        }
-
-        .producto-info h4, .cliente-info h4 {
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .producto-info p, .cliente-info p {
-            color: #666;
-            font-size: 0.9em;
         }
 
         .actions {
@@ -249,9 +228,19 @@
             color: #666;
         }
 
-        .empty-state h3 {
-            margin-bottom: 10px;
-            color: #999;
+        .componentes {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .componente-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e1e8ed;
         }
 
         .envio-form {
@@ -276,10 +265,6 @@
             align-items: center;
             padding: 10px;
             border-bottom: 1px solid #e1e8ed;
-        }
-
-        .producto-envio:last-child {
-            border-bottom: none;
         }
 
         .envio-card {
@@ -321,29 +306,6 @@
             color: #155724;
         }
 
-        .envio-info {
-            margin-bottom: 15px;
-        }
-
-        .envio-info p {
-            margin-bottom: 5px;
-        }
-
-        .productos-envio h5 {
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .productos-envio ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .productos-envio li {
-            padding: 5px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
         .envio-acciones {
             display: flex;
             gap: 10px;
@@ -382,32 +344,22 @@
             font-size: 14px;
         }
 
+        .grid-form {
+            display: grid;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .grid-4 { grid-template-columns: 1fr 1fr 1fr auto; }
+        .grid-5 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
+
         @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                border-radius: 10px;
-            }
-            
-            .header {
-                padding: 20px;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .tab {
-                padding: 15px 10px;
-                font-size: 14px;
-            }
-            
-            .tab-content {
-                padding: 20px;
-            }
-            
-            .stats {
-                grid-template-columns: 1fr;
-            }
+            .grid-form { grid-template-columns: 1fr; }
+            .tab { padding: 15px 10px; font-size: 14px; }
+            .tab-content { padding: 20px; }
+            .stats { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -424,7 +376,7 @@
             <button class="tab" onclick="showTab('envios')">🚚 Envíos</button>
         </div>
 
-        <!-- Tab de Productos -->
+        <!-- PRODUCTOS -->
         <div id="productos" class="tab-content active">
             <div class="stats">
                 <div class="stat-card">
@@ -439,7 +391,7 @@
 
             <div class="form-group">
                 <h2>➕ Agregar Producto</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                <div class="grid-form grid-4">
                     <div>
                         <label for="nombreProducto">Nombre del Producto</label>
                         <input type="text" id="nombreProducto" placeholder="Ej: Pastrami Clásico">
@@ -456,6 +408,33 @@
                         <button class="btn" onclick="agregarProducto()">Agregar</button>
                     </div>
                 </div>
+                <div style="margin-top: 10px;">
+                    <label for="tipoProducto">Tipo de Producto</label>
+                    <select id="tipoProducto" onchange="toggleComponentes()">
+                        <option value="simple">Producto Simple</option>
+                        <option value="compuesto">Producto Compuesto</option>
+                    </select>
+                </div>
+                
+                <div id="componentesSection" style="display: none;">
+                    <h3>Componentes del Producto</h3>
+                    <div class="grid-form grid-3">
+                        <div>
+                            <label for="componenteSelect">Producto Base</label>
+                            <select id="componenteSelect">
+                                <option value="">Seleccionar producto</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="cantidadComponente">Cantidad</label>
+                            <input type="number" id="cantidadComponente" value="1" min="1">
+                        </div>
+                        <div>
+                            <button class="btn btn-success" onclick="agregarComponente()">Agregar Componente</button>
+                        </div>
+                    </div>
+                    <div id="listaComponentes" class="componentes"></div>
+                </div>
             </div>
 
             <div class="search-box">
@@ -465,75 +444,76 @@
             <div id="listaProductos"></div>
         </div>
 
-        <!-- Tab de Clientes -->
-<div id="clientes" class="tab-content">
-    <div class="stats">
-        <div class="stat-card">
-            <h3 id="totalClientes">0</h3>
-            <p>Total Clientes</p>
-        </div>
-        <div class="stat-card">
-            <h3 id="clientesActivos">0</h3>
-            <p>Clientes Activos</p>
-        </div>
-    </div>
+        <!-- CLIENTES -->
+        <div id="clientes" class="tab-content">
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 id="totalClientes">0</h3>
+                    <p>Total Clientes</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="clientesActivos">0</h3>
+                    <p>Clientes Activos</p>
+                </div>
+            </div>
 
-    <div class="form-group">
-        <h2>➕ Agregar Cliente</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
-            <div>
-                <label for="nombreCliente">Nombre *</label>
-                <input type="text" id="nombreCliente" placeholder="Juan">
+            <div class="form-group">
+                <h2>➕ Agregar Cliente</h2>
+                <div class="grid-form grid-4">
+                    <div>
+                        <label for="nombreCliente">Nombre *</label>
+                        <input type="text" id="nombreCliente" placeholder="Juan">
+                    </div>
+                    <div>
+                        <label for="apellidoCliente">Apellido *</label>
+                        <input type="text" id="apellidoCliente" placeholder="Pérez">
+                    </div>
+                    <div>
+                        <label for="telefonoCliente">Teléfono *</label>
+                        <input type="tel" id="telefonoCliente" placeholder="+1234567890">
+                    </div>
+                    <div>
+                        <button class="btn" onclick="agregarCliente()">Agregar</button>
+                    </div>
+                </div>
+                
+                <div class="grid-form grid-5" style="margin-top: 10px;">
+                    <div>
+                        <label for="emailCliente">Email (opcional)</label>
+                        <input type="email" id="emailCliente" placeholder="juan@email.com">
+                    </div>
+                    <div>
+                        <label for="direccionCliente">Dirección</label>
+                        <input type="text" id="direccionCliente" placeholder="Av. Corrientes">
+                    </div>
+                    <div>
+                        <label for="numeroCliente">Número</label>
+                        <input type="text" id="numeroCliente" placeholder="1234">
+                    </div>
+                    <div>
+                        <label for="pisoCliente">Piso - Depto</label>
+                        <input type="text" id="pisoCliente" placeholder="5º A">
+                    </div>
+                    <div>
+                        <label for="codigoPostalCliente">Código Postal</label>
+                        <input type="text" id="codigoPostalCliente" placeholder="1043">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 10px;">
+                    <label for="localidadCliente">Localidad</label>
+                    <input type="text" id="localidadCliente" placeholder="CABA, Buenos Aires">
+                </div>
             </div>
-            <div>
-                <label for="apellidoCliente">Apellido *</label>
-                <input type="text" id="apellidoCliente" placeholder="Pérez">
-            </div>
-            <div>
-                <label for="telefonoCliente">Teléfono *</label>
-                <input type="tel" id="telefonoCliente" placeholder="+1234567890">
-            </div>
-            <div>
-                <button class="btn" onclick="agregarCliente()">Agregar</button>
-            </div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
-            <div>
-                <label for="emailCliente">Email (opcional)</label>
-                <input type="email" id="emailCliente" placeholder="juan@email.com">
-            </div>
-            <div>
-                <label for="direccionCliente">Dirección</label>
-                <input type="text" id="direccionCliente" placeholder="Av. Corrientes">
-            </div>
-            <div>
-                <label for="numeroCliente">Número</label>
-                <input type="text" id="numeroCliente" placeholder="1234">
-            </div>
-            <div>
-                <label for="pisoCliente">Piso - Depto</label>
-                <input type="text" id="pisoCliente" placeholder="5º A">
-            </div>
-            <div>
-                <label for="codigoPostalCliente">Código Postal</label>
-                <input type="text" id="codigoPostalCliente" placeholder="1043">
-            </div>
-        </div>
-        
-        <div style="margin-top: 10px;">
-            <label for="localidadCliente">Localidad</label>
-            <input type="text" id="localidadCliente" placeholder="CABA, Buenos Aires">
-        </div>
-    </div>
 
-    <div class="search-box">
-        <input type="text" id="searchClientes" placeholder="Buscar clientes..." onkeyup="filtrarClientes()">
-    </div>
+            <div class="search-box">
+                <input type="text" id="searchClientes" placeholder="Buscar clientes..." onkeyup="filtrarClientes()">
+            </div>
 
-    <div id="listaClientes"></div>
-</div>
-        <!-- Tab de Envíos -->
+            <div id="listaClientes"></div>
+        </div>
+
+        <!-- ENVÍOS -->
         <div id="envios" class="tab-content">
             <div class="stats">
                 <div class="stat-card">
@@ -548,7 +528,7 @@
 
             <div class="envio-form">
                 <h2>📦 Crear Nuevo Envío</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="grid-form grid-2">
                     <div>
                         <label for="clienteEnvio">Cliente</label>
                         <input type="text" id="clienteEnvio" placeholder="Nombre del cliente">
@@ -561,7 +541,7 @@
                 
                 <div style="margin-top: 15px;">
                     <h3>Agregar Productos al Envío</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px;">
+                    <div class="grid-form grid-4">
                         <div>
                             <label for="productoEnvioSelect">Producto</label>
                             <select id="productoEnvioSelect">
@@ -582,9 +562,7 @@
                     </div>
                 </div>
 
-                <div class="productos-envio" id="productosEnvio">
-                    <!-- Productos agregados aparecerán aquí -->
-                </div>
+                <div class="productos-envio" id="productosEnvio"></div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
                     <div style="font-size: 1.2em; font-weight: bold;">
@@ -598,497 +576,550 @@
         </div>
     </div>
 
-  <script>
-// Variables globales
-let productos = JSON.parse(localStorage.getItem('productos')) || [];
-let clientes = JSON.parse(localStorage.getItem('clientes')) || [];
-let envios = JSON.parse(localStorage.getItem('envios')) || [];
+    <script>
+        // Variables globales
+        let productos = JSON.parse(localStorage.getItem('productos')) || [];
+        let clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+        let envios = JSON.parse(localStorage.getItem('envios')) || [];
+        let componentesTemporales = [];
 
-// Función para cambiar entre tabs
-function showTab(tabName) {
-    // Ocultar todos los contenidos
-    const contents = document.querySelectorAll('.tab-content');
-    contents.forEach(content => content.classList.remove('active'));
-    
-    // Remover clase active de todos los tabs
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(tab => tab.classList.remove('active'));
-    
-    // Mostrar contenido seleccionado
-    document.getElementById(tabName).classList.add('active');
-    
-    // Activar tab seleccionado
-    event.target.classList.add('active');
+        // Función para cambiar tabs
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
 
-    // Actualizar datos según el tab
-    if (tabName === 'productos') {
-        mostrarProductos();
-        actualizarStatsProductos();
-    } else if (tabName === 'clientes') {
-        mostrarClientes();
-        actualizarStatsClientes();
-    } else if (tabName === 'envios') {
-        mostrarEnvios();
-        actualizarStatsEnvios();
-        cargarProductosEnSelect();
-    }
-}
-
-// ===== FUNCIONES DE PRODUCTOS =====
-function agregarProducto() {
-    const nombre = document.getElementById('nombreProducto').value;
-    const precio = parseFloat(document.getElementById('precioProducto').value);
-    const stock = parseInt(document.getElementById('stockProducto').value);
-
-    if (!nombre || !precio || !stock) {
-        alert('Por favor completa todos los campos');
-        return;
-    }
-
-    const nuevoProducto = {
-        id: Date.now(),
-        nombre: nombre,
-        precio: precio,
-        stock: stock,
-        fechaCreacion: new Date().toLocaleDateString()
-    };
-
-    productos.push(nuevoProducto);
-    localStorage.setItem('productos', JSON.stringify(productos));
-
-    // Limpiar formulario
-    document.getElementById('nombreProducto').value = '';
-    document.getElementById('precioProducto').value = '';
-    document.getElementById('stockProducto').value = '';
-
-    mostrarProductos();
-    actualizarStatsProductos();
-    cargarProductosEnSelect();
-}
-
-function mostrarProductos() {
-    const lista = document.getElementById('listaProductos');
-    
-    if (productos.length === 0) {
-        lista.innerHTML = `
-            <div class="empty-state">
-                <h3>No hay productos registrados</h3>
-                <p>Agrega tu primer producto usando el formulario de arriba</p>
-            </div>
-        `;
-        return;
-    }
-
-    let html = '';
-    productos.forEach(producto => {
-        html += `
-            <div class="producto-item">
-                <div class="producto-info">
-                    <h4>${producto.nombre}</h4>
-                    <p>Precio: $${producto.precio.toFixed(2)} | Stock: ${producto.stock} | Creado: ${producto.fechaCreacion}</p>
-                </div>
-                <div class="actions">
-                    <button class="btn btn-small btn-warning" onclick="editarProducto(${producto.id})">✏️</button>
-                    <button class="btn btn-small btn-danger" onclick="eliminarProducto(${producto.id})">🗑️</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    lista.innerHTML = html;
-}
-
-function editarProducto(id) {
-    const producto = productos.find(p => p.id === id);
-    if (!producto) return;
-
-    const nuevoNombre = prompt('Nuevo nombre:', producto.nombre);
-    const nuevoPrecio = prompt('Nuevo precio:', producto.precio);
-    const nuevoStock = prompt('Nuevo stock:', producto.stock);
-
-    if (nuevoNombre && nuevoPrecio && nuevoStock) {
-        producto.nombre = nuevoNombre;
-        producto.precio = parseFloat(nuevoPrecio);
-        producto.stock = parseInt(nuevoStock);
-        
-        localStorage.setItem('productos', JSON.stringify(productos));
-        mostrarProductos();
-        actualizarStatsProductos();
-        cargarProductosEnSelect();
-    }
-}
-
-function eliminarProducto(id) {
-    if (confirm('¿Estás seguro de eliminar este producto?')) {
-        productos = productos.filter(p => p.id !== id);
-        localStorage.setItem('productos', JSON.stringify(productos));
-        mostrarProductos();
-        actualizarStatsProductos();
-        cargarProductosEnSelect();
-    }
-}
-
-function filtrarProductos() {
-    const filtro = document.getElementById('searchProductos').value.toLowerCase();
-    const items = document.querySelectorAll('.producto-item');
-    
-    items.forEach(item => {
-        const texto = item.textContent.toLowerCase();
-        item.style.display = texto.includes(filtro) ? 'flex' : 'none';
-    });
-}
-
-function actualizarStatsProductos() {
-    document.getElementById('totalProductos').textContent = productos.length;
-    const valorTotal = productos.reduce((total, producto) => total + (producto.precio * producto.stock), 0);
-    document.getElementById('valorInventario').textContent = `$${valorTotal.toFixed(2)}`;
-}
-
-// ===== FUNCIONES DE CLIENTES =====
-function agregarCliente() {
-    const nombre = document.getElementById('nombreCliente').value;
-    const apellido = document.getElementById('apellidoCliente').value;
-    const telefono = document.getElementById('telefonoCliente').value;
-    const email = document.getElementById('emailCliente').value;
-    const direccion = document.getElementById('direccionCliente').value;
-    const numero = document.getElementById('numeroCliente').value;
-    const piso = document.getElementById('pisoCliente').value;
-    const codigoPostal = document.getElementById('codigoPostalCliente').value;
-    const localidad = document.getElementById('localidadCliente').value;
-
-    if (!nombre || !apellido || !telefono) {
-        alert('Por favor completa todos los campos obligatorios (Nombre, Apellido, Teléfono)');
-        return;
-    }
-
-    const direccionCompleta = `${direccion} ${numero}, ${piso}, ${localidad} (${codigoPostal})`.replace(/ ,|, ,/g, ',').replace(/,$/, '');
-
-    const nuevoCliente = {
-        id: Date.now(),
-        nombre: nombre,
-        apellido: apellido,
-        telefono: telefono,
-        email: email || '',
-        direccion: direccion || '',
-        numero: numero || '',
-        piso: piso || '',
-        codigoPostal: codigoPostal || '',
-        localidad: localidad || '',
-        direccionCompleta: direccionCompleta,
-        fechaRegistro: new Date().toLocaleDateString(),
-        activo: true
-    };
-
-    clientes.push(nuevoCliente);
-    localStorage.setItem('clientes', JSON.stringify(clientes));
-
-    // Limpiar formulario
-    document.getElementById('nombreCliente').value = '';
-    document.getElementById('apellidoCliente').value = '';
-    document.getElementById('telefonoCliente').value = '';
-    document.getElementById('emailCliente').value = '';
-    document.getElementById('direccionCliente').value = '';
-    document.getElementById('numeroCliente').value = '';
-    document.getElementById('pisoCliente').value = '';
-    document.getElementById('codigoPostalCliente').value = '';
-    document.getElementById('localidadCliente').value = '';
-
-    mostrarClientes();
-    actualizarStatsClientes();
-}
-function mostrarClientes() {
-    const lista = document.getElementById('listaClientes');
-    
-    if (clientes.length === 0) {
-        lista.innerHTML = `
-            <div class="empty-state">
-                <h3>No hay clientes registrados</h3>
-                <p>Agrega tu primer cliente usando el formulario de arriba</p>
-            </div>
-        `;
-        return;
-    }
-
-    let html = '';
-    clientes.forEach(cliente => {
-        html += `
-            <div class="cliente-item">
-                <div class="cliente-info">
-                    <h4>${cliente.nombre} ${cliente.apellido}</h4>
-                    <p>📞 ${cliente.telefono} ${cliente.email ? '| 📧 ' + cliente.email : ''}</p>
-                    <p>📍 ${cliente.direccionCompleta || 'Sin dirección completa'}</p>
-                    <p>Registrado: ${cliente.fechaRegistro} | Estado: ${cliente.activo ? '✅ Activo' : '❌ Inactivo'}</p>
-                </div>
-                <div class="actions">
-                    <button class="btn btn-small btn-warning" onclick="editarCliente(${cliente.id})">✏️</button>
-                    <button class="btn btn-small ${cliente.activo ? 'btn-danger' : 'btn-success'}" onclick="toggleClienteActivo(${cliente.id})">
-                        ${cliente.activo ? '❌' : '✅'}
-                    </button>
-                    <button class="btn btn-small btn-danger" onclick="eliminarCliente(${cliente.id})">🗑️</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    lista.innerHTML = html;
-}
-function editarCliente(id) {
-    const cliente = clientes.find(c => c.id === id);
-    if (!cliente) return;
-
-    const nuevoNombre = prompt('Nuevo nombre:', cliente.nombre);
-    const nuevoEmail = prompt('Nuevo email:', cliente.email);
-    const nuevoTelefono = prompt('Nuevo teléfono:', cliente.telefono);
-    const nuevaDireccion = prompt('Nueva dirección:', cliente.direccion);
-
-    if (nuevoNombre && nuevoEmail && nuevoTelefono) {
-        cliente.nombre = nuevoNombre;
-        cliente.email = nuevoEmail;
-        cliente.telefono = nuevoTelefono;
-        cliente.direccion = nuevaDireccion;
-        
-        localStorage.setItem('clientes', JSON.stringify(clientes));
-        mostrarClientes();
-        actualizarStatsClientes();
-    }
-}
-
-function toggleClienteActivo(id) {
-    const cliente = clientes.find(c => c.id === id);
-    if (cliente) {
-        cliente.activo = !cliente.activo;
-        localStorage.setItem('clientes', JSON.stringify(clientes));
-        mostrarClientes();
-        actualizarStatsClientes();
-    }
-}
-
-function eliminarCliente(id) {
-    if (confirm('¿Estás seguro de eliminar este cliente?')) {
-        clientes = clientes.filter(c => c.id !== id);
-        localStorage.setItem('clientes', JSON.stringify(clientes));
-        mostrarClientes();
-        actualizarStatsClientes();
-    }
-}
-
-function filtrarClientes() {
-    const filtro = document.getElementById('searchClientes').value.toLowerCase();
-    const items = document.querySelectorAll('.cliente-item');
-    
-    items.forEach(item => {
-        const texto = item.textContent.toLowerCase();
-        item.style.display = texto.includes(filtro) ? 'flex' : 'none';
-    });
-}
-
-function actualizarStatsClientes() {
-    document.getElementById('totalClientes').textContent = clientes.length;
-    const clientesActivos = clientes.filter(c => c.activo).length;
-    document.getElementById('clientesActivos').textContent = clientesActivos;
-}
-
-// ===== FUNCIONES DE ENVÍOS =====
-function cargarProductosEnSelect() {
-    const select = document.getElementById('productoEnvioSelect');
-    select.innerHTML = '<option value="">Seleccionar producto</option>';
-    
-    productos.forEach(producto => {
-        select.innerHTML += `<option value="${producto.id}">${producto.nombre} - $${producto.precio.toFixed(2)}</option>`;
-    });
-}
-
-function agregarProductoEnvio() {
-    const productoId = document.getElementById('productoEnvioSelect').value;
-    const cantidad = parseInt(document.getElementById('cantidadEnvio').value);
-    const precio = parseFloat(document.getElementById('precioEnvio').value);
-
-    if (!productoId || !cantidad || !precio) {
-        alert('Por favor completa todos los campos');
-        return;
-    }
-
-    const producto = productos.find(p => p.id == productoId);
-    if (!producto) {
-        alert('Producto no encontrado');
-        return;
-    }
-
-    const productosEnvio = document.getElementById('productosEnvio');
-    const productoDiv = document.createElement('div');
-    productoDiv.className = 'producto-envio';
-    productoDiv.innerHTML = `
-        <div>
-            <span class="nombre-producto">${producto.nombre}</span> - 
-            Cantidad: <span class="cantidad-envio">${cantidad}</span> - 
-            Precio: $<span class="precio-envio">${precio.toFixed(2)}</span>
-        </div>
-        <button class="btn-eliminar btn-small" onclick="eliminarProductoEnvio(this)">🗑️</button>
-    `;
-
-    productosEnvio.appendChild(productoDiv);
-
-    // Limpiar campos
-    document.getElementById('productoEnvioSelect').value = '';
-    document.getElementById('cantidadEnvio').value = '1';
-    document.getElementById('precioEnvio').value = '';
-
-    actualizarTotalEnvio();
-}
-
-function eliminarProductoEnvio(btn) {
-    btn.parentElement.remove();
-    actualizarTotalEnvio();
-}
-
-function actualizarTotalEnvio() {
-    const total = calcularTotalEnvio();
-    document.getElementById('totalEnvio').textContent = `$${total.toFixed(2)}`;
-}
-
-function calcularTotalEnvio() {
-    const productosEnvio = document.querySelectorAll('#productosEnvio .producto-envio');
-    let total = 0;
-    productosEnvio.forEach(producto => {
-        const precio = parseFloat(producto.querySelector('.precio-envio').textContent);
-        const cantidad = parseInt(producto.querySelector('.cantidad-envio').textContent);
-        total += precio * cantidad;
-    });
-    return total;
-}
-
-function crearEnvio() {
-    const clienteEnvio = document.getElementById('clienteEnvio').value;
-    const direccionEnvio = document.getElementById('direccionEnvio').value;
-    const productosEnvio = document.querySelectorAll('#productosEnvio .producto-envio');
-    
-    if (!clienteEnvio || !direccionEnvio || productosEnvio.length === 0) {
-        alert('Por favor completa todos los campos del envío');
-        return;
-    }
-    
-    const productos = [];
-    productosEnvio.forEach(producto => {
-        const nombre = producto.querySelector('.nombre-producto').textContent;
-        const precio = parseFloat(producto.querySelector('.precio-envio').textContent);
-        const cantidad = parseInt(producto.querySelector('.cantidad-envio').textContent);
-        productos.push({ nombre, precio, cantidad });
-    });
-    
-    const nuevoEnvio = {
-        id: Date.now(),
-        cliente: clienteEnvio,
-        direccion: direccionEnvio,
-        productos: productos,
-        total: calcularTotalEnvio(),
-        estado: 'EN_PREPARACION',
-        fecha: new Date().toLocaleDateString()
-    };
-    
-    envios.push(nuevoEnvio);
-    localStorage.setItem('envios', JSON.stringify(envios));
-    
-    // Limpiar formulario
-    document.getElementById('clienteEnvio').value = '';
-    document.getElementById('direccionEnvio').value = '';
-    document.getElementById('productosEnvio').innerHTML = '';
-    document.getElementById('totalEnvio').textContent = '$0';
-    
-    mostrarEnvios();
-    actualizarStatsEnvios();
-    alert('Envío creado exitosamente');
-}
-
-function mostrarEnvios() {
-    const lista = document.getElementById('listaEnvios');
-    
-    if (envios.length === 0) {
-        lista.innerHTML = `
-            <div class="empty-state">
-                <h3>No hay envíos registrados</h3>
-                <p>Crea tu primer envío usando el formulario de arriba</p>
-            </div>
-        `;
-        return;
-    }
-
-    let enviosHtml = '';
-    envios.forEach(envio => {
-        enviosHtml += `
-            <div class="envio-card">
-                <div class="envio-header">
-                    <h4>Envío #${envio.id}</h4>
-                    <span class="estado-envio estado-${envio.estado.toLowerCase()}">${envio.estado.replace('_', ' ')}</span>
-                </div>
-                <div class="envio-info">
-                    <p><strong>Cliente:</strong> ${envio.cliente}</p>
-                    <p><strong>Dirección:</strong> ${envio.direccion}</p>
-                    <p><strong>Fecha:</strong> ${envio.fecha}</p>
-                    <p><strong>Total:</strong> $${envio.total.toFixed(2)}</p>
-                </div>
-                <div class="productos-envio">
-                    <h5>Productos:</h5>
-                    <ul>
-                        ${envio.productos.map(p => `<li>${p.nombre} - Cantidad: ${p.cantidad} - $${p.precio.toFixed(2)}</li>`).join('')}
-                    </ul>
-                </div>
-                <div class="envio-acciones">
-                    ${envio.estado === 'EN_PREPARACION' ? `<button class="btn-preparar" onclick="cambiarEstadoEnvio(${envio.id}, 'EN_CAMINO')">EN CAMINO</button>` : ''}
-                    ${envio.estado === 'EN_CAMINO' ? `<button class="btn-entregar" onclick="cambiarEstadoEnvio(${envio.id}, 'ENTREGADO')">ENTREGAR</button>` : ''}
-                    <button class="btn-eliminar" onclick="eliminarEnvio(${envio.id})">🗑️</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    lista.innerHTML = enviosHtml;
-}
-
-function cambiarEstadoEnvio(envioId, nuevoEstado) {
-    const envio = envios.find(e => e.id === envioId);
-    if (envio) {
-        envio.estado = nuevoEstado;
-        localStorage.setItem('envios', JSON.stringify(envios));
-        mostrarEnvios();
-        actualizarStatsEnvios();
-    }
-}
-
-function eliminarEnvio(id) {
-    if (confirm('¿Estás seguro de eliminar este envío?')) {
-        envios = envios.filter(e => e.id !== id);
-        localStorage.setItem('envios', JSON.stringify(envios));
-        mostrarEnvios();
-        actualizarStatsEnvios();
-    }
-}
-
-function actualizarStatsEnvios() {
-    document.getElementById('totalEnvios').textContent = envios.length;
-    const hoy = new Date().toLocaleDateString();
-    const enviosHoy = envios.filter(e => e.fecha === hoy).length;
-    document.getElementById('enviosHoy').textContent = enviosHoy;
-}
-
-// Cargar datos al iniciar
-document.addEventListener('DOMContentLoaded', function() {
-    mostrarProductos();
-    actualizarStatsProductos();
-    cargarProductosEnSelect();
-});
-
-// Actualizar precio automáticamente cuando se selecciona un producto
-document.getElementById('productoEnvioSelect').addEventListener('change', function() {
-    const productoId = this.value;
-    if (productoId) {
-        const producto = productos.find(p => p.id == productoId);
-        if (producto) {
-            document.getElementById('precioEnvio').value = producto.precio.toFixed(2);
+            if (tabName === 'productos') {
+                mostrarProductos();
+                actualizarStatsProductos();
+                cargarProductosEnComponentes();
+            } else if (tabName === 'clientes') {
+                mostrarClientes();
+                actualizarStatsClientes();
+            } else if (tabName === 'envios') {
+                mostrarEnvios();
+                actualizarStatsEnvios();
+                cargarProductosEnSelect();
+            }
         }
-    } else {
-        document.getElementById('precioEnvio').value = '';
-    }
-});
-</script>
+
+        // === PRODUCTOS ===
+        function toggleComponentes() {
+            const tipo = document.getElementById('tipoProducto').value;
+            const section = document.getElementById('componentesSection');
+            section.style.display = tipo === 'compuesto' ? 'block' : 'none';
+            if (tipo === 'compuesto') {
+                cargarProductosEnComponentes();
+            }
+        }
+
+        function cargarProductosEnComponentes() {
+            const select = document.getElementById('componenteSelect');
+            select.innerHTML = '<option value="">Seleccionar producto</option>';
+            productos.filter(p => p.tipo === 'simple').forEach(producto => {
+                select.innerHTML += `<option value="${producto.id}">${producto.nombre} - $${producto.precio.toFixed(2)}</option>`;
+            });
+        }
+
+        function agregarComponente() {
+            const productoId = document.getElementById('componenteSelect').value;
+            const cantidad = parseInt(document.getElementById('cantidadComponente').value);
+
+            if (!productoId || !cantidad) {
+                alert('Selecciona un producto y cantidad');
+                return;
+            }
+
+            const producto = productos.find(p => p.id == productoId);
+            if (!producto) return;
+
+            componentesTemporales.push({
+                id: producto.id,
+                nombre: producto.nombre,
+                precio: producto.precio,
+                cantidad: cantidad
+            });
+
+            mostrarComponentes();
+            document.getElementById('componenteSelect').value = '';
+            document.getElementById('cantidadComponente').value = '1';
+        }
+
+        function mostrarComponentes() {
+            const lista = document.getElementById('listaComponentes');
+            let html = '';
+            componentesTemporales.forEach((comp, index) => {
+                html += `
+                    <div class="componente-item">
+                        <span>${comp.nombre} - $${comp.precio.toFixed(2)} x ${comp.cantidad}</span>
+                        <button class="btn-eliminar btn-small" onclick="eliminarComponente(${index})">🗑️</button>
+                    </div>
+                `;
+            });
+            lista.innerHTML = html;
+        }
+
+        function eliminarComponente(index) {
+            componentesTemporales.splice(index, 1);
+            mostrarComponentes();
+        }
+
+        function agregarProducto() {
+            const nombre = document.getElementById('nombreProducto').value;
+            const precio = parseFloat(document.getElementById('precioProducto').value);
+            const stock = parseInt(document.getElementById('stockProducto').value);
+            const tipo = document.getElementById('tipoProducto').value;
+
+            if (!nombre || !precio || !stock) {
+                alert('Completa todos los campos obligatorios');
+                return;
+            }
+
+            if (tipo === 'compuesto' && componentesTemporales.length === 0) {
+                alert('Agrega al menos un componente para el producto compuesto');
+                return;
+            }
+
+            const nuevoProducto = {
+                id: Date.now(),
+                nombre: nombre,
+                precio: precio,
+                stock: stock,
+                tipo: tipo,
+                componentes: tipo === 'compuesto' ? [...componentesTemporales] : [],
+                fechaCreacion: new Date().toLocaleDateString()
+            };
+
+            productos.push(nuevoProducto);
+            localStorage.setItem('productos', JSON.stringify(productos));
+
+            // Limpiar formulario
+            document.getElementById('nombreProducto').value = '';
+            document.getElementById('precioProducto').value = '';
+            document.getElementById('stockProducto').value = '';
+            document.getElementById('tipoProducto').value = 'simple';
+            componentesTemporales = [];
+            document.getElementById('componentesSection').style.display = 'none';
+            document.getElementById('listaComponentes').innerHTML = '';
+
+            mostrarProductos();
+            actualizarStatsProductos();
+            cargarProductosEnComponentes();
+            cargarProductosEnSelect();
+        }
+
+        function mostrarProductos() {
+            const lista = document.getElementById('listaProductos');
+            
+            if (productos.length === 0) {
+                lista.innerHTML = '<div class="empty-state"><h3>No hay productos</h3><p>Agrega tu primer producto</p></div>';
+                return;
+            }
+
+            let html = '';
+            productos.forEach(producto => {
+                const componentesHtml = producto.componentes && producto.componentes.length > 0 
+                    ? `<p><strong>Componentes:</strong> ${producto.componentes.map(c => `${c.nombre} x${c.cantidad}`).join(', ')}</p>`
+                    : '';
+                
+                html += `
+                    <div class="producto-item">
+                        <div class="producto-info">
+                            <h4>${producto.nombre} ${producto.tipo === 'compuesto' ? '📦' : ''}</h4>
+                            <p>Precio: $${producto.precio.toFixed(2)} | Stock: ${producto.stock} | Tipo: ${producto.tipo}</p>
+                            ${componentesHtml}
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-small btn-warning" onclick="editarProducto(${producto.id})">✏️</button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarProducto(${producto.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = html;
+        }
+
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id === id);
+            if (!producto) return;
+
+            const nuevoNombre = prompt('Nuevo nombre:', producto.nombre);
+            const nuevoPrecio = prompt('Nuevo precio:', producto.precio);
+            const nuevoStock = prompt('Nuevo stock:', producto.stock);
+
+            if (nuevoNombre && nuevoPrecio && nuevoStock) {
+                producto.nombre = nuevoNombre;
+                producto.precio = parseFloat(nuevoPrecio);
+                producto.stock = parseInt(nuevoStock);
+                
+                localStorage.setItem('productos', JSON.stringify(productos));
+                mostrarProductos();
+                actualizarStatsProductos();
+                cargarProductosEnComponentes();
+                cargarProductosEnSelect();
+            }
+        }
+
+        function eliminarProducto(id) {
+            if (confirm('¿Eliminar este producto?')) {
+                productos = productos.filter(p => p.id !== id);
+                localStorage.setItem('productos', JSON.stringify(productos));
+                mostrarProductos();
+                actualizarStatsProductos();
+                cargarProductosEnComponentes();
+                cargarProductosEnSelect();
+            }
+        }
+
+        function filtrarProductos() {
+            const filtro = document.getElementById('searchProductos').value.toLowerCase();
+            document.querySelectorAll('.producto-item').forEach(item => {
+                const texto = item.textContent.toLowerCase();
+                item.style.display = texto.includes(filtro) ? 'flex' : 'none';
+            });
+        }
+
+        function actualizarStatsProductos() {
+            document.getElementById('totalProductos').textContent = productos.length;
+            const valorTotal = productos.reduce((total, producto) => total + (producto.precio * producto.stock), 0);
+            document.getElementById('valorInventario').textContent = `$${valorTotal.toFixed(2)}`;
+        }
+
+        // === CLIENTES ===
+        function agregarCliente() {
+            const nombre = document.getElementById('nombreCliente').value;
+            const apellido = document.getElementById('apellidoCliente').value;
+            const telefono = document.getElementById('telefonoCliente').value;
+            const email = document.getElementById('emailCliente').value;
+            const direccion = document.getElementById('direccionCliente').value;
+            const numero = document.getElementById('numeroCliente').value;
+            const piso = document.getElementById('pisoCliente').value;
+            const codigoPostal = document.getElementById('codigoPostalCliente').value;
+            const localidad = document.getElementById('localidadCliente').value;
+
+            if (!nombre || !apellido || !telefono) {
+                alert('Completa los campos obligatorios: Nombre, Apellido y Teléfono');
+                return;
+            }
+
+            let direccionCompleta = '';
+            if (direccion) {
+                direccionCompleta = direccion;
+                if (numero) direccionCompleta += ` ${numero}`;
+                if (piso) direccionCompleta += `, ${piso}`;
+                if (localidad) direccionCompleta += `, ${localidad}`;
+                if (codigoPostal) direccionCompleta += ` (${codigoPostal})`;
+            }
+
+            const nuevoCliente = {
+                id: Date.now(),
+                nombre: nombre,
+                apellido: apellido,
+                telefono: telefono,
+                email: email || '',
+                direccion: direccion || '',
+                numero: numero || '',
+                piso: piso || '',
+                codigoPostal: codigoPostal || '',
+                localidad: localidad || '',
+                direccionCompleta: direccionCompleta,
+                fechaRegistro: new Date().toLocaleDateString(),
+                activo: true
+            };
+
+            clientes.push(nuevoCliente);
+            localStorage.setItem('clientes', JSON.stringify(clientes));
+
+            // Limpiar formulario
+            ['nombreCliente', 'apellidoCliente', 'telefonoCliente', 'emailCliente', 
+             'direccionCliente', 'numeroCliente', 'pisoCliente', 'codigoPostalCliente', 'localidadCliente']
+            .forEach(id => document.getElementById(id).value = '');
+
+            mostrarClientes();
+            actualizarStatsClientes();
+        }
+
+        function mostrarClientes() {
+            const lista = document.getElementById('listaClientes');
+            
+            if (clientes.length === 0) {
+                lista.innerHTML = '<div class="empty-state"><h3>No hay clientes</h3><p>Agrega tu primer cliente</p></div>';
+                return;
+            }
+
+            let html = '';
+            clientes.forEach(cliente => {
+                html += `
+                    <div class="cliente-item">
+                        <div class="cliente-info">
+                            <h4>${cliente.nombre} ${cliente.apellido}</h4>
+                            <p>📞 ${cliente.telefono}${cliente.email ? ' | 📧 ' + cliente.email : ''}</p>
+                            <p>📍 ${cliente.direccionCompleta || 'Sin dirección'}</p>
+                            <p>Registrado: ${cliente.fechaRegistro} | ${cliente.activo ? '✅ Activo' : '❌ Inactivo'}</p>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-small btn-warning" onclick="editarCliente(${cliente.id})">✏️</button>
+                            <button class="btn btn-small ${cliente.activo ? 'btn-danger' : 'btn-success'}" onclick="toggleClienteActivo(${cliente.id})">
+                                ${cliente.activo ? '❌' : '✅'}
+                            </button>
+                            <button class="btn btn-small btn-danger" onclick="eliminarCliente(${cliente.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = html;
+        }
+
+        function editarCliente(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (!cliente) return;
+
+            const nuevoNombre = prompt('Nuevo nombre:', cliente.nombre);
+            const nuevoApellido = prompt('Nuevo apellido:', cliente.apellido);
+            const nuevoTelefono = prompt('Nuevo teléfono:', cliente.telefono);
+
+            if (nuevoNombre && nuevoApellido && nuevoTelefono) {
+                cliente.nombre = nuevoNombre;
+                cliente.apellido = nuevoApellido;
+                cliente.telefono = nuevoTelefono;
+                
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+                actualizarStatsClientes();
+            }
+        }
+
+        function toggleClienteActivo(id) {
+            const cliente = clientes.find(c => c.id === id);
+            if (cliente) {
+                cliente.activo = !cliente.activo;
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+                actualizarStatsClientes();
+            }
+        }
+
+        function eliminarCliente(id) {
+            if (confirm('¿Eliminar este cliente?')) {
+                clientes = clientes.filter(c => c.id !== id);
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                mostrarClientes();
+                actualizarStatsClientes();
+            }
+        }
+
+        function filtrarClientes() {
+            const filtro = document.getElementById('searchClientes').value.toLowerCase();
+            document.querySelectorAll('.cliente-item').forEach(item => {
+                const texto = item.textContent.toLowerCase();
+                item.style.display = texto.includes(filtro) ? 'flex' : 'none';
+            });
+        }
+
+        function actualizarStatsClientes() {
+            document.getElementById('totalClientes').textContent = clientes.length;
+            const clientesActivos = clientes.filter(c => c.activo).length;
+            document.getElementById('clientesActivos').textContent = clientesActivos;
+        }
+
+        // === ENVÍOS ===
+        function cargarProductosEnSelect() {
+            const select = document.getElementById('productoEnvioSelect');
+            select.innerHTML = '<option value="">Seleccionar producto</option>';
+            
+            productos.forEach(producto => {
+                select.innerHTML += `<option value="${producto.id}">${producto.nombre} - ${producto.precio.toFixed(2)}</option>`;
+            });
+        }
+
+        function agregarProductoEnvio() {
+            const productoId = document.getElementById('productoEnvioSelect').value;
+            const cantidad = parseInt(document.getElementById('cantidadEnvio').value);
+            const precio = parseFloat(document.getElementById('precioEnvio').value);
+
+            if (!productoId || !cantidad || !precio) {
+                alert('Completa todos los campos');
+                return;
+            }
+
+            const producto = productos.find(p => p.id == productoId);
+            if (!producto) return;
+
+            const productosEnvio = document.getElementById('productosEnvio');
+            const productoDiv = document.createElement('div');
+            productoDiv.className = 'producto-envio';
+            productoDiv.innerHTML = `
+                <div>
+                    <span class="nombre-producto">${producto.nombre}</span> - 
+                    Cantidad: <span class="cantidad-envio">${cantidad}</span> - 
+                    Precio: $<span class="precio-envio">${precio.toFixed(2)}</span>
+                </div>
+                <button class="btn-eliminar btn-small" onclick="eliminarProductoEnvio(this)">🗑️</button>
+            `;
+
+            productosEnvio.appendChild(productoDiv);
+
+            // Limpiar campos
+            document.getElementById('productoEnvioSelect').value = '';
+            document.getElementById('cantidadEnvio').value = '1';
+            document.getElementById('precioEnvio').value = '';
+
+            actualizarTotalEnvio();
+        }
+
+        function eliminarProductoEnvio(btn) {
+            btn.parentElement.remove();
+            actualizarTotalEnvio();
+        }
+
+        function actualizarTotalEnvio() {
+            const total = calcularTotalEnvio();
+            document.getElementById('totalEnvio').textContent = `${total.toFixed(2)}`;
+        }
+
+        function calcularTotalEnvio() {
+            const productosEnvio = document.querySelectorAll('#productosEnvio .producto-envio');
+            let total = 0;
+            productosEnvio.forEach(producto => {
+                const precio = parseFloat(producto.querySelector('.precio-envio').textContent);
+                const cantidad = parseInt(producto.querySelector('.cantidad-envio').textContent);
+                total += precio * cantidad;
+            });
+            return total;
+        }
+
+        function crearEnvio() {
+            const clienteEnvio = document.getElementById('clienteEnvio').value;
+            const direccionEnvio = document.getElementById('direccionEnvio').value;
+            const productosEnvio = document.querySelectorAll('#productosEnvio .producto-envio');
+            
+            if (!clienteEnvio || !direccionEnvio || productosEnvio.length === 0) {
+                alert('Completa todos los campos del envío');
+                return;
+            }
+            
+            const productos = [];
+            productosEnvio.forEach(producto => {
+                const nombre = producto.querySelector('.nombre-producto').textContent;
+                const precio = parseFloat(producto.querySelector('.precio-envio').textContent);
+                const cantidad = parseInt(producto.querySelector('.cantidad-envio').textContent);
+                productos.push({ nombre, precio, cantidad });
+            });
+            
+            const nuevoEnvio = {
+                id: Date.now(),
+                cliente: clienteEnvio,
+                direccion: direccionEnvio,
+                productos: productos,
+                total: calcularTotalEnvio(),
+                estado: 'EN_PREPARACION',
+                fecha: new Date().toLocaleDateString()
+            };
+            
+            envios.push(nuevoEnvio);
+            localStorage.setItem('envios', JSON.stringify(envios));
+            
+            // Limpiar formulario
+            document.getElementById('clienteEnvio').value = '';
+            document.getElementById('direccionEnvio').value = '';
+            document.getElementById('productosEnvio').innerHTML = '';
+            document.getElementById('totalEnvio').textContent = '$0';
+            
+            mostrarEnvios();
+            actualizarStatsEnvios();
+            alert('Envío creado exitosamente');
+        }
+
+        function mostrarEnvios() {
+            const lista = document.getElementById('listaEnvios');
+            
+            if (envios.length === 0) {
+                lista.innerHTML = '<div class="empty-state"><h3>No hay envíos</h3><p>Crea tu primer envío</p></div>';
+                return;
+            }
+
+            let enviosHtml = '';
+            envios.forEach(envio => {
+                enviosHtml += `
+                    <div class="envio-card">
+                        <div class="envio-header">
+                            <h4>Envío #${envio.id}</h4>
+                            <span class="estado-envio estado-${envio.estado.toLowerCase()}">${envio.estado.replace('_', ' ')}</span>
+                        </div>
+                        <div class="envio-info">
+                            <p><strong>Cliente:</strong> ${envio.cliente}</p>
+                            <p><strong>Dirección:</strong> ${envio.direccion}</p>
+                            <p><strong>Fecha:</strong> ${envio.fecha}</p>
+                            <p><strong>Total:</strong> ${envio.total.toFixed(2)}</p>
+                        </div>
+                        <div class="productos-envio">
+                            <h5>Productos:</h5>
+                            <ul>
+                                ${envio.productos.map(p => `<li>${p.nombre} - Cantidad: ${p.cantidad} - ${p.precio.toFixed(2)}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="envio-acciones">
+                            ${envio.estado === 'EN_PREPARACION' ? `<button class="btn-preparar" onclick="cambiarEstadoEnvio(${envio.id}, 'EN_CAMINO')">EN CAMINO</button>` : ''}
+                            ${envio.estado === 'EN_CAMINO' ? `<button class="btn-entregar" onclick="cambiarEstadoEnvio(${envio.id}, 'ENTREGADO')">ENTREGAR</button>` : ''}
+                            <button class="btn-eliminar" onclick="eliminarEnvio(${envio.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = enviosHtml;
+        }
+
+        function cambiarEstadoEnvio(envioId, nuevoEstado) {
+            const envio = envios.find(e => e.id === envioId);
+            if (envio) {
+                envio.estado = nuevoEstado;
+                localStorage.setItem('envios', JSON.stringify(envios));
+                mostrarEnvios();
+                actualizarStatsEnvios();
+            }
+        }
+
+        function eliminarEnvio(id) {
+            if (confirm('¿Eliminar este envío?')) {
+                envios = envios.filter(e => e.id !== id);
+                localStorage.setItem('envios', JSON.stringify(envios));
+                mostrarEnvios();
+                actualizarStatsEnvios();
+            }
+        }
+
+        function actualizarStatsEnvios() {
+            document.getElementById('totalEnvios').textContent = envios.length;
+            const hoy = new Date().toLocaleDateString();
+            const enviosHoy = envios.filter(e => e.fecha === hoy).length;
+            document.getElementById('enviosHoy').textContent = enviosHoy;
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            mostrarProductos();
+            actualizarStatsProductos();
+            cargarProductosEnComponentes();
+            cargarProductosEnSelect();
+
+            // Auto-completar precio cuando se selecciona producto en envíos
+            document.getElementById('productoEnvioSelect').addEventListener('change', function() {
+                const productoId = this.value;
+                if (productoId) {
+                    const producto = productos.find(p => p.id == productoId);
+                    if (producto) {
+                        document.getElementById('precioEnvio').value = producto.precio.toFixed(2);
+                    }
+                } else {
+                    document.getElementById('precioEnvio').value = '';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
