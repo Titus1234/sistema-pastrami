@@ -472,50 +472,73 @@
         </div>
 
         <!-- Tab de Clientes -->
-        <div id="clientes" class="tab-content">
-            <div class="stats">
-                <div class="stat-card">
-                    <h3 id="totalClientes">0</h3>
-                    <p>Total Clientes</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="clientesActivos">0</h3>
-                    <p>Clientes Activos</p>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <h2>➕ Agregar Cliente</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
-                    <div>
-                        <label for="nombreCliente">Nombre</label>
-                        <input type="text" id="nombreCliente" placeholder="Juan Pérez">
-                    </div>
-                    <div>
-                        <label for="emailCliente">Email</label>
-                        <input type="email" id="emailCliente" placeholder="juan@email.com">
-                    </div>
-                    <div>
-                        <label for="telefonoCliente">Teléfono</label>
-                        <input type="tel" id="telefonoCliente" placeholder="+1234567890">
-                    </div>
-                    <div>
-                        <button class="btn" onclick="agregarCliente()">Agregar</button>
-                    </div>
-                </div>
-                <div style="margin-top: 10px;">
-                    <label for="direccionCliente">Dirección</label>
-                    <textarea id="direccionCliente" placeholder="Dirección completa del cliente" rows="2"></textarea>
-                </div>
-            </div>
-
-            <div class="search-box">
-                <input type="text" id="searchClientes" placeholder="Buscar clientes..." onkeyup="filtrarClientes()">
-            </div>
-
-            <div id="listaClientes"></div>
+<div id="clientes" class="tab-content">
+    <div class="stats">
+        <div class="stat-card">
+            <h3 id="totalClientes">0</h3>
+            <p>Total Clientes</p>
         </div>
+        <div class="stat-card">
+            <h3 id="clientesActivos">0</h3>
+            <p>Clientes Activos</p>
+        </div>
+    </div>
 
+    <div class="form-group">
+        <h2>➕ Agregar Cliente</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+            <div>
+                <label for="nombreCliente">Nombre *</label>
+                <input type="text" id="nombreCliente" placeholder="Juan">
+            </div>
+            <div>
+                <label for="apellidoCliente">Apellido *</label>
+                <input type="text" id="apellidoCliente" placeholder="Pérez">
+            </div>
+            <div>
+                <label for="telefonoCliente">Teléfono *</label>
+                <input type="tel" id="telefonoCliente" placeholder="+1234567890">
+            </div>
+            <div>
+                <button class="btn" onclick="agregarCliente()">Agregar</button>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <div>
+                <label for="emailCliente">Email (opcional)</label>
+                <input type="email" id="emailCliente" placeholder="juan@email.com">
+            </div>
+            <div>
+                <label for="direccionCliente">Dirección</label>
+                <input type="text" id="direccionCliente" placeholder="Av. Corrientes">
+            </div>
+            <div>
+                <label for="numeroCliente">Número</label>
+                <input type="text" id="numeroCliente" placeholder="1234">
+            </div>
+            <div>
+                <label for="pisoCliente">Piso - Depto</label>
+                <input type="text" id="pisoCliente" placeholder="5º A">
+            </div>
+            <div>
+                <label for="codigoPostalCliente">Código Postal</label>
+                <input type="text" id="codigoPostalCliente" placeholder="1043">
+            </div>
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <label for="localidadCliente">Localidad</label>
+            <input type="text" id="localidadCliente" placeholder="CABA, Buenos Aires">
+        </div>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchClientes" placeholder="Buscar clientes..." onkeyup="filtrarClientes()">
+    </div>
+
+    <div id="listaClientes"></div>
+</div>
         <!-- Tab de Envíos -->
         <div id="envios" class="tab-content">
             <div class="stats">
