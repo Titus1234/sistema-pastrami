@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema Pastrami</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -753,21 +747,34 @@ function actualizarStatsProductos() {
 // ===== FUNCIONES DE CLIENTES =====
 function agregarCliente() {
     const nombre = document.getElementById('nombreCliente').value;
-    const email = document.getElementById('emailCliente').value;
+    const apellido = document.getElementById('apellidoCliente').value;
     const telefono = document.getElementById('telefonoCliente').value;
+    const email = document.getElementById('emailCliente').value;
     const direccion = document.getElementById('direccionCliente').value;
+    const numero = document.getElementById('numeroCliente').value;
+    const piso = document.getElementById('pisoCliente').value;
+    const codigoPostal = document.getElementById('codigoPostalCliente').value;
+    const localidad = document.getElementById('localidadCliente').value;
 
-    if (!nombre || !email || !telefono) {
-        alert('Por favor completa todos los campos obligatorios');
+    if (!nombre || !apellido || !telefono) {
+        alert('Por favor completa todos los campos obligatorios (Nombre, Apellido, Teléfono)');
         return;
     }
+
+    const direccionCompleta = `${direccion} ${numero}, ${piso}, ${localidad} (${codigoPostal})`.replace(/ ,|, ,/g, ',').replace(/,$/, '');
 
     const nuevoCliente = {
         id: Date.now(),
         nombre: nombre,
-        email: email,
+        apellido: apellido,
         telefono: telefono,
-        direccion: direccion,
+        email: email || '',
+        direccion: direccion || '',
+        numero: numero || '',
+        piso: piso || '',
+        codigoPostal: codigoPostal || '',
+        localidad: localidad || '',
+        direccionCompleta: direccionCompleta,
         fechaRegistro: new Date().toLocaleDateString(),
         activo: true
     };
@@ -777,14 +784,18 @@ function agregarCliente() {
 
     // Limpiar formulario
     document.getElementById('nombreCliente').value = '';
-    document.getElementById('emailCliente').value = '';
+    document.getElementById('apellidoCliente').value = '';
     document.getElementById('telefonoCliente').value = '';
+    document.getElementById('emailCliente').value = '';
     document.getElementById('direccionCliente').value = '';
+    document.getElementById('numeroCliente').value = '';
+    document.getElementById('pisoCliente').value = '';
+    document.getElementById('codigoPostalCliente').value = '';
+    document.getElementById('localidadCliente').value = '';
 
     mostrarClientes();
     actualizarStatsClientes();
 }
-
 function mostrarClientes() {
     const lista = document.getElementById('listaClientes');
     
@@ -803,9 +814,9 @@ function mostrarClientes() {
         html += `
             <div class="cliente-item">
                 <div class="cliente-info">
-                    <h4>${cliente.nombre}</h4>
-                    <p>📧 ${cliente.email} | 📞 ${cliente.telefono}</p>
-                    <p>📍 ${cliente.direccion || 'Sin dirección'}</p>
+                    <h4>${cliente.nombre} ${cliente.apellido}</h4>
+                    <p>📞 ${cliente.telefono} ${cliente.email ? '| 📧 ' + cliente.email : ''}</p>
+                    <p>📍 ${cliente.direccionCompleta || 'Sin dirección completa'}</p>
                     <p>Registrado: ${cliente.fechaRegistro} | Estado: ${cliente.activo ? '✅ Activo' : '❌ Inactivo'}</p>
                 </div>
                 <div class="actions">
@@ -821,7 +832,6 @@ function mostrarClientes() {
     
     lista.innerHTML = html;
 }
-
 function editarCliente(id) {
     const cliente = clientes.find(c => c.id === id);
     if (!cliente) return;
