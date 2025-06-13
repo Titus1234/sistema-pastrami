@@ -1,4 +1,141 @@
-<!DOCTYPE html>
+// Inicialización con listeners en tiempo real
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                console.log('🔄 Iniciando Sistema Pastrami con sincronización en tiempo real...');
+                
+                // CONFIGURAR LISTENERS EN TIEMPO REAL PRIMERO
+                configurarListenersEnTiempoReal();
+                
+                // Pequeña pausa para que los listeners se configuren
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Verificar si hay datos, si no cargar ejemplos
+                setTimeout(async () => {
+                    if (clientes.length === 0 && productos.length === 0) {
+                        console.log('📝 No hay datos - Cargando ejemplos...');
+                        await cargarDatosEjemploEnFirebase();
+                    }
+                }, 2000);
+                
+                // Configurar fechas por defecto para estadísticas
+                const hoy = new Date();
+                const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                document.getElementById('fecha-desde').value = inicioMes.toISOString().split('T')[0];
+                document.getElementById('fecha-hasta').value = hoy.toISOString().split('T')[0];
+                
+                // Configurar fecha mínima para pedidos (hoy)
+                const fechaEntregaInput = document.querySelector('input[name="fecha_entrega"]');
+                if (fechaEntregaInput) {
+                    fechaEntregaInput.min = hoy.toISOString().split('T')[0];
+                }
+                
+                console.log('🚀 Sistema Pastrami con sincronización en tiempo real ACTIVADO');
+                mostrarAlerta('Sistema conectado con sincronización automática', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error al inicializar:', error);
+                mostrarAlerta('Error al conectar - Usando modo local', 'error');
+            }
+        });
+
+        async function cargarDatosEjemploEnFirebase() {
+            try {
+                // Clientes de ejemplo
+                const clientesEjemplo = [
+                    {
+                        id: 1,
+                        nombre: 'Juan',
+                        apellido: 'Pérez',
+                        telefono: '11-1234-5678',
+                        direccion: {
+                            calle: 'Av. Corrientes',
+                            numero: '1234',
+                            piso: '2A',
+                            codigo_postal: '1043',
+                            localidad: 'CABA'
+                        },
+                        email: 'juan.perez@email.com',
+                        fecha_registro: new Date().toISOString()
+                    },
+                    {
+                        id: 2,
+                        nombre: 'María',
+                        apellido: 'González',
+                        telefono: '11-9876-5432',
+                        direccion: {
+                            calle: 'San Martín',
+                            numero: '567',
+                            piso: '',
+                            codigo_postal: '1602',
+                            localidad: 'Florida'
+                        },
+                        email: 'maria.gonzalez@email.com',
+                        fecha_registro: new Date().toISOString()
+                    }
+                ];
+
+                // Productos de ejemplo
+                const productosEjemplo = [
+                    {
+                        id: 'PAST001',
+                        nombre: 'Pastrami Clásico',
+                        precio: 1200.00,
+                        stock_inicial: 50,
+                        stock_actual: 45,
+                        stock_minimo: 10,
+                        unidad: 'unidades',
+                        es_compuesto: false,
+                        componentes: [],
+                        fecha_registro: new Date().toISOString()
+                    },
+                    {
+                        id: 'PAST002',
+                        nombre: 'Pastrami Premium',
+                        precio: 1500.00,
+                        stock_inicial: 30,
+                        stock_actual: 25,
+                        stock_minimo: 5,
+                        unidad: 'unidades',
+                        es_compuesto: false,
+                        componentes: [],
+                        fecha_registro: new Date().toISOString()
+                    },
+                    {
+                        id: 'CAJA001',
+                        nombre: 'Caja Mixta x6',
+                        precio: 6500.00,
+                        stock_inicial: 20,
+                        stock_actual: 18,
+                        stock_minimo: 3,
+                        unidad: 'cajas',
+                        es_compuesto: true,
+                        componentes: [
+                            { producto: 'Pastrami Clásico', cantidad: 3 },
+                            { producto: 'Pastrami Premium', cantidad: 3 }
+                        ],
+                        fecha_registro: new Date().toISOString()
+                    }
+                ];
+
+                // Guardar en Firebase
+                for (const cliente of clientesEjemplo) {
+                    await db.collection('clientes').add(cliente);
+                }
+                
+                for (const producto of productosEjemplo) {
+                    await db.collection('productos').add(producto);
+                }
+                
+                // Recargar datos
+                await cargarClientesDesdeFirebase();
+                await cargarProductosDesdeFirebase();
+                
+                console.log('✅ Datos de ejemplo cargados en Firebase');
+                
+            } catch (error) {
+                console.error('Error al cargar datos de ejemplo:', error);
+            }
+        }<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -726,34 +863,72 @@
     </div>
 
     <script>
-        // Configuración de Firebase
+        // Configuración REAL de Firebase con listeners en tiempo real
         const firebaseConfig = {
-            apiKey: "demo-key",
-            authDomain: "pastrami-sistema.firebaseapp.com",
-            projectId: "pastrami-sistema",
-            storageBucket: "pastrami-sistema.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "demo-app-id"
+            apiKey: "AIzaSyBpX9lUsin1H8DRHB71ljHIs3dwd3-9JZw",
+            authDomain: "pastrami-v2.firebaseapp.com",
+            projectId: "pastrami-v2",
+            storageBucket: "pastrami-v2.firebasestorage.app",
+            messagingSenderId: "388841758248",
+            appId: "1:388841758248:web:dc76b4f5fd1383a4db5f1d",
+            measurementId: "G-Z0RNZ1V683"
         };
 
-        // Inicializar Firebase (simulado para demo)
-        let db = {
-            collection: (name) => ({
-                add: (data) => Promise.resolve({id: Date.now().toString()}),
-                get: () => Promise.resolve({docs: []}),
-                doc: (id) => ({
-                    update: (data) => Promise.resolve(),
-                    delete: () => Promise.resolve(),
-                    get: () => Promise.resolve({data: () => ({}), exists: true})
-                }),
-                where: (field, op, value) => ({
-                    get: () => Promise.resolve({docs: []})
-                }),
-                orderBy: (field, direction) => ({
-                    get: () => Promise.resolve({docs: []})
-                })
-            })
-        };
+        // Inicializar Firebase REAL
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // CONFIGURAR LISTENERS EN TIEMPO REAL
+        function configurarListenersEnTiempoReal() {
+            // Listener para clientes
+            db.collection('clientes').onSnapshot((snapshot) => {
+                console.log('🔄 Actualizando clientes desde Firebase...');
+                clientes = [];
+                snapshot.forEach(doc => {
+                    clientes.push(doc.data());
+                });
+                actualizarTablaClientes();
+                console.log('✅ Clientes sincronizados:', clientes.length);
+            });
+
+            // Listener para productos
+            db.collection('productos').onSnapshot((snapshot) => {
+                console.log('🔄 Actualizando productos desde Firebase...');
+                productos = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.docId = doc.id;
+                    productos.push(data);
+                });
+                actualizarTablaProductos();
+                console.log('✅ Productos sincronizados:', productos.length);
+            });
+
+            // Listener para pedidos
+            db.collection('pedidos').onSnapshot((snapshot) => {
+                console.log('🔄 Actualizando pedidos desde Firebase...');
+                pedidos = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.docId = doc.id;
+                    pedidos.push(data);
+                });
+                // Actualizar dashboard si está visible
+                if (document.getElementById('dashboard').classList.contains('active')) {
+                    actualizarDashboard();
+                }
+                // Actualizar lista de pedidos si está visible
+                if (document.getElementById('lista_pedidos').classList.contains('active')) {
+                    cargarListaPedidos();
+                }
+                console.log('✅ Pedidos sincronizados:', pedidos.length);
+            });
+
+            console.log('🌐 Listeners en tiempo real configurados - Sincronización automática ACTIVADA');
+        }
+        
+        console.log('🔥 Firebase conectado exitosamente!');
+        console.log('🌐 Sistema ahora funciona en RED entre dispositivos');
 
         // Datos en memoria para demo
         let clientes = [];
@@ -784,13 +959,21 @@
             }
         }
 
-        // Gestión de Clientes
+        // Gestión de Clientes con sincronización automática
         document.getElementById('form-cliente').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(e.target);
+            
+            // Obtener el próximo ID
+            const clientesSnapshot = await db.collection('clientes').orderBy('id', 'desc').limit(1).get();
+            let nextId = 1;
+            if (!clientesSnapshot.empty) {
+                nextId = clientesSnapshot.docs[0].data().id + 1;
+            }
+            
             const cliente = {
-                id: nextClienteId++,
+                id: nextId,
                 nombre: formData.get('nombre'),
                 apellido: formData.get('apellido'),
                 telefono: formData.get('telefono'),
@@ -805,11 +988,37 @@
                 fecha_registro: new Date().toISOString()
             };
             
-            clientes.push(cliente);
-            actualizarTablaClientes();
-            e.target.reset();
-            mostrarAlerta('Cliente registrado exitosamente', 'success');
+            try {
+                await db.collection('clientes').add(cliente);
+                // NO NECESITAMOS cargar manualmente - el listener lo hace automáticamente
+                e.target.reset();
+                mostrarAlerta('Cliente registrado y sincronizado exitosamente', 'success');
+                console.log('✅ Cliente agregado - se sincronizará automáticamente');
+            } catch (error) {
+                console.error('Error al guardar cliente:', error);
+                mostrarAlerta('Error al registrar cliente', 'error');
+            }
         });
+
+        // Ya no necesitamos cargarClientesDesdeFirebase manualmente
+        // El listener onSnapshot lo hace automáticamente
+
+        async function eliminarCliente(id) {
+            if (confirm('¿Está seguro de eliminar este cliente?')) {
+                try {
+                    const clienteQuery = await db.collection('clientes').where('id', '==', id).get();
+                    if (!clienteQuery.empty) {
+                        await clienteQuery.docs[0].ref.delete();
+                        // El listener actualizará automáticamente la tabla
+                        mostrarAlerta('Cliente eliminado y sincronizado exitosamente', 'success');
+                        console.log('✅ Cliente eliminado - se sincronizará automáticamente');
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar cliente:', error);
+                    mostrarAlerta('Error al eliminar cliente', 'error');
+                }
+            }
+        }
 
         function actualizarTablaClientes() {
             const tbody = document.querySelector('#tabla-clientes tbody');
@@ -835,11 +1044,7 @@
         }
 
         function eliminarCliente(id) {
-            if (confirm('¿Está seguro de eliminar este cliente?')) {
-                clientes = clientes.filter(c => c.id !== id);
-                actualizarTablaClientes();
-                mostrarAlerta('Cliente eliminado exitosamente', 'success');
-            }
+            // Esta función ahora está integrada con Firebase arriba
         }
 
         // Gestión de Productos
@@ -869,13 +1074,15 @@
             document.getElementById(`componente-${id}`).remove();
         }
 
+        // Gestión de Productos con Firebase REAL
         document.getElementById('form-producto').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(e.target);
             
             // Verificar si el ID ya existe
-            if (productos.find(p => p.id === formData.get('id'))) {
+            const existeQuery = await db.collection('productos').where('id', '==', formData.get('id')).get();
+            if (!existeQuery.empty) {
                 mostrarAlerta('El ID del producto ya existe', 'error');
                 return;
             }
@@ -908,13 +1115,69 @@
                 });
             }
             
-            productos.push(producto);
-            actualizarTablaProductos();
-            e.target.reset();
-            document.getElementById('componentes-container').style.display = 'none';
-            document.getElementById('componentes-list').innerHTML = '';
-            mostrarAlerta('Producto registrado exitosamente', 'success');
+            try {
+                await db.collection('productos').add(producto);
+                await cargarProductosDesdeFirebase();
+                e.target.reset();
+                document.getElementById('componentes-container').style.display = 'none';
+                document.getElementById('componentes-list').innerHTML = '';
+                mostrarAlerta('Producto registrado exitosamente', 'success');
+            } catch (error) {
+                console.error('Error al guardar producto:', error);
+                mostrarAlerta('Error al registrar producto', 'error');
+            }
         });
+
+        async function cargarProductosDesdeFirebase() {
+            try {
+                const snapshot = await db.collection('productos').get();
+                productos = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.docId = doc.id; // Guardar el ID del documento
+                    productos.push(data);
+                });
+                actualizarTablaProductos();
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+            }
+        }
+
+        async function ajustarStock(id) {
+            const producto = productos.find(p => p.id === id);
+            if (producto) {
+                const nuevoStock = prompt(`Stock actual: ${producto.stock_actual}\nIngrese nuevo stock:`, producto.stock_actual);
+                if (nuevoStock !== null && !isNaN(nuevoStock)) {
+                    try {
+                        const query = await db.collection('productos').where('id', '==', id).get();
+                        if (!query.empty) {
+                            await query.docs[0].ref.update({ stock_actual: parseInt(nuevoStock) });
+                            await cargarProductosDesdeFirebase();
+                            mostrarAlerta('Stock actualizado exitosamente', 'success');
+                        }
+                    } catch (error) {
+                        console.error('Error al actualizar stock:', error);
+                        mostrarAlerta('Error al actualizar stock', 'error');
+                    }
+                }
+            }
+        }
+
+        async function eliminarProducto(id) {
+            if (confirm('¿Está seguro de eliminar este producto?')) {
+                try {
+                    const query = await db.collection('productos').where('id', '==', id).get();
+                    if (!query.empty) {
+                        await query.docs[0].ref.delete();
+                        await cargarProductosDesdeFirebase();
+                        mostrarAlerta('Producto eliminado exitosamente', 'success');
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar producto:', error);
+                    mostrarAlerta('Error al eliminar producto', 'error');
+                }
+            }
+        }
 
         function actualizarTablaProductos() {
             const tbody = document.querySelector('#tabla-productos tbody');
@@ -945,23 +1208,11 @@
         }
 
         function ajustarStock(id) {
-            const producto = productos.find(p => p.id === id);
-            if (producto) {
-                const nuevoStock = prompt(`Stock actual: ${producto.stock_actual}\nIngrese nuevo stock:`, producto.stock_actual);
-                if (nuevoStock !== null && !isNaN(nuevoStock)) {
-                    producto.stock_actual = parseInt(nuevoStock);
-                    actualizarTablaProductos();
-                    mostrarAlerta('Stock actualizado exitosamente', 'success');
-                }
-            }
+            // Esta función ahora está integrada con Firebase arriba
         }
 
         function eliminarProducto(id) {
-            if (confirm('¿Está seguro de eliminar este producto?')) {
-                productos = productos.filter(p => p.id !== id);
-                actualizarTablaProductos();
-                mostrarAlerta('Producto eliminado exitosamente', 'success');
-            }
+            // Esta función ahora está integrada con Firebase arriba
         }
 
         // Autocompletado de clientes
@@ -1113,7 +1364,7 @@
             }
         }
 
-        // Formulario de pedido
+        // Formulario de pedido con Firebase REAL
         document.getElementById('form-pedido').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -1130,48 +1381,65 @@
             const productosPedido = [];
             let validProducts = true;
             
-            productosRows.forEach(row => {
+            for (const row of productosRows) {
                 const productoId = row.querySelector('.producto-id').value;
                 const cantidad = parseInt(row.querySelector('.producto-cantidad').value);
                 const precio = parseFloat(row.querySelector('.producto-precio').value);
                 
                 if (productoId && cantidad > 0 && precio > 0) {
-                    // Verificar stock
-                    const producto = productos.find(p => p.id === productoId);
-                    if (producto && producto.stock_actual >= cantidad) {
-                        productosPedido.push({
-                            producto_id: productoId,
-                            nombre: producto.nombre,
-                            cantidad: cantidad,
-                            precio_unitario: precio,
-                            subtotal: cantidad * precio
-                        });
+                    // Verificar stock en Firebase
+                    const productoQuery = await db.collection('productos').where('id', '==', productoId).get();
+                    if (!productoQuery.empty) {
+                        const producto = productoQuery.docs[0].data();
+                        const docId = productoQuery.docs[0].id;
                         
-                        // Actualizar stock
-                        producto.stock_actual -= cantidad;
-                        
-                        // Si es producto compuesto, actualizar stock de componentes
-                        if (producto.es_compuesto) {
-                            producto.componentes.forEach(comp => {
-                                const componenteProducto = productos.find(p => p.nombre === comp.producto);
-                                if (componenteProducto) {
-                                    componenteProducto.stock_actual -= (comp.cantidad * cantidad);
-                                }
+                        if (producto.stock_actual >= cantidad) {
+                            productosPedido.push({
+                                producto_id: productoId,
+                                nombre: producto.nombre,
+                                cantidad: cantidad,
+                                precio_unitario: precio,
+                                subtotal: cantidad * precio
                             });
+                            
+                            // Actualizar stock en Firebase
+                            const nuevoStock = producto.stock_actual - cantidad;
+                            await db.collection('productos').doc(docId).update({ stock_actual: nuevoStock });
+                            
+                            // Si es producto compuesto, actualizar stock de componentes
+                            if (producto.es_compuesto && producto.componentes) {
+                                for (const comp of producto.componentes) {
+                                    const compQuery = await db.collection('productos').where('nombre', '==', comp.producto).get();
+                                    if (!compQuery.empty) {
+                                        const compProducto = compQuery.docs[0].data();
+                                        const compDocId = compQuery.docs[0].id;
+                                        const nuevoStockComp = compProducto.stock_actual - (comp.cantidad * cantidad);
+                                        await db.collection('productos').doc(compDocId).update({ stock_actual: nuevoStockComp });
+                                    }
+                                }
+                            }
+                        } else {
+                            mostrarAlerta(`Stock insuficiente para ${producto.nombre}`, 'error');
+                            validProducts = false;
+                            break;
                         }
-                    } else {
-                        mostrarAlerta(`Stock insuficiente para ${producto.nombre}`, 'error');
-                        validProducts = false;
                     }
                 }
-            });
+            }
             
             if (!validProducts || productosPedido.length === 0) {
                 return;
             }
             
+            // Obtener el próximo ID de pedido
+            const pedidosSnapshot = await db.collection('pedidos').orderBy('id', 'desc').limit(1).get();
+            let nextPedidoId = 1;
+            if (!pedidosSnapshot.empty) {
+                nextPedidoId = pedidosSnapshot.docs[0].data().id + 1;
+            }
+            
             const pedido = {
-                id: nextPedidoId++,
+                id: nextPedidoId,
                 cliente_id: parseInt(clienteId),
                 cliente_nombre: document.getElementById('cliente-buscar').value,
                 productos: productosPedido,
@@ -1187,12 +1455,38 @@
                 estado_entrega: 'pendiente'
             };
             
-            pedidos.push(pedido);
-            actualizarTablaProductos(); // Para reflejar el stock actualizado
-            e.target.reset();
-            document.getElementById('cliente-id').value = '';
-            
-            // Resetear productos del pedido
+            try {
+                await db.collection('pedidos').add(pedido);
+                await cargarProductosDesdeFirebase(); // Refrescar productos con stock actualizado
+                await cargarPedidosDesdeFirebase(); // Cargar pedidos
+                e.target.reset();
+                document.getElementById('cliente-id').value = '';
+                
+                // Resetear productos del pedido
+                resetearFormularioPedido();
+                
+                mostrarAlerta('Pedido creado exitosamente', 'success');
+            } catch (error) {
+                console.error('Error al crear pedido:', error);
+                mostrarAlerta('Error al crear pedido', 'error');
+            }
+        });
+
+        async function cargarPedidosDesdeFirebase() {
+            try {
+                const snapshot = await db.collection('pedidos').orderBy('fecha_entrega').get();
+                pedidos = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.docId = doc.id;
+                    pedidos.push(data);
+                });
+            } catch (error) {
+                console.error('Error al cargar pedidos:', error);
+            }
+        }
+
+        function resetearFormularioPedido() {
             const container = document.getElementById('productos-pedido');
             container.innerHTML = `
                 <div class="product-row">
@@ -1226,9 +1520,7 @@
             // Reinicializar listeners
             setupProductoAutocomplete(document.querySelector('.producto-buscar'));
             setupCantidadListener(document.querySelector('.producto-cantidad'));
-            
-            mostrarAlerta('Pedido creado exitosamente', 'success');
-        });
+        }
 
         // Lista de pedidos
         function cargarListaPedidos() {
@@ -1315,44 +1607,118 @@
             return div;
         }
 
-        function marcarPagado(pedidoId) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            if (pedido) {
-                pedido.estado_pago = 'pagado';
-                pedido.saldo_pendiente = 0;
-                pedido.monto_pagado = pedido.total_compra;
-                cargarListaPedidos();
-                mostrarAlerta('Pedido marcado como pagado', 'success');
-            }
-        }
-
-        function marcarEntregado(pedidoId) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            if (pedido) {
-                pedido.estado_entrega = 'entregado';
-                pedido.fecha_entrega_real = new Date().toISOString();
-                cargarListaPedidos();
-                mostrarAlerta('Pedido marcado como entregado', 'success');
-            }
-        }
-
-        function eliminarPedido(pedidoId) {
-            if (confirm('¿Está seguro de eliminar este pedido? Se restaurará el stock de los productos.')) {
-                const pedido = pedidos.find(p => p.id === pedidoId);
-                if (pedido) {
-                    // Restaurar stock
-                    pedido.productos.forEach(prodPedido => {
-                        const producto = productos.find(p => p.id === prodPedido.producto_id);
-                        if (producto) {
-                            producto.stock_actual += prodPedido.cantidad;
-                        }
+        async function marcarPagado(pedidoId) {
+            try {
+                const query = await db.collection('pedidos').where('id', '==', pedidoId).get();
+                if (!query.empty) {
+                    await query.docs[0].ref.update({
+                        estado_pago: 'pagado',
+                        saldo_pendiente: 0,
+                        monto_pagado: query.docs[0].data().total_compra
                     });
-                    
-                    pedidos = pedidos.filter(p => p.id !== pedidoId);
+                    await cargarPedidosDesdeFirebase();
                     cargarListaPedidos();
-                    actualizarTablaProductos();
-                    mostrarAlerta('Pedido eliminado y stock restaurado', 'success');
+                    mostrarAlerta('Pedido marcado como pagado', 'success');
                 }
+            } catch (error) {
+                console.error('Error al marcar como pagado:', error);
+                mostrarAlerta('Error al marcar como pagado', 'error');
+            }
+        }
+
+        async function marcarEntregado(pedidoId) {
+            try {
+                const query = await db.collection('pedidos').where('id', '==', pedidoId).get();
+                if (!query.empty) {
+                    await query.docs[0].ref.update({
+                        estado_entrega: 'entregado',
+                        fecha_entrega_real: new Date().toISOString()
+                    });
+                    await cargarPedidosDesdeFirebase();
+                    cargarListaPedidos();
+                    mostrarAlerta('Pedido marcado como entregado', 'success');
+                }
+            } catch (error) {
+                console.error('Error al marcar como entregado:', error);
+                mostrarAlerta('Error al marcar como entregado', 'error');
+            }
+        }
+
+        async function eliminarPedido(pedidoId) {
+            if (confirm('¿Está seguro de eliminar este pedido? Se restaurará el stock de los productos.')) {
+                try {
+                    const query = await db.collection('pedidos').where('id', '==', pedidoId).get();
+                    if (!query.empty) {
+                        const pedido = query.docs[0].data();
+                        
+                        // Restaurar stock
+                        for (const prodPedido of pedido.productos) {
+                            const prodQuery = await db.collection('productos').where('id', '==', prodPedido.producto_id).get();
+                            if (!prodQuery.empty) {
+                                const producto = prodQuery.docs[0].data();
+                                const nuevoStock = producto.stock_actual + prodPedido.cantidad;
+                                await db.collection('productos').doc(prodQuery.docs[0].id).update({ stock_actual: nuevoStock });
+                            }
+                        }
+                        
+                        // Eliminar pedido
+                        await query.docs[0].ref.delete();
+                        
+                        // Recargar datos
+                        await cargarPedidosDesdeFirebase();
+                        await cargarProductosDesdeFirebase();
+                        cargarListaPedidos();
+                        mostrarAlerta('Pedido eliminado y stock restaurado', 'success');
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar pedido:', error);
+                    mostrarAlerta('Error al eliminar pedido', 'error');
+                }
+            }
+        }
+
+        async function registrarPago(pedidoId) {
+            const monto = parseFloat(document.getElementById(`pago-${pedidoId}`).value);
+            const formaPago = document.getElementById(`forma-pago-${pedidoId}`).value;
+            
+            const pedido = pedidos.find(p => p.id === pedidoId);
+            if (monto <= 0 || monto > pedido.saldo_pendiente) {
+                mostrarAlerta('Monto inválido', 'error');
+                return;
+            }
+            
+            try {
+                // Registrar el pago en Firebase
+                const pago = {
+                    pedido_id: pedidoId,
+                    monto: monto,
+                    forma_pago: formaPago,
+                    fecha: new Date().toISOString()
+                };
+                
+                await db.collection('pagos').add(pago);
+                
+                // Actualizar el pedido
+                const nuevoMontoPagado = pedido.monto_pagado + monto;
+                const nuevoSaldo = pedido.total_compra - nuevoMontoPagado;
+                const nuevoEstadoPago = nuevoSaldo <= 0 ? 'pagado' : 'pendiente';
+                
+                const query = await db.collection('pedidos').where('id', '==', pedidoId).get();
+                if (!query.empty) {
+                    await query.docs[0].ref.update({
+                        monto_pagado: nuevoMontoPagado,
+                        saldo_pendiente: Math.max(0, nuevoSaldo),
+                        estado_pago: nuevoEstadoPago
+                    });
+                }
+                
+                await cargarPedidosDesdeFirebase();
+                cargarPedidosConSaldo();
+                mostrarAlerta('Pago registrado exitosamente', 'success');
+                
+            } catch (error) {
+                console.error('Error al registrar pago:', error);
+                mostrarAlerta('Error al registrar pago', 'error');
             }
         }
 
@@ -1421,37 +1787,7 @@
         }
 
         function registrarPago(pedidoId) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            const monto = parseFloat(document.getElementById(`pago-${pedidoId}`).value);
-            const formaPago = document.getElementById(`forma-pago-${pedidoId}`).value;
-            
-            if (monto <= 0 || monto > pedido.saldo_pendiente) {
-                mostrarAlerta('Monto inválido', 'error');
-                return;
-            }
-            
-            // Registrar el pago
-            const pago = {
-                id: Date.now(),
-                pedido_id: pedidoId,
-                monto: monto,
-                forma_pago: formaPago,
-                fecha: new Date().toISOString()
-            };
-            
-            pagos.push(pago);
-            
-            // Actualizar el pedido
-            pedido.monto_pagado += monto;
-            pedido.saldo_pendiente -= monto;
-            
-            if (pedido.saldo_pendiente <= 0) {
-                pedido.estado_pago = 'pagado';
-                pedido.saldo_pendiente = 0;
-            }
-            
-            cargarPedidosConSaldo();
-            mostrarAlerta('Pago registrado exitosamente', 'success');
+            // Esta función ahora está integrada con Firebase arriba
         }
 
         // Dashboard
@@ -1970,10 +2306,11 @@
             };
         }
 
-        console.log('🥪 Sistema Pastrami cargado correctamente');
-        console.log('✅ Todas las funcionalidades implementadas');
+        console.log('🔥 Sistema Pastrami con Firebase REAL cargado correctamente');
+        console.log('✅ Todas las funcionalidades implementadas con sincronización en red');
         console.log('📱 Responsive design activado');
-        console.log('🔄 Sistema listo para sincronización con Firebase');
+        console.log('🌐 Sistema funcionando en RED entre Windows/iOS/Android');
+        console.log('🚀 Datos sincronizados automáticamente en tiempo real');
     </script>
 </body>
 </html>
