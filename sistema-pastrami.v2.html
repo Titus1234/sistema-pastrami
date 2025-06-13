@@ -1,27 +1,37 @@
-// Inicialización con listeners en tiempo real
+// Inicialización con manejo seguro de errores
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                console.log('🔄 Iniciando Sistema Pastrami con sincronización en tiempo real...');
+                console.log('🔄 Iniciando Sistema Pastrami...');
                 
-                // CONFIGURAR LISTENERS EN TIEMPO REAL PRIMERO
-                configurarListenersEnTiempoReal();
-                
-                // Pequeña pausa para que los listeners se configuren
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Verificar si hay datos, si no cargar ejemplos
-                setTimeout(async () => {
+                // Verificar si Firebase está disponible
+                if (db) {
+                    console.log('✅ Firebase disponible - Configurando listeners...');
+                    configurarListenersEnTiempoReal();
+                    
+                    // Pequeña pausa para que los listeners se configuren
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    // Verificar si hay datos, si no cargar ejemplos
                     if (clientes.length === 0 && productos.length === 0) {
                         console.log('📝 No hay datos - Cargando ejemplos...');
                         await cargarDatosEjemploEnFirebase();
                     }
-                }, 2000);
+                } else {
+                    console.log('⚠️ Firebase no disponible - Cargando datos locales...');
+                    cargarDatosEjemplo();
+                    actualizarTablaClientes();
+                    actualizarTablaProductos();
+                    actualizarDashboard();
+                }
                 
                 // Configurar fechas por defecto para estadísticas
                 const hoy = new Date();
                 const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-                document.getElementById('fecha-desde').value = inicioMes.toISOString().split('T')[0];
-                document.getElementById('fecha-hasta').value = hoy.toISOString().split('T')[0];
+                const fechaDesdeInput = document.getElementById('fecha-desde');
+                const fechaHastaInput = document.getElementById('fecha-hasta');
+                
+                if (fechaDesdeInput) fechaDesdeInput.value = inicioMes.toISOString().split('T')[0];
+                if (fechaHastaInput) fechaHastaInput.value = hoy.toISOString().split('T')[0];
                 
                 // Configurar fecha mínima para pedidos (hoy)
                 const fechaEntregaInput = document.querySelector('input[name="fecha_entrega"]');
@@ -29,16 +39,24 @@
                     fechaEntregaInput.min = hoy.toISOString().split('T')[0];
                 }
                 
-                console.log('🚀 Sistema Pastrami con sincronización en tiempo real ACTIVADO');
-                mostrarAlerta('Sistema conectado con sincronización automática', 'success');
+                console.log('🚀 Sistema Pastrami iniciado correctamente');
+                mostrarAlerta('Sistema iniciado correctamente', 'success');
                 
             } catch (error) {
                 console.error('❌ Error al inicializar:', error);
-                mostrarAlerta('Error al conectar - Usando modo local', 'error');
+                mostrarAlerta('Error al inicializar - Funciona en modo básico', 'error');
+                
+                // Fallback completo
+                cargarDatosEjemplo();
+                actualizarTablaClientes();
+                actualizarTablaProductos();
+                actualizarDashboard();
             }
         });
 
         async function cargarDatosEjemploEnFirebase() {
+            if (!db) return;
+            
             try {
                 // Clientes de ejemplo
                 const clientesEjemplo = [
@@ -99,21 +117,6 @@
                         es_compuesto: false,
                         componentes: [],
                         fecha_registro: new Date().toISOString()
-                    },
-                    {
-                        id: 'CAJA001',
-                        nombre: 'Caja Mixta x6',
-                        precio: 6500.00,
-                        stock_inicial: 20,
-                        stock_actual: 18,
-                        stock_minimo: 3,
-                        unidad: 'cajas',
-                        es_compuesto: true,
-                        componentes: [
-                            { producto: 'Pastrami Clásico', cantidad: 3 },
-                            { producto: 'Pastrami Premium', cantidad: 3 }
-                        ],
-                        fecha_registro: new Date().toISOString()
                     }
                 ];
 
@@ -126,15 +129,47 @@
                     await db.collection('productos').add(producto);
                 }
                 
-                // Recargar datos
-                await cargarClientesDesdeFirebase();
-                await cargarProductosDesdeFirebase();
-                
                 console.log('✅ Datos de ejemplo cargados en Firebase');
                 
             } catch (error) {
                 console.error('Error al cargar datos de ejemplo:', error);
             }
+        }
+
+        // Función fallback para datos locales
+        function cargarDatosEjemplo() {
+            clientes = [
+                {
+                    id: 1,
+                    nombre: 'Juan',
+                    apellido: 'Pérez',
+                    telefono: '11-1234-5678',
+                    direccion: {
+                        calle: 'Av. Corrientes',
+                        numero: '1234',
+                        piso: '2A',
+                        codigo_postal: '1043',
+                        localidad: 'CABA'
+                    },
+                    email: 'juan.perez@email.com',
+                    fecha_registro: new Date().toISOString()
+                }
+            ];
+
+            productos = [
+                {
+                    id: 'PAST001',
+                    nombre: 'Pastrami Clásico',
+                    precio: 1200.00,
+                    stock_inicial: 50,
+                    stock_actual: 45,
+                    stock_minimo: 10,
+                    unidad: 'unidades',
+                    es_compuesto: false,
+                    componentes: [],
+                    fecha_registro: new Date().toISOString()
+                }
+            ];
         }<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -880,55 +915,67 @@
         
         // CONFIGURAR LISTENERS EN TIEMPO REAL
         function configurarListenersEnTiempoReal() {
-            // Listener para clientes
-            db.collection('clientes').onSnapshot((snapshot) => {
-                console.log('🔄 Actualizando clientes desde Firebase...');
-                clientes = [];
-                snapshot.forEach(doc => {
-                    clientes.push(doc.data());
-                });
-                actualizarTablaClientes();
-                console.log('✅ Clientes sincronizados:', clientes.length);
-            });
+            if (!db) {
+                console.log('⚠️ Firebase no disponible - usando modo local');
+                return;
+            }
 
-            // Listener para productos
-            db.collection('productos').onSnapshot((snapshot) => {
-                console.log('🔄 Actualizando productos desde Firebase...');
-                productos = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    data.docId = doc.id;
-                    productos.push(data);
+            try {
+                // Listener para clientes
+                db.collection('clientes').onSnapshot((snapshot) => {
+                    console.log('🔄 Actualizando clientes desde Firebase...');
+                    clientes = [];
+                    snapshot.forEach(doc => {
+                        clientes.push(doc.data());
+                    });
+                    actualizarTablaClientes();
+                    console.log('✅ Clientes sincronizados:', clientes.length);
+                }, (error) => {
+                    console.error('Error en listener de clientes:', error);
                 });
-                actualizarTablaProductos();
-                console.log('✅ Productos sincronizados:', productos.length);
-            });
 
-            // Listener para pedidos
-            db.collection('pedidos').onSnapshot((snapshot) => {
-                console.log('🔄 Actualizando pedidos desde Firebase...');
-                pedidos = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    data.docId = doc.id;
-                    pedidos.push(data);
+                // Listener para productos
+                db.collection('productos').onSnapshot((snapshot) => {
+                    console.log('🔄 Actualizando productos desde Firebase...');
+                    productos = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        data.docId = doc.id;
+                        productos.push(data);
+                    });
+                    actualizarTablaProductos();
+                    console.log('✅ Productos sincronizados:', productos.length);
+                }, (error) => {
+                    console.error('Error en listener de productos:', error);
                 });
-                // Actualizar dashboard si está visible
-                if (document.getElementById('dashboard').classList.contains('active')) {
-                    actualizarDashboard();
-                }
-                // Actualizar lista de pedidos si está visible
-                if (document.getElementById('lista_pedidos').classList.contains('active')) {
-                    cargarListaPedidos();
-                }
-                console.log('✅ Pedidos sincronizados:', pedidos.length);
-            });
 
-            console.log('🌐 Listeners en tiempo real configurados - Sincronización automática ACTIVADA');
+                // Listener para pedidos
+                db.collection('pedidos').onSnapshot((snapshot) => {
+                    console.log('🔄 Actualizando pedidos desde Firebase...');
+                    pedidos = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        data.docId = doc.id;
+                        pedidos.push(data);
+                    });
+                    // Actualizar dashboard si está visible
+                    if (document.getElementById('dashboard') && document.getElementById('dashboard').classList.contains('active')) {
+                        actualizarDashboard();
+                    }
+                    // Actualizar lista de pedidos si está visible
+                    if (document.getElementById('lista_pedidos') && document.getElementById('lista_pedidos').classList.contains('active')) {
+                        cargarListaPedidos();
+                    }
+                    console.log('✅ Pedidos sincronizados:', pedidos.length);
+                }, (error) => {
+                    console.error('Error en listener de pedidos:', error);
+                });
+
+                console.log('🌐 Listeners en tiempo real configurados - Sincronización automática ACTIVADA');
+            } catch (error) {
+                console.error('Error configurando listeners:', error);
+            }
         }
-        
-        console.log('🔥 Firebase conectado exitosamente!');
-        console.log('🌐 Sistema ahora funciona en RED entre dispositivos');
 
         // Datos en memoria para demo
         let clientes = [];
@@ -959,63 +1006,68 @@
             }
         }
 
-        // Gestión de Clientes con sincronización automática
+        // Gestión de Clientes con protección de errores
         document.getElementById('form-cliente').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const formData = new FormData(e.target);
-            
-            // Obtener el próximo ID
-            const clientesSnapshot = await db.collection('clientes').orderBy('id', 'desc').limit(1).get();
-            let nextId = 1;
-            if (!clientesSnapshot.empty) {
-                nextId = clientesSnapshot.docs[0].data().id + 1;
+            if (!db) {
+                mostrarAlerta('Firebase no disponible - funcionando en modo local', 'error');
+                return;
             }
             
-            const cliente = {
-                id: nextId,
-                nombre: formData.get('nombre'),
-                apellido: formData.get('apellido'),
-                telefono: formData.get('telefono'),
-                direccion: {
-                    calle: formData.get('calle') || '',
-                    numero: formData.get('numero') || '',
-                    piso: formData.get('piso') || '',
-                    codigo_postal: formData.get('codigo_postal') || '',
-                    localidad: formData.get('localidad') || ''
-                },
-                email: formData.get('email') || '',
-                fecha_registro: new Date().toISOString()
-            };
+            const formData = new FormData(e.target);
             
             try {
+                // Obtener el próximo ID
+                const clientesSnapshot = await db.collection('clientes').orderBy('id', 'desc').limit(1).get();
+                let nextId = 1;
+                if (!clientesSnapshot.empty) {
+                    nextId = clientesSnapshot.docs[0].data().id + 1;
+                }
+                
+                const cliente = {
+                    id: nextId,
+                    nombre: formData.get('nombre'),
+                    apellido: formData.get('apellido'),
+                    telefono: formData.get('telefono'),
+                    direccion: {
+                        calle: formData.get('calle') || '',
+                        numero: formData.get('numero') || '',
+                        piso: formData.get('piso') || '',
+                        codigo_postal: formData.get('codigo_postal') || '',
+                        localidad: formData.get('localidad') || ''
+                    },
+                    email: formData.get('email') || '',
+                    fecha_registro: new Date().toISOString()
+                };
+                
                 await db.collection('clientes').add(cliente);
-                // NO NECESITAMOS cargar manualmente - el listener lo hace automáticamente
                 e.target.reset();
-                mostrarAlerta('Cliente registrado y sincronizado exitosamente', 'success');
+                mostrarAlerta('Cliente registrado exitosamente', 'success');
                 console.log('✅ Cliente agregado - se sincronizará automáticamente');
             } catch (error) {
                 console.error('Error al guardar cliente:', error);
-                mostrarAlerta('Error al registrar cliente', 'error');
+                mostrarAlerta('Error al registrar cliente: ' + error.message, 'error');
             }
         });
 
-        // Ya no necesitamos cargarClientesDesdeFirebase manualmente
-        // El listener onSnapshot lo hace automáticamente
-
         async function eliminarCliente(id) {
+            if (!db) {
+                mostrarAlerta('Firebase no disponible', 'error');
+                return;
+            }
+            
             if (confirm('¿Está seguro de eliminar este cliente?')) {
                 try {
                     const clienteQuery = await db.collection('clientes').where('id', '==', id).get();
                     if (!clienteQuery.empty) {
                         await clienteQuery.docs[0].ref.delete();
-                        // El listener actualizará automáticamente la tabla
-                        mostrarAlerta('Cliente eliminado y sincronizado exitosamente', 'success');
+                        mostrarAlerta('Cliente eliminado exitosamente', 'success');
                         console.log('✅ Cliente eliminado - se sincronizará automáticamente');
                     }
                 } catch (error) {
                     console.error('Error al eliminar cliente:', error);
-                    mostrarAlerta('Error al eliminar cliente', 'error');
+                    mostrarAlerta('Error al eliminar cliente: ' + error.message, 'error');
                 }
             }
         }
